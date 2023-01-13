@@ -1,0 +1,57 @@
+{% set name = "FunID" %}
+{% set version = "0.2.0.0.0.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/Changwanseo/FunID-dev/archive/v{{ version}}.tar.gz
+  sha256: d6f58662e8c8070f4a24bf896897ea3796b10b8dfebe0bc17ad278ff227c30e9
+
+build:
+  entry_points:
+    - FunID = FunID.main:main
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv
+  number: 0
+
+requirements:
+  host:
+    - python >=3.8
+    - pip
+  run:
+    - python >=3.8
+    - biopython
+    - ete3
+    - hashlib
+    - lxml
+    - matplotlib
+    - numpy
+    - openpyxl
+    - pandas
+    - plotly
+    - scikit-learn
+    - streamlit
+    - unidecode
+    - xlrd
+    - xmltodict
+    - zipfile
+
+
+test:
+  commands:
+    - pip check
+    - FunID --help
+  requires:
+    - pip
+
+about:
+  home: https://github.com/Changwanseo/FunID-dev/
+  summary: Fungal Identification Pipeline
+  license: GPL-3.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - Changwanseo

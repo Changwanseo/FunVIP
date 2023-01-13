@@ -1,0 +1,4 @@
+Mandatory
+id (old accession) - accession
+genus
+species
