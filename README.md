@@ -1,7 +1,7 @@
 ### This is Alpha release. May be unstable
 
 
-# Scheudling
+# Scheduling
 ## Alpha release
 - For source code disclosure
 - Need specific settings, and may not work well for some datasets
