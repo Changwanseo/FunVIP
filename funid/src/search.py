@@ -1,11 +1,11 @@
 from funid.src import cluster, tool, hasher, manage_input
-from funid.src.logger import Mes
 from funid.src.ext import blast, makeblastdb, mmseqs, makemmseqsdb
 from funid.src.manage_input import save_df
 import copy
 import pandas as pd
 import numpy as np
 import os
+import logging
 import subprocess
 import shutil
 import hashlib
@@ -42,7 +42,7 @@ def create_search_db(opt, db_fasta, db, path) -> None:
     ):
         makemmseqsdb(fasta=db_fasta, db=db, path=path)
     else:
-        Mes("[ERROR] DEVELOPMENTAL ERROR on building search DB!")
+        logging.error("DEVELOPMENTAL ERROR on building search DB!")
         raise Exception
 
 
@@ -54,11 +54,11 @@ def merge_fragments(df) -> pd.DataFrame():
         if len(set(series)) == 1:
             return list(series)[0]
         elif len(set(series)) == 0:
-            Mes(f"[ERROR] Found 0 values in {series} while merging search results")
+            logging.error(f"Found 0 values in {series} while merging search results")
             raise Exception
         else:
-            Mes(
-                f"[ERROR] Found {len(set(series))} values in {series} while merging search results"
+            logging.error(
+                f"Found {len(set(series))} values in {series} while merging search results"
             )
             raise Exception
 
@@ -67,12 +67,12 @@ def merge_fragments(df) -> pd.DataFrame():
         pident = df["pident"]
         length = df["length"]
         if len(pident) != len(length):
-            Mes(
-                f"[ERROR] During merge blast fragments, found pident {pident} and len {length} are different"
+            logging.error(
+                f"During merge blast fragments, found pident {pident} and len {length} are different"
             )
             raise Exception
         elif len(pident) == 0:
-            Mes(f"[ERROR] No percent identitiy {pident} found")
+            logging.error(f"No percent identitiy {pident} found")
             raise Exception
         else:
             # Calculate overall percent identity
@@ -125,10 +125,10 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
     if opt.cachedb is True or opt.usecache is True:
 
         # get hash number of the given db to compare
-        hash = hashlib.md5(open(db_fasta, "rb").read()).hexdigest()
+        hash_ = hashlib.md5(open(db_fasta, "rb").read()).hexdigest()
 
-        if hash is None:
-            Mes(f"[ERROR] Database file {db_fasta} missing")
+        if hash_ is None:
+            logging.error(f"Database file {db_fasta} missing")
             raise Exception
 
         # Try to parse DB
@@ -136,38 +136,38 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
 
             # When succesfully parsed DB
             if (
-                os.path.isdir(f"{path.in_db}/{opt.method.search.lower()}/{hash}")
+                os.path.isdir(f"{path.in_db}/{opt.method.search.lower()}/{hash_}")
                 is True
             ):
-                Mes("[INFO] Found existing database! Skipping database build")
-                db = f"{path.in_db}/{opt.method.search.lower()}/{hash}/{hash}"
+                logging.info("[INFO] Found existing database! Skipping database build")
+                db = f"{path.in_db}/{opt.method.search.lower()}/{hash_}/{hash_}"
 
             # When parsing existing DB failed
             else:
 
-                Mes("[INFO] No existing database found")
+                logging.info("No existing database found")
 
                 # Try save DB
                 if opt.cachedb is True:
-                    Mes(
-                        f"[INFO] cachedb selected, {opt.method.search.lower()} database will be saved"
+                    logging.info(
+                        f"--cachedb selected, {opt.method.search.lower()} database will be saved"
                     )
 
                     # Create DB saving directory
-                    os.mkdir(f"{path.in_db}/{opt.method.search.lower()}/{hash}")
-                    db = f"{path.in_db}/{opt.method.search.lower()}/{hash}/{hash}"
+                    os.mkdir(f"{path.in_db}/{opt.method.search.lower()}/{hash_}")
+                    db = f"{path.in_db}/{opt.method.search.lower()}/{hash_}/{hash_}"
 
                     # DB saving starts
-                    Mes(
-                        "[INFO] The database is in first run, generating and saving database"
-                    )
+                    logging.info("The database is in first run, caching database")
 
                     # Create search database
                     create_search_db(opt, db_fasta, db, path)
 
                 # Passing Save DB
                 else:
-                    Mes("[INFO] cachedb not selected, saving database will be passed")
+                    logging.info(
+                        "--cachedb not selected, saving database will be passed"
+                    )
                     db = f"{path.tmp}/{opt.runname}"
 
                     # Create search database
@@ -207,7 +207,7 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
         # remove temporary file
         # shutil.rmtree(f"{path.tmp}/{opt.runname}")
     else:
-        Mes("[ERROR] DEVELOPMENTAL ERROR on searching!")
+        logging.error("DEVELOPMENTAL ERROR on searching!")
         raise Exception
 
     # Parse out
@@ -248,11 +248,11 @@ def search_df(V, path, opt):
     # Initialize variable for search result
     dict_search = {}
 
-    # Ready for by sseqid hash, which section to append
-    # generating section dict to assign section column next to the output dataframe
-    section_dict = {}
+    # Ready for by sseqid hash, which group to append
+    # generating group dict to assign group column next to the output dataframe
+    group_dict = {}
     for FI in V.list_FI:
-        section_dict[FI.hash] = FI.section
+        group_dict[FI.hash] = FI.group
 
     # genes available for db and query
     V.list_db_gene = copy.copy(opt.gene)
@@ -269,18 +269,20 @@ def search_df(V, path, opt):
         )
 
         if db_state == 0:
-            Mes(
-                f"[Warning] No data for {gene} found in database. Excluding from analysis"
+            logging.warning(
+                f"No data for {gene} found in database. Excluding from analysis"
             )
             V.list_db_gene.remove(gene)
 
     # get query fasta from funinfo_list
     list_qr_FI = tool.select(V.list_FI, datatype="query")
-    # hash_dict : hash : accession
-    V.dict_acc_hash = hasher.encode(V.list_FI)
 
-    if len(list_qr_FI) == 0:  # if only database sequence exists
-        Mes("[INFO] No query selected. Changing to database validation mode")
+    # hash_dict format - hash : id
+    V.dict_id_hash = hasher.encode(V.list_FI)
+
+    # if no query exists and only database sequence exists
+    if len(list_qr_FI) == 0:
+        logging.warning("No query selected. Changing to database validation mode")
         # db by db search analysis
         for gene in V.list_db_gene:
             df_search = search(
@@ -290,9 +292,9 @@ def search_df(V, path, opt):
                 opt=opt,
             )
 
-            # append section column
-            df_search["subject_section"] = df_search["sseqid"].apply(
-                lambda x: section_dict.get(x)
+            # append group column
+            df_search["subject_group"] = df_search["sseqid"].apply(
+                lambda x: group_dict.get(x)
             )
             # add to search dict
             # dict_search[gene] = df_search
@@ -301,12 +303,13 @@ def search_df(V, path, opt):
             # Save dataframe
             if opt.savesearchresult is True:
                 save_df(
-                    hasher.decode_df(V.dict_acc_hash, df_search),
+                    hasher.decode_df(V.dict_id_hash, df_search),
                     f"{path.out_matrix}/{opt.runname}_BLAST_result_{gene}.{opt.matrixformat}",
                     fmt=opt.matrixformat,
                 )
 
-    else:  # if query sequence exists
+    # if query sequence exists
+    else:
         query_state = manage_input.save_fasta(
             list_qr_FI,
             "unclassified",
@@ -358,9 +361,10 @@ def search_df(V, path, opt):
             if query_state == 0:
                 V.list_qr_gene.remove(gene)
             else:
+                # If db column and query column does not matches -> should be moved to manage_input
                 if not (gene in V.list_db_gene):
-                    Mes(
-                        f"[Error] gene {gene} found in query, but cannot be found in DB"
+                    logging.error(
+                        f"Gene {gene} found in query, but not found in database. Please add {gene} column to database"
                     )
                     raise Exception
 
@@ -376,16 +380,16 @@ def search_df(V, path, opt):
                 opt=opt,
             )
 
-            # append section column
-            df_search["subject_section"] = df_search["sseqid"].apply(
-                lambda x: section_dict.get(x)
+            # append group column
+            df_search["subject_group"] = df_search["sseqid"].apply(
+                lambda x: group_dict.get(x)
             )
             V.dict_gene_SR[gene] = df_search
 
             # Save dataframe
             if opt.savesearchresult is True:
                 save_df(
-                    hasher.decode_df(V.dict_acc_hash, df_search),
+                    hasher.decode_df(V.dict_id_hash, df_search),
                     f"{path.out_matrix}/{opt.runname}_BLAST_result_{gene}.{opt.matrixformat}",
                     opt.matrixformat,
                 )

@@ -7,6 +7,7 @@ import builtins
 import datetime
 import platform
 import re
+from funid.src.logics import isvalidcolor
 
 # FunID Option class definition
 class Option:
@@ -25,6 +26,14 @@ class Option:
         def __init__(self):
             self.bscutoff = 70
             self.fullgenus = True
+            self.highlight = "#aa0000"
+            self.heightmultiplier = 6
+            self.maxwordlength = 48
+            self.backgroundcolor = ["#f4f4f4", "#c6c6c6"]
+            self.outgroupcolor = "#999999"
+            self.ftype = "Arial"
+            self.fsize = 10
+            self.fsize_bootstrap = 9
 
     # Cluster option
     class Cluster_Option:
@@ -63,6 +72,7 @@ class Option:
         self.continue_from_previous = False
         self.criterion = "BIC"
         self.step = ""
+        self.level = "genus"
         self.queryonly = True
         self.confident = True
         self.concatenate = True
@@ -79,19 +89,6 @@ class Option:
         self.matrixformat = "csv"
         self.savesearchmatrix = True
         self.savesearchresult = True
-
-        # temporary options - should be removed or added in further development
-        self.highlight = "#990000"
-        self.black = "#000000"
-        self.designated_genus = "Tmpgenus"
-        self.const_width = 1000
-        self.const_height = 6
-        self.const_max_len = 48
-        self.bgcolor = ["#f4f4f4", "#c6c6c6"]
-        self.outgroupcolor = "#999999"
-        self.fsize = 10
-        self.ftype = "Arial"
-        self.fsize_bootstrap = 10
 
         # Method options
         self.method = self.Method_Option()
@@ -116,11 +113,12 @@ class Option:
             try:
                 parser_dict = yaml.safe_load(f)
             except:
-                print(f"[ERROR] {preset_file} is not a valid preset yaml file")
+                print(f"{preset_file} is not a valid preset yaml file")
                 raise Exception
 
         # Update loaded preset
         for key in parser_dict:
+            # Basic options
             if key.lower() in ("query"):
                 self.query = parser_dict[key]
             elif key.lower() in ("db"):
@@ -143,26 +141,12 @@ class Option:
                 self.continue_from_previous = parser_dict[key]
             elif key.lower() in ("step"):
                 self.step = parser_dict[key]
+            elif key.lower() in ("level"):
+                self.level = parser_dict[key]
             elif key.lower() in ("queryonly"):
                 self.queryonly = parser_dict[key]
             elif key.lower() in ("concatenate"):
                 self.concatenate = parser_dict[key]
-            elif key.lower() in ("search"):
-                self.method.search = parser_dict[key]
-            elif key.lower() in ("alignment"):
-                self.method.alignment = parser_dict[key]
-            elif key.lower() in ("trim"):
-                self.method.trim = parser_dict[key]
-            elif key.lower() in ("modeltest"):
-                self.method.modeltest = parser_dict[key]
-            elif key.lower() in ("tree"):
-                self.method.tree = parser_dict[key]
-            elif key.lower() in ("bscutoff"):
-                self.visualize.bscutoff = parser_dict[key]
-            elif key.lower() in ("bootstrapcutoff"):
-                self.visualize.bscutoff = parser_dict[key]
-            elif key.lower() in ("fullgenus"):
-                self.visualize.fullgenus = parser_dict[key]
             elif key.lower() in ("verbose"):
                 self.verbose = parser_dict[key]
             elif key.lower() in ("maxoutgroup"):
@@ -177,27 +161,13 @@ class Option:
                 self.solveflat = parser_dict[key]
             elif key.lower() in ("regex"):
                 self.regex = parser_dict[key]
-            elif key.lower() in ("evalue"):
-                self.cluster.evalue = parser_dict[key]
-            elif key.lower() in ("wordsize"):
-                self.cluster.wordsize = parser_dict[key]
-            elif key.lower() in ("mafft-algorithm"):
-                self.mafft.algorithm = parser_dict[key]
-            elif key.lower() in ("mafft-op"):
-                self.mafft.op = parser_dict[key]
-            elif key.lower() in ("mafft-ep"):
-                self.mafft.ep = parser_dict[key]
-            elif key.lower() in ("trimal-algorithm"):
-                self.trimal.algorithm = parser_dict[key]
-            elif key.lower() in ("trimal-gt"):
-                self.trimal.gt = parser_dict[key]
             elif key.lower() in ("avx"):
                 self.avx = parser_dict[key]
             elif key.lower() in ("criterion"):
                 self.criterion = parser_dict[key]
             elif key.lower() in ("cachedb"):
                 self.cachedb = parser_dict[key]
-            elif key.lower() in ("usecachae"):
+            elif key.lower() in ("usecache"):
                 self.usecache = parser_dict[key]
             elif key.lower() in ("matrixformat"):
                 self.matrixformat = parser_dict[key]
@@ -205,10 +175,64 @@ class Option:
                 self.savesearchmatrix = parser_dict[key]
             elif key.lower() in ("savesearchresult"):
                 self.savesearchresult = parser_dict[key]
+
+            # Method options
+            elif key.lower() in ("search"):
+                self.method.search = parser_dict[key]
+            elif key.lower() in ("alignment"):
+                self.method.alignment = parser_dict[key]
+            elif key.lower() in ("trim"):
+                self.method.trim = parser_dict[key]
+            elif key.lower() in ("modeltest"):
+                self.method.modeltest = parser_dict[key]
+            elif key.lower() in ("tree"):
+                self.method.tree = parser_dict[key]
+
+            # Visualize options
+            elif key.lower() in ("bscutoff"):
+                self.visualize.bscutoff = parser_dict[key]
+            elif key.lower() in ("bootstrapcutoff"):
+                self.visualize.bscutoff = parser_dict[key]
+            elif key.lower() in ("fullgenus"):
+                self.visualize.fullgenus = parser_dict[key]
+            elif key.lower() in ("highlight"):
+                self.visualize.highlight = parser_dict[key]
+            elif key.lower() in ("heightmultiplier"):
+                self.visualize.heightmultiplier = parser_dict[key]
+            elif key.lower() in ("maxwordlength"):
+                self.visualize.maxwordlength = parser_dict[key]
+            elif key.lower() in ("backgroundcolor"):
+                self.visualize.backgroundcolor = parser_dict[key]
+            elif key.lower() in ("outgroupcolor"):
+                self.visualize.outgroupcolor = parser_dict[key]
+            elif key.lower() in ("ftype"):
+                self.visualize.ftype = parser_dict[key]
+            elif key.lower() in ("fsize"):
+                self.visualize.fsize = parser_dict[key]
+            elif key.lower() in ("fsize_bootstrap"):
+                self.visualize.fsize_bootstrap = parser_dict[key]
+
+            # Cluster options
+            elif key.lower() in ("evalue"):
+                self.cluster.evalue = parser_dict[key]
+            elif key.lower() in ("wordsize"):
+                self.cluster.wordsize = parser_dict[key]
+
+            # MAFFT options
+            elif key.lower() in ("mafft-algorithm"):
+                self.mafft.algorithm = parser_dict[key]
+            elif key.lower() in ("mafft-op"):
+                self.mafft.op = parser_dict[key]
+            elif key.lower() in ("mafft-ep"):
+                self.mafft.ep = parser_dict[key]
+
+            # TrimAl options
+            elif key.lower() in ("trimal-algorithm"):
+                self.trimal.algorithm = parser_dict[key]
+            elif key.lower() in ("trimal-gt"):
+                self.trimal.gt = parser_dict[key]
             else:
-                print(
-                    f"[WARNING] cannot recoginze {key} in preset file as valid variable"
-                )
+                print(f"cannot recoginze {key} in preset file as valid variable")
 
     # update values from parser object
     def update_from_parser(self, parser):
@@ -284,6 +308,12 @@ class Option:
             pass
 
         try:
+            if not parser.level is None:
+                self.level = parser.level
+        except:
+            pass
+
+        try:
             if parser.queryonly is True:
                 self.queryonly = parser.queryonly
         except:
@@ -340,6 +370,54 @@ class Option:
         try:
             if parser.visualize.fullgenus is True:
                 self.visualize.fullgenus = parser.fullgenus
+        except:
+            pass
+
+        try:
+            if not parser.highlight is None:
+                self.visualize.highlight = parser.highlight
+        except:
+            pass
+
+        try:
+            if not parser.heightmultiplier is None:
+                self.visualize.heightmultiplier = parser.heightmultiplier
+        except:
+            pass
+
+        try:
+            if not parser.maxwordlength is None:
+                self.visualize.maxwordlength = parser.maxwordlength
+        except:
+            pass
+
+        try:
+            if not parser.backgroundcolor is None:
+                self.visualize.backgroundcolor = parser.backgroundcolor
+        except:
+            pass
+
+        try:
+            if not parser.outgroupcolor is None:
+                self.visualize.outgroupcolor = parser.outgroupcolor
+        except:
+            pass
+
+        try:
+            if not parser.ftype is None:
+                self.visualize.ftype = parser.ftype
+        except:
+            pass
+
+        try:
+            if not parser.fsize is None:
+                self.visualize.fsize = parser.fsize
+        except:
+            pass
+
+        try:
+            if not parser.fsize_bootstrap is None:
+                self.visualize.fsize_bootstrap = parser.fsize_bootstrap
         except:
             pass
 
@@ -485,14 +563,12 @@ class Option:
         # query
         # Check if query files are in valid directories
         if not (type(self.query) is list):
-            list_error.append(f"[ERROR] Type for query should be list format")
+            list_error.append(f"Type for query should be list format")
         else:
             flag_query = 0
             for query in self.query:
                 if not (type(query) is str):
-                    list_error.append(
-                        f"[ERROR] query {query} is not a valid string format"
-                    )
+                    list_error.append(f"query {query} is not a valid string format")
                     flag_query = 1
 
             if flag_query == 0:
@@ -508,21 +584,19 @@ class Option:
                     # Check if query location is valid
                     try:
                         if not (os.path.exists(f"{query}")):
-                            list_error.append(
-                                f"[ERROR] {query} is not a valid query path"
-                            )
+                            list_error.append(f"{query} is not a valid query path")
                     except:
                         pass
 
         # db
         # Check if db files are in valid
         if not (type(self.db) is list):
-            list_error.append(f"[ERROR] Type for db should be list format")
+            list_error.append(f"Type for db should be list format")
         else:
             flag_db = 0
             for db in self.db:
                 if not (type(db) is str):
-                    list_error.append(f"[ERROR] db {db} is not a valid string format")
+                    list_error.append(f"db {db} is not a valid string format")
                     flag_db = 1
 
             if flag_db == 0:
@@ -537,22 +611,20 @@ class Option:
                     # Check if DB location is valid
                     try:
                         if not (os.path.exists(f"{db}")):
-                            list_error.append(f"[ERROR] {db} is not a valid query path")
+                            list_error.append(f"{db} is not a valid query path")
                     except:
                         pass
 
         # gene
         # Check if gene names are valid strings (comparing with db will be performed in parsing)
         if not (type(self.gene) is list):
-            list_error.append(f"[ERROR] Type for gene should be list format")
+            list_error.append(f"Type for gene should be list format")
         elif len(self.gene) < 1:
-            list_error.append(f"[ERROR] At least one gene should be designated")
+            list_error.append(f"At least one gene should be designated")
         else:
             for gene in self.gene:
                 if not (type(gene) is str):
-                    list_error.append(
-                        f"[ERROR] gene {gene} is not a valid string format"
-                    )
+                    list_error.append(f"gene {gene} is not a valid string format")
 
         # email
         # Check if email is in valid format
@@ -560,10 +632,10 @@ class Option:
             pass
         else:
             if not (type(self.email) is str):
-                list_error.append(f"[ERROR] Type for email should be string")
+                list_error.append(f"Type for email should be string")
             email_pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
             if not (re.match(email_pattern, self.email)):
-                list_error.append(f"[ERROR] Email {self.email} is not a valid email")
+                list_error.append(f"Email {self.email} is not a valid email")
 
         # api
         # Check if api number is in valid format
@@ -572,12 +644,12 @@ class Option:
             pass
         else:
             if not (type(self.api) is str):
-                list_error.append(f"[ERROR] Type for api should be string")
+                list_error.append(f"Type for api should be string")
 
         # Check either email or api exists
         if self.email is None and self.api is None:
             list_warning.append(
-                f"[WARNING] Email and API both were not given. May cause error when downloading sequence"
+                f"Email and API both were not given. May cause error when downloading sequence"
             )
 
         # thread
@@ -585,15 +657,15 @@ class Option:
         # If thread is over system thread, 0, or negative, adjust it to maximum
         if not (type(self.thread) is int):
             list_warning.append(
-                f"[WARNING] Type for thread should be int but {self.thread} was given. Using {os.cpu_count()} for default"
+                f"Type for thread should be int but {self.thread} was given. Using {os.cpu_count()} for default"
             )
             self.thread = os.cpu_count()
         elif self.thread <= 0:
-            list_info.append(f"[INFO] thread adjusted to {os.cpu_count()}")
+            list_info.append(f"thread adjusted to {os.cpu_count()}")
             self.thread = os.cpu_count()
         elif self.thread >= os.cpu_count():
             list_info.append(
-                f"[WARNING] thread exceeded system maximum. Adjusting to {os.cpu_count()}"
+                f"thread exceeded system maximum. Adjusting to {os.cpu_count()}"
             )
             self.thread = os.cpu_count()
 
@@ -603,13 +675,13 @@ class Option:
         if self.outdir:
             if not (os.path.exists(self.outdir)):
                 list_warning.append(
-                    f"[WARNING] Out directory location {self.outdir} does not exists try making it"
+                    f"Out directory location {self.outdir} does not exists try making it"
                 )
                 try:
                     os.makedirs(self.outdir, mode=0o755, exist_ok=True)
                 except:
                     list_error.append(
-                        f"[ERROR] Failed making outdir location {self.outdir}. Try checking directory or permissions"
+                        f"Failed making outdir location {self.outdir}. Try checking directory or permissions"
                     )
 
                 # Change outdir to absolute path
@@ -635,15 +707,15 @@ class Option:
             self.runname = now
 
         if not (type(self.runname) is str):
-            list_error.append(f"[ERROR] runname should be string")
+            list_error.append(f"runname should be string")
         elif re.search(invalid_char, self.runname.strip()):
-            list_error.append(f"[ERROR] invalid characters in runname")
+            list_error.append(f"invalid characters in runname")
         else:  # if valid runname
             if self.continue_from_previous is True:
                 # Check if continue available
                 if not (os.path.exists(f"{self.outdir}/{self.runname}")):
                     list_error.append(
-                        f"[ERROR] continue option selected, but previous run directory {self.runname} not found in {self.outdir}"
+                        f"continue option selected, but previous run directory {self.runname} not found in {self.outdir}"
                     )
             else:
                 # If already previous path exists
@@ -677,22 +749,57 @@ class Option:
 
         if self.continue_from_previous is True:
             if not (type(self.step) is str):
-                list_error.append(f"[ERROR] step should be string")
+                list_error.append(f"step should be string")
             elif not (self.step in step):
-                list_error.append(f"[ERROR] step should be one of {str(step)}")
+                list_error.append(f"step should be one of {str(step)}")
         else:
             if not self.step is None:
                 list_warning.append(
-                    f"[WARNING] As --continue is not designated, step will be ignored"
+                    f"As --continue is not designated, step will be ignored"
                 )
+
+        # level
+        """
+        # Check for valid level : subseries, series, subsection, section, subtribe, 
+        tribe, subfamily, family, suborder, order, subclass, class, subdivision, 
+        division, subphylum, phylum, subkingdom, kingdom
+        """
+        level = [
+            "subseries",
+            "series",
+            "subsection",
+            "section",
+            "genus",
+            "subtribe",
+            "tribe",
+            "subfamily",
+            "family",
+            "suborder",
+            "order",
+            "subclass",
+            "class",
+            "subdivision",
+            "division",
+            "subphylum",
+            "phylum",
+            "subkingdom",
+            "kingdom",
+        ]
+
+        if not (type(self.level) is str):
+            list_error.append(f"--level should be string")
+        elif not (self.level in level):
+            list_error.append(
+                f"--level should be one of {str(level)}, not {self.level}"
+            )
 
         # mode
         # Check for valid mode : identificaion or validation
         mode = ["identification", "validation"]
         if not (type(self.mode) is str):
-            list_error.append(f"[ERROR] mode should be string")
+            list_error.append(f"--mode should be string")
         elif not (self.mode in mode):
-            list_error.append(f"[ERROR] mode should be one of {str(mode)}")
+            list_error.append(f"--mode should be one of {str(mode)}")
 
         # queryonly
         # If queryonly is not None, give True, else, give False
@@ -704,20 +811,23 @@ class Option:
 
         if self.query:
             if len(self.query) == 0:
-                list_warning.append(
-                    f"[WARNING] No query detected, changing queryonly to False"
-                )
+                list_warning.append(f"No query detected, ignoring --queryonly")
                 self.queryonly = False
         else:
-            list_warning.append(
-                f"[WARNING] No query detected, changing queryonly to False"
-            )
+            list_warning.append(f"No query detected, ignoring --queryonly")
             self.queryonly = False
 
         # confident
         # If confident is not None, give True, else, give False
+        # "confident" option can be only used when queryonly is True
         if not (self.confident is None or self.confident is False):
-            self.confident = True
+            if self.queryonly is True:
+                self.confident = True
+            else:
+                list_warning.append(
+                    f"Option --confident can be only used when --queryonly is True. Ignoring it"
+                )
+                self.confident = False
         else:
             self.confident = False
 
@@ -731,12 +841,12 @@ class Option:
         if self.gene:
             if len(self.gene) <= 1:
                 list_warning.append(
-                    f"[WARNING] Less than 1 gene detected, changing concatenate to False"
+                    f"Less than 1 gene detected, changing concatenate to False"
                 )
                 self.concatenate = False
         else:
             list_warning.append(
-                f"[WARNING] Less than 1 gene detected, changing concatenate to False"
+                f"Less than 1 gene detected, changing concatenate to False"
             )
             self.concatenate = False
 
@@ -756,13 +866,11 @@ class Option:
             "mmseqs2": "mmseqs",
         }
         if not (type(self.method.search) is str):
-            list_error.append(f"[ERROR] search method should be string")
+            list_error.append(f"search method should be string")
         else:
             self.method.search = search_adjust[self.method.search.lower()]
             if not (self.method.search in search):
-                list_error.append(
-                    f"[ERROR] search method should be one of {str(search)}"
-                )
+                list_error.append(f"search method should be one of {str(search)}")
 
         # alignment
         # Check if alignment method is one of default, mafft
@@ -775,13 +883,11 @@ class Option:
             "mafft": "mafft",
         }
         if not (type(self.method.alignment) is str):
-            list_error.append(f"[ERROR] align method should be string")
+            list_error.append(f"align method should be string")
         else:
             self.method.alignment = alignment_adjust[self.method.alignment.lower()]
             if not (self.method.alignment in alignment):
-                list_error.append(
-                    f"[ERROR] align method should be one of {str(alignment)}"
-                )
+                list_error.append(f"align method should be one of {str(alignment)}")
 
         # trim
         # Check if trimming method is one of default, none, trimal, gblocks
@@ -802,12 +908,12 @@ class Option:
             self.method.trim = "none"
 
         if not (type(self.method.trim) is str):
-            list_error.append(f"[ERROR] trim method should be string")
+            list_error.append(f"trim method should be string")
         else:
             self.method.trim = trim_adjust[self.method.trim.lower()]
             if not (self.method.trim in trim):
                 list_error.append(
-                    f"[ERROR] trim method should be one of {str(trim_adjust.keys())}"
+                    f"trim method should be one of {str(trim_adjust.keys())}"
                 )
 
         # model
@@ -830,21 +936,19 @@ class Option:
             self.method.modeltest = "none"
 
         if not (type(self.method.modeltest) is str):
-            list_error.append(f"[ERROR] modeltest method should be string")
+            list_error.append(f"modeltest method should be string")
 
         else:
             if self.method.modeltest.lower() == "jmodeltest":
                 list_warning.append(
-                    f"[WARNING] option jmodeltest will be substituted to modeltest-ng"
+                    f"option jmodeltest will be substituted to modeltest-ng"
                 )
             self.method.modeltest = modeltest_adjust[self.method.modeltest.lower()]
             if not (self.method.modeltest in modeltest):
-                list_error.append(
-                    f"[ERROR] modeltest method should be one of {str(modeltest)}"
-                )
+                list_error.append(f"modeltest method should be one of {str(modeltest)}")
             if self.method.modeltest == "modeltest-ng" and sys.platform == "win32":
                 list_error.append(
-                    f"[ERROR] Modeltest-ng is currently not available in windows platform. Please select other modeltest methods or use linux platform"
+                    f"Modeltest-ng is currently not available in windows platform. Please select other modeltest methods or use linux platform"
                 )
 
         # tree
@@ -861,11 +965,11 @@ class Option:
         }
 
         if not (type(self.method.tree) is str):
-            list_error.append(f"[ERROR] tree method should be string")
+            list_error.append(f"tree method should be string")
         else:
             self.method.tree = tree_adjust[self.method.tree.lower()]
             if not (self.method.tree in tree):
-                list_error.append(f"[ERROR] tree method should be one of {str(tree)}")
+                list_error.append(f"tree method should be one of {str(tree)}")
 
         # bscutoff
         # Check if bootstrap cutoff is in optimal range 0~
@@ -876,12 +980,12 @@ class Option:
             try:
                 if self.visualize.bscutoff > 0 and self.visualize.bscutoff < 1:
                     list_warning.append(
-                        f"[WARNING] bscutoff should be in integer range, but given one seems to between 0 and 1. Automatically multiplying 100"
+                        f"bscutoff should be in integer range, but given one seems to between 0 and 1. Automatically multiplying 100"
                     )
                     self.visualize.bscutoff = int(self.visualize.bscutoff * 100)
                     # If failed solving
                     if self.visualize.bscutoff > 0 and self.visualize.bscutoff < 1:
-                        list_error.append(f"[ERROR] Failed to solve bscutoff range")
+                        list_error.append(f"Failed to solve bscutoff range")
 
                 else:
                     self.visualize.bscutoff = int(self.visualize.bscutoff)
@@ -890,11 +994,11 @@ class Option:
                     self.visualize.bscutoff = 0
                 if self.visualize.bscutoff > 100:
                     list_warning.append(
-                        f"[WARNING] bscutoff is over 100, all bootstrap will not seen"
+                        f"bscutoff is over 100, all bootstrap will not seen"
                     )
 
             except:
-                list_error.append(f"[ERROR] bscutoff should be integer")
+                list_error.append(f"--bscutoff should be integer")
 
         # fullgenus
         # If fullgenus is not None, give True, else, give False
@@ -906,6 +1010,111 @@ class Option:
         else:
             self.visualize.fullgenus = False
 
+        # highlight
+        # highlight should be availabe svg colors or unicode
+        if not (type(self.visualize.highlight) is str):
+            list_error.append(f"--highlight should be string")
+        else:
+            if not (isvalidcolor(self.visualize.highlight)):
+                list_error.append(
+                    f"in --highlight, color {color} does not seems to be valid svg color nor hex code"
+                )
+            else:
+                self.visualize.highlight = self.visualize.highlight.lower()
+
+        # heightmultiplier
+        # heightmultiplier should be positive float
+        try:
+            self.visualize.heightmultiplier = float(self.visualize.heightmultiplier)
+            if self.visualize.heightmultiplier <= 0:
+                list_warning.append(
+                    "--heightmultiplier should be positive, setting to default value, 6"
+                )
+                self.visualize.heightmultiplier = 6
+        except:
+            list_error.append(
+                "--heightmultiplier should be positive floating point number"
+            )
+
+        # maxwordlength
+        # maxwordlength should be positive int
+        try:
+            self.visualize.maxwordlength = int(self.visualize.maxwordlength)
+            if self.visualize.maxwordlength <= 0:
+                list_warning.append(
+                    "--maxwordlength should be positive int, setting to default value, 48"
+                )
+                self.visualize.maxwordlength = 48
+        except:
+            list_error.append(
+                "--maxwordlength should be positive floating point number"
+            )
+
+        # backgroundcolor
+        # backgroundcolor should be list of colors
+        flag_backgroundcolor = 0
+        if not (type(self.visualize.backgroundcolor) is list):
+            list_error.append(f"--backgroundcolor should be list")
+            flag_backgroundcolor += 1
+        elif len(self.visualize.backgroundcolor) < 1:
+            list_error.append(
+                f"At least one color should be designated for --backgroundcolor"
+            )
+            flag_backgroundcolor += 1
+        else:
+            for color in self.visualize.backgroundcolor:
+                if not isvalidcolor(color):
+                    list_error.append(
+                        f"color {color} does not seems to be valid svg color nor hex code"
+                    )
+                    flag_backgroundcolor += 1
+        if flag_backgroundcolor == 0:
+            self.visualize.backgroundcolor = [
+                x.lower() for x in self.visualize.backgroundcolor
+            ]
+
+        # outgroupcolor
+        # outgroupcolor should be availabe svg colors or unicode
+        if not (type(self.visualize.outgroupcolor) is str):
+            list_error.append(f"--outgroupcolor should be string")
+        else:
+            if not (isvalidcolor(self.visualize.outgroupcolor)):
+                list_error.append(
+                    f"in --outgroupcolor, color {color} does not seems to be valid svg color nor hex code"
+                )
+            else:
+                self.visualize.outgroupcolor = self.visualize.outgroupcolor.lower()
+
+        # ftype
+        if not (type(self.visualize.ftype) is str):
+            list_error.append(f"--ftype should be valid font name (string)")
+        else:
+            # Fix this when enough data has been collected
+            pass
+
+        # fsize
+        try:
+            float(self.visualize.fsize)
+            if self.visualize.fsize < 0:
+                list_warning.append(
+                    f"--fsize should be positive float. Setting to default, 10"
+                )
+                self.visualize.fsize = 10
+        except:
+
+            list_error.append(f"--fsize should be positive float")
+
+        # fsize_bootstrap
+        try:
+            float(self.visualize.fsize_bootstrap)
+            if self.visualize.fsize_bootstrap < 0:
+                list_warning.append(
+                    f"--fsize_bootstrap should be positive float. Setting to default, 10"
+                )
+                self.visualize.fsize_bootstrap = 9
+        except:
+            list_error.append(f"--fsize_bootstrap should be positive float")
+
         # verbose
         # If not 0,1,2,3 raise error with warning
         # 0: quiet, 1: info, 2: warning, 3: debug, default : 2
@@ -913,11 +1122,11 @@ class Option:
             self.verbose = int(self.verbose)
             if not self.verbose in (0, 1, 2, 3):
                 list_error.append(
-                    f"[ERROR] verbose should be one of 0,1,2,3 - 0: quiet, 1: info, 2: warning, 3: debug"
+                    f"verbose should be one of 0,1,2,3 - 0: quiet, 1: info, 2: warning, 3: debug"
                 )
         except:
             list_error.append(
-                f"[ERROR] verbose should be one of 0,1,2,3 - 0: quiet, 1: info, 2: warning, 3: debug"
+                f"verbose should be one of 0,1,2,3 - 0: quiet, 1: info, 2: warning, 3: debug"
             )
 
         # maxoutgroup
@@ -926,13 +1135,9 @@ class Option:
         try:
             self.maxoutgroup = int(self.maxoutgroup)
             if self.maxoutgroup < 1:
-                list_warning.append(
-                    f"[WARNING] invalid maxoutgroup, automatically selecting 1"
-                )
+                list_warning.append(f"invalid maxoutgroup, automatically selecting 1")
         except:
-            list_warning.append(
-                f"[WARNING] invalid maxoutgroup, automatically selecting 1"
-            )
+            list_warning.append(f"invalid maxoutgroup, automatically selecting 1")
             self.maxoutgroup = 1
 
         # collapsedistcutoff
@@ -941,7 +1146,7 @@ class Option:
         try:
             self.collapsedistcutoff = float(self.collapsedistcutoff)
         except:
-            list_warning.append(f"[WARNING] invalid collapsedistcutoff, change into 0")
+            list_warning.append(f"invalid collapsedistcutoff, change into 0")
             self.collapsedistcutoff = 0
 
         # collapsebscutoff
@@ -952,14 +1157,12 @@ class Option:
             try:
                 if self.collapsebscutoff > 0 and self.collapsebscutoff < 1:
                     list_warning.append(
-                        f"[WARNING] collapsebscutoff should be in integer range, but given one seems to between 0 and 1. Automatically multiplying 100"
+                        f"collapsebscutoff should be in integer range, but given one seems to between 0 and 1. Automatically multiplying 100"
                     )
                     self.collapsebscutoff = int(self.collapsebscutoff * 100)
                     # If failed solving
                     if self.collapsebscutoff > 0 and self.collapsebscutoff < 1:
-                        list_error.append(
-                            f"[ERROR] Failed to solve collapse bscutoff range"
-                        )
+                        list_error.append(f"Failed to solve collapse bscutoff range")
 
                 else:
                     self.collapsebscutoff = int(self.collapsebscutoff)
@@ -968,18 +1171,18 @@ class Option:
                     self.collapsebscutoff = 0
                 if self.collapsebscutoff > 100:
                     list_warning.append(
-                        f"[WARNING] collapsebscutoff is over 100, all bootstrap will not seen"
+                        f"collapsebscutoff is over 100, all bootstrap will not seen"
                     )
 
             except:
-                list_error.append(f"[ERROR] bscutoff should be integer")
+                list_error.append(f"bscutoff should be integer")
 
         # bootstrap
         # bootstrap number should be int
         # If IQTREE selected and bootstrap number under 1000, change to 1000
         if self.method.tree == "fasttree":
             list_warning.append(
-                f"[WARNING] Fasttree does not supports bootstrap, but bootstrap option selected. Will be ignored"
+                f"Fasttree does not supports bootstrap, but bootstrap option selected. Will be ignored"
             )
             self.bootstrap = None
         else:
@@ -987,18 +1190,18 @@ class Option:
                 self.bootstrap = int(self.bootstrap)
                 if self.method.tree == "iqtree" and self.bootstrap < 1000:
                     list_warning.append(
-                        "[WARNING] iqtree requires at least 1000 bootstrap. adjusting to 1000"
+                        "iqtree requires at least 1000 bootstrap. adjusting to 1000"
                     )
                     self.bootstrap = 1000
                 elif self.method.tree == "raxml" and self.bootstrap < 0:
                     list_warning.append(
-                        "[WARNING] bootstrap should not be negative. adjusting to 1"
+                        "bootstrap should not be negative. adjusting to 1"
                     )
                     self.bootstrap = 1
 
             except:
                 list_error.append(
-                    f"[ERROR] bootstrap should be integer when iqtree or raxml are selected"
+                    f"bootstrap should be integer when iqtree or raxml are selected"
                 )
 
         # solveflat
@@ -1014,39 +1217,35 @@ class Option:
         if self.regex is None:
             pass
         elif not (type(self.regex)) is list:
-            list_error.append("[ERROR] regex should be given in list of pattern")
+            list_error.append("regex should be given in list of pattern")
         else:
             for regex in self.regex:
                 try:
                     re.compile(regex)
                 except:
-                    list_error.append(
-                        f"[ERROR] regex {regex} is not a valid python regex"
-                    )
+                    list_error.append(f"regex {regex} is not a valid python regex")
 
         # cluster-evalue
         # E-value cutoff for clustering - should be positive
         try:
             self.cluster.evalue = float(self.cluster.evalue)
             if self.cluster.evalue < 0:
-                list_warning.append("[WARNING] evalue should be positive, setting to 1")
+                list_warning.append("evalue should be positive, setting to 1")
                 self.cluster.evalue = 1
         except:
-            list_error.append("[ERROR] evalue should be positive floating point number")
+            list_error.append("evalue should be positive floating point number")
 
         # cluster-wordsize
         # Wordsize option for clustering - should be int and not less than 7
         try:
-            self.cluster.wordsize = float(self.cluster.wordsize)
+            self.cluster.wordsize = int(self.cluster.wordsize)
             if self.cluster.wordsize < 7:
                 list_warning.append(
-                    "[WARNING] wordsize should be int not less than 7. Changing to 7"
+                    "wordsize should be int not less than 7. Changing to 7"
                 )
                 self.cluster.wordsize = 7
         except:
-            list_error.append(
-                "[ERROR] wordsize should be int not less than 7. Changing to 7"
-            )
+            list_error.append("wordsize should be int not less than 7. Changing to 7")
 
         # mafft-algorithm
         # mafft-algorithm - auto, l-ins-i
@@ -1056,12 +1255,12 @@ class Option:
                 self.mafft.algorithm = str(self.mafft.algorithm)
                 if not (self.mafft.algorithm.lower() in ("auto", "l-ins-i", "linsi")):
                     list_error.append(
-                        f"[ERROR] Invalid mafft algorithm {self.mafft.algorithm}. Currently available algorithms are auto and l-ins-i"
+                        f"Invalid mafft algorithm {self.mafft.algorithm}. Currently available algorithms are auto and l-ins-i"
                     )
 
             except:
                 list_error.append(
-                    f"[ERROR] Invalid mafft algorithm {self.mafft.algorithm}. Currently available algorithms are auto and l-ins-i"
+                    f"Invalid mafft algorithm {self.mafft.algorithm}. Currently available algorithms are auto and l-ins-i"
                 )
 
         # mafft-op
@@ -1071,11 +1270,11 @@ class Option:
                 self.mafft.op = float(self.mafft.op)
                 if self.mafft.op < 0:
                     list_warning.append(
-                        "[WARNING] mafft op value should be positive, setting to 1.2"
+                        "mafft op value should be positive, setting to 1.2"
                     )
                     self.mafft.op = 1.2
             except:
-                list_error.append("[ERROR] mafft op value should be 0 or positive")
+                list_error.append("mafft op value should be 0 or positive")
 
         # mafft-ep
         # mafft gap extension penalty should be 0 or positive
@@ -1084,11 +1283,11 @@ class Option:
                 self.mafft.ep = float(self.mafft.ep)
                 if self.mafft.ep < 0:
                     list_warning.append(
-                        "[WARNING] mafft ep value should be positive, setting to 1.2"
+                        "mafft ep value should be positive, setting to 1.2"
                     )
                     self.mafft.ep = 0.1
             except:
-                list_error.append("[ERROR] mafft ep value should be 0 or positive")
+                list_error.append("mafft ep value should be 0 or positive")
 
         # trimal-algorithm
         # trimal algorithm, should be either gt
@@ -1098,13 +1297,13 @@ class Option:
                 self.trimal.algorithm = float(self.trimal.algorithm)
                 if not (self.trimal.algorithm.lower() in ("auto", "gt")):
                     list_warning(
-                        f"[WARNING] Invalid trimal algorithm {self.trimal.algorithm}. Chaniging to gt"
+                        f"Invalid trimal algorithm {self.trimal.algorithm}. Chaniging to gt"
                     )
                     self.trimal.algorithm = "gt"
             except:
 
                 list_error.append(
-                    f"[ERROR] Invalid trimal algorithm {self.trimal.algorithm}. Currently avilable algorithms are auto and gt"
+                    f"Invalid trimal algorithm {self.trimal.algorithm}. Currently avilable algorithms are auto and gt"
                 )
 
         # trimal-gt
@@ -1116,12 +1315,12 @@ class Option:
                 self.trimal.gt = float(self.trimal.gt)
                 if self.trimal.gt < 0 and self.trimal.gt >= 1:
                     list_warning.append(
-                        f"[WARNING] trimal gt value should be between 1 and 0, setting to 0.2"
+                        f"trimal gt value should be between 1 and 0, setting to 0.2"
                     )
                     self.trimal.gt = 0.2
             except:
                 list_error.append(
-                    f"[ERROR] Invalid trimal gt value {self.trimal.gt}. gt should be between 1 and 0"
+                    f"Invalid trimal gt value {self.trimal.gt}. gt should be between 1 and 0"
                 )
 
         # noavx
@@ -1131,9 +1330,7 @@ class Option:
         # Negative boolean and save as avx
         if not "AVX" in platform.machine() and self.avx is True:
             list_info.append(platform.machine())
-            list_warning.append(
-                f"[WARNING] AVX is not available. Changing --noavx to True"
-            )
+            list_warning.append(f"AVX is not available. Changing --noavx to True")
             self.avx = False
 
         # criterion
@@ -1143,7 +1340,7 @@ class Option:
             self.criterion = str(self.criterion)
             if not (self.criterion.lower() in ("aic", "aicc", "bic")):
                 list_error.append(
-                    "[ERROR] Modeltest criterion should be one of AIC, AICc and BIC"
+                    "Modeltest criterion should be one of AIC, AICc and BIC"
                 )
             else:
                 # For prevent capital errors
@@ -1155,13 +1352,11 @@ class Option:
                     self.criterion = "BIC"
                 else:
                     list_error.append(
-                        f"[ERROR] Somewhat error in parsing criterion, {self.criterion}"
+                        f"Somewhat error in parsing criterion, {self.criterion}"
                     )
 
         except:
-            list_error.append(
-                "[ERROR] Modeltest criterion should be one of AIC, AICc and BIC"
-            )
+            list_error.append("Modeltest criterion should be one of AIC, AICc and BIC")
 
         # cachedb
         # If cachedb is not None, give True, else, give False
@@ -1188,12 +1383,12 @@ class Option:
                 in ("csv", "tsv", "xlsx", "parquet", "ftr", "feather")
             ):
                 list_error.append(
-                    "[ERROR] matrixformat should be one of csv, tsv, xlsx, parquet, ftr, or feather"
+                    "matrixformat should be one of csv, tsv, xlsx, parquet, ftr, or feather"
                 )
 
         except:
             list_error.append(
-                "[ERROR] matrixformat should be one of csv, tsv, xlsx, parquet, ftr, or feather"
+                "matrixformat should be one of csv, tsv, xlsx, parquet, ftr, or feather"
             )
 
         # savesearchmatrix
@@ -1210,27 +1405,28 @@ class Option:
         else:
             self.savesearchresult = True
 
+        # Printing logs while parsing validate options
+        # Written in print functions, because logging can be loaded after option parsing
         print("[INFO]")
         for info in list_info:
-            print(info)
+            print(f"[INFO] {info}")
 
         print("[WARNING]")
         for warning in list_warning:
-            print(warning)
+            print(f"[WARNING] {warning}")
 
         print("[ERROR]")
         for error in list_error:
-            print(error)
+            print(f"[ERROR] {error}")
 
         if len(list_error) > 0:
             raise Exception
 
+        # Returning option parsing logs
         return list_info, list_warning, list_error
 
 
-### Main in validate_option.py
-
-
+### Main function in validate_option.py
 def initialize_option(parser, path_run):
 
     #### Before start
@@ -1253,9 +1449,9 @@ def initialize_option(parser, path_run):
         if parser.test.lower() in os.listdir(path_test):
             if os.path.exists(f"{path_test}/{parser.test.lower()}/preset.yaml"):
                 parser.preset = f"{path_test}/{parser.test.lower()}/preset.yaml"
-                print(f"[INFO] test dataset {parser.preset} selected")
+                print(f"test dataset {parser.preset} selected")
             else:
-                print("[ERROR] Something wrong with test dataset option")
+                print("Something wrong with test dataset option")
                 raise Exception
 
             # Set runname to current time
@@ -1270,7 +1466,7 @@ def initialize_option(parser, path_run):
             opt.test = parser.test.lower()
 
         else:
-            print("[ERROR] Invalid test dataset. Please --test option")
+            print("Invalid test dataset. Please --test option")
             raise Exception
 
     ### preset
@@ -1280,18 +1476,18 @@ def initialize_option(parser, path_run):
     if not (parser.preset is None):
         if str(parser.preset).lower() == "fast":  # *1 - fast mode
             parser.preset = f"{path_preset}/fast.yaml"  # - connect to fast.yaml
-            print("[INFO] Using fast preset as default option")
+            print("Using fast preset as default option")
             opt.update_from_preset(parser.preset)
         elif str(parser.preset).lower() == "accurate":  # *1 - accurate mode
             parser.preset = f"{path_preset}/accurate.yaml"  # - connect to accurate.yaml
-            print("[INFO] Using accurate preset as default option")
+            print("Using accurate preset as default option")
             opt.update_from_preset(parser.preset)
         else:
             if os.path.exists(parser.preset):
                 print(f"[DEBUG] {parser.preset}")
                 opt.update_from_preset(parser.preset)
             else:
-                print(f"[ERROR] Cannot find preset file : {parser.preset}")
+                print(f"Cannot find preset file : {parser.preset}")
                 raise Exception
 
     ### Then, update other options in parser

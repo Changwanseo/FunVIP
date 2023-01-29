@@ -12,12 +12,14 @@ from Bio import SeqIO
 from funid.src.tool import (
     initialize_path,
     get_genus_species,
-    get_accession,
+    get_id,
     manage_unicode,
 )
-from funid.src.logics import isnewicklegal, isuniquecolumn
+from funid.src.logics import isnewicklegal, isuniquecolumn, isvalidcolor
 from funid.src.hasher import decode, newick_legal, hash_funinfo_list
 
+
+# newick
 NEWICK_ILLEGAL = (
     "(",
     '"',
@@ -43,8 +45,8 @@ NEWICK_ILLEGAL = (
 class Funinfo:
     def __init__(self):
 
-        self.original_accession = ""  # original accession, can be newick illegal
-        self.accession = ""  #  newick illegal characters removed
+        self.original_id = ""  # original id, can be newick illegal
+        self.id = ""  #  newick illegal characters removed
         self.hash = ""  # hash : HSXXHE
         self.description = ""  # full description from fasta
         self.ori_genus = ""  # original genus
@@ -52,22 +54,23 @@ class Funinfo:
         self.ori_species = ""  # original species
         self.bygene_species = {}  # species name designated by gene
         self.final_species = ""  # final species designated by concatenated analysis
-        self.species_identifier = (
-            0  # species identifier if multiple branches with same species exists
-        )
+        # species identifier if multiple branches with same species exists - ambiguous in result
+        self.species_identifier = 0
         self.source = ""
         self.datatype = ""  # DB or Query
-        self.section = ""  # original section
-        self.adjusted_section = ""  # adjusted section by sectional clustering
+        self.group = ""  # original taxonomic group
+        self.adjusted_group = ""  # adjusted taxonomic group by group clustering
         self.seq = {}
         self.unclassified_seq = []
+        self.color = None  # color for highlighting in phylogenetic tree
+        self.flat = []  # list of flat genes
 
     def update_seqrecord(self, seq, gene=None):
         self.description = seq.description
         self.genus, self.ori_species = get_genus_species(seq.description)
 
         if gene in self.seq:
-            logging.error(f"More than 1 sequence for {gene} found for {self.accession}")
+            logging.error(f"More than 1 sequence for {gene} found for {self.id}")
             raise Exception
         elif gene is None:
             self.unclassified_seq.append(str(seq.seq.ungap("-")))
@@ -81,9 +84,7 @@ class Funinfo:
             if (
                 self.seq[gene] != seq
             ):  # if more than 1 sequence per gene gets in, and if they are different
-                logging.error(
-                    f"More than 1 sequence for {gene} found for {self.accession}"
-                )
+                logging.error(f"More than 1 sequence for {gene} found for {self.id}")
                 raise Exception
             else:
                 pass
@@ -128,7 +129,7 @@ class Funinfo:
         # Check ambiguity
         if self.ori_species != "" and self.ori_species != species:
             logging.error(
-                f"Colliding species info found for {self.original_accession}, {self.ori_species} and {species}"
+                f"Colliding species info found for {self.original_id}, {self.ori_species} and {species}"
             )
             raise Exception
 
@@ -140,22 +141,40 @@ class Funinfo:
 
         self.bygene_species[gene] = species
 
-    def update_section(self, section):
+    def update_group(self, group):
+
         # Try to solve illegal unicode characters
-        if pd.isnull(section):
-            section = ""
-        section = section.strip()
-        section = manage_unicode(section)
+        if pd.isnull(group):
+            group = ""
+        group = group.strip()
+        group = manage_unicode(group)
 
         # Check ambiguity
-        if self.section != "" and self.section != section:
+        if self.group != "" and self.group != group:
             logging.error(
-                f"Colliding section info found for {funinfo}, {self.section} and {section}"
+                f"Colliding group info found for {funinfo}, {self.group} and {group}"
             )
             raise Exception
 
-        # Update section
-        self.section = section
+        # Update group
+        self.group = group
+
+    def update_color(self, color):
+
+        if pd.isnull(color):
+            color = None
+            self.color = color
+        else:
+            color = manage_unicode(str(color).strip())
+            if isvalidcolor(color) is True:
+                self.color = color
+            else:
+                logging.error(
+                    f"color {color} does not seems to be valid svg color nor hex code"
+                )
+                raise Exception
+
+        logging.debug(f"Updated color {color}")
 
     def update_datatype(self, datatype):
 
@@ -167,41 +186,42 @@ class Funinfo:
         # Check ambiguity
         if self.datatype != "" and self.datatype != datatype:
             logging.error(
-                f"Colliding section info found for {funinfo}, {self.datatype} and {datatype}"
+                f"DEVELOPMENTAL ERROR : Colliding datatype found for {funinfo}, {self.datatype} and {datatype}"
             )
+            raise Exception
 
         self.datatype = datatype
 
-    def update_accession(self, accession, regexs=None):
+    def update_id(self, id_, regexs=None):
 
         if not regexs == None:
-            accession = get_accession(accession, tuple(regexs))
+            id_ = getid_(id_, tuple(regexs))
 
-        # if cannot find accession by regex
-        if accession == "":
-            accession = newick_legal(accession)
-        accession = str(accession)
-        self.original_accession = accession
-        if not (isnewicklegal(accession)):
+        # if cannot find id by regex
+        if id_ == "":
+            id_ = newick_legal(id_)
+        id_ = str(id_)
+        self.original_id = id_
+        if not (isnewicklegal(id_)):
             for c in NEWICK_ILLEGAL:
-                accession = accession.replace(c, "")
-            accession = accession.replace(" ", "_")
-        self.accession = accession
+                id_ = id_.replace(c, "")
+            id_ = id_.replace(" ", "_")
+        self.id = id_
 
     def update_hash(self, n):
         self.hash = f"HS{n}HE"
 
     def __repr__(self):
-        return f"FI: {self.accession}"
+        return f"FI: {self.id}"
 
     def __hash__(self):
-        return hash((self.original_accession, self.hash, self.description))
+        return hash((self.original_id, self.hash, self.description))
 
     def __eq__(self, other):
         if not isinstance(other, type(self)):
             return NotImplemented
         return (
-            self.original_accession == other.original_accession
+            self.original_id == other.original_id
             and self.hash == other.hash
             and self.description == other.description
         )
@@ -236,9 +256,9 @@ def input_fasta(path, opt, fasta_list, datatype):
             newinfo = Funinfo()
             newinfo.update_seqrecord(seq)
             newinfo.update_datatype(datatype)
-            newinfo.update_section("")  # because not sectioin not designated yet
-            # Accession by regex match
-            newinfo.update_accession(seq.description, regexs=opt.regex)
+            newinfo.update_group("")  # because group not designated yet
+            # id by regex match
+            newinfo.update_id(seq.description, regexs=opt.regex)
             if get_genus_species(seq.description)[0] != "":
                 newinfo.update_genus(get_genus_species(seq.description)[0])
 
@@ -255,9 +275,9 @@ def input_fasta(path, opt, fasta_list, datatype):
                 newinfo = Funinfo()
                 newinfo.update_seqrecord(seq)
                 newinfo.update_datatype(datatype)
-                newinfo.update_section("")  # because not sectioin not designated yet
-                # Accession by regex match
-                newinfo.update_accession(seq.description, regexs=opt.regex)
+                newinfo.update_group("")  # because group not designated yet
+                # id by regex match
+                newinfo.update_id(seq.description, regexs=opt.regex)
                 if get_genus_species(seq.description)[0] != "":
                     newinfo.update_genus(get_genus_species(seq.description)[0])
 
@@ -274,7 +294,7 @@ def input_fasta(path, opt, fasta_list, datatype):
 
 
 # getting datafile from excel or tabular file
-def input_table(path, option, table_list, datatype):
+def input_table(path, opt, table_list, datatype):
 
     string_error = 0
 
@@ -282,6 +302,7 @@ def input_table(path, option, table_list, datatype):
     funinfo_dict = {}
     df_list = []
 
+    # extensionto filetype translation
     dict_extension = {
         ".csv": "csv",
         ".tsv": "csv",
@@ -323,40 +344,57 @@ def input_table(path, option, table_list, datatype):
             )
             raise Exception
 
-        # Lower case
+        # Lower case column names
         df.columns = df.columns.str.lower()
         df_list.append(df)
 
-        # Check if accession column exists and unique
-        flag_accession = isuniquecolumn(
-            list_column=list(df.columns), column="accession", table_name=table
+        # Clean up columns
+        # Check if "id" column exists and unique
+        flag_id = isuniquecolumn(
+            list_column=list(df.columns), column=("accession", "id"), table_name=table
         )
 
-        # Check if genus column exists and unique
+        # If old accession column, change to id
+        if flag_id == "accession":
+            df.rename(columns={"accession": "id"}, inplace=True)
+
+        # Check if "genus" column exists and unique
+        # Column "genus" is mandatory in db, and optional in query
         check_none = True if datatype == "db" else False
         flag_genus = isuniquecolumn(
             list_column=list(df.columns),
-            column="genus",
+            column=tuple(("genus",)),
             table_name=table,
             check_none=check_none,
         )
 
-        # Check if species column exists and unique
+        # Check if "species" column exists and unique
+        # Column "species" is mandatory in db, and optional in query
         check_none = True if datatype == "db" else False
         flag_species = isuniquecolumn(
             list_column=list(df.columns),
-            column="species",
+            column=tuple(("species",)),
             table_name=table,
             check_none=check_none,
         )
 
-        # Check if section column exists and unique
+        # Check "opt.level" column exists and unique
+        # Column "opt.level" is mandatory in db, and optional inquery
         check_none = True if datatype == "db" else False
-        flag_section = isuniquecolumn(
+        flag_level = isuniquecolumn(
             list_column=list(df.columns),
-            column="section",
+            column=tuple((opt.level,)),
             table_name=table,
             check_none=check_none,
+        )
+
+        # Check column color
+        # color column is optional
+        flag_color = isuniquecolumn(
+            list_column=list(df.columns),
+            column=tuple(("color",)),
+            table_name=table,
+            check_none=False,
         )
 
         # Sequence column operations, download sequences with GenMine
@@ -367,13 +405,13 @@ def input_table(path, option, table_list, datatype):
             regex_genbank = r"(([A-Z]{1}[0-9]{5})(\.[0-9]{1}){0,1})|(([A-Z]{2}[\_]{0,1}[0-9]{6}){1}([\.][0-9]){0,1})"
 
             # if gene name were not designated by user, use seq
-            option.gene = list(set([gene.lower().strip() for gene in option.gene]))
+            opt.gene = list(set([gene.lower().strip() for gene in opt.gene]))
 
             # should be imported after initialize to prevent error
             from .tool import mkdir
 
             # find all NCBI accessions in seq
-            for gene in option.gene:
+            for gene in opt.gene:
                 if isuniquecolumn(
                     list_column=df.columns,
                     column=gene,
@@ -400,7 +438,7 @@ def input_table(path, option, table_list, datatype):
                         fg.write(f"{acc.strip()}\n")
 
                 # Run GenMine
-                cmd = f"GenMine -c {path.GenMine}/Accessions.txt -o {path.GenMine} -e {option.email}"
+                cmd = f"GenMine -c {path.GenMine}/Accessions.txt -o {path.GenMine} -e {opt.email}"
                 subprocess.call(cmd)
 
                 GenMine_df_list = [
@@ -418,7 +456,7 @@ def input_table(path, option, table_list, datatype):
 
                     # replace accession to sequence downloaded
                     for n, _ in enumerate(df["accession"]):
-                        for gene in option.gene:
+                        for gene in opt.gene:
                             if gene in df.columns:
                                 if not (pd.isna(df[gene][n])):
                                     if df[gene][n].strip() in download_dict:
@@ -438,52 +476,58 @@ def input_table(path, option, table_list, datatype):
                     )
 
         # Generate funinfo by each row
-        for n, acc in enumerate(df["accession"]):
-            # Check if accession is unique
+        for n, acc in enumerate(df["id"]):
+
+            # Check if each of the ids are unique
             # Remove non-unicode first
             new_acc = True
-            df["accession"][n] = manage_unicode(
-                str(df["accession"][n]), column="accssion", row=n
-            )
-            # Generate funinfo for each accession
-            if df["accession"][n] in funinfo_dict:
-                newinfo = funinfo_dict[df["accession"][n]]
+            df["id"][n] = manage_unicode(str(df["id"][n]), column="accssion", row=n)
+            # Generate funinfo for each id
+            if df["id"][n] in funinfo_dict:
+                newinfo = funinfo_dict[df["id"][n]]
                 new_acc = False
-                logging.warning(f"Duplicate accession {df['accession'][n]} found!")
+                logging.warning(f"Duplicate id {df['id'][n]} found!")
             else:
-                funinfo_dict[df["accession"][n]] = Funinfo()
-                newinfo = funinfo_dict[df["accession"][n]]
-                newinfo.update_accession(df["accession"][n])
+                funinfo_dict[df["id"][n]] = Funinfo()
+                newinfo = funinfo_dict[df["id"][n]]
+                newinfo.update_id(df["id"][n])
 
             # if flag_genus is true, try to parse genus
-            if flag_genus is True:
+            if not (flag_genus is None or flag_genus is False):
                 newinfo.update_genus(df["genus"][n])
 
             # if flag_species is true, try to parse species
-            if flag_species is True:
+            if not (flag_species is None or flag_species is False):
                 newinfo.update_ori_species(df["species"][n])
 
-            # if flag_section is true, try to parse section
-            if flag_section is True:
-                newinfo.update_section(df["section"][n])
+            # if flag_level is true, try to parse the optimal taxonomic group
+            if not (flag_level is None or flag_level is False):
+                newinfo.update_group(df[flag_level][n])
+
+            # if flag_color is true, try to parse color for taxon
+            if not (flag_color is None or flag_color is False):
+                newinfo.update_color(df[flag_color][n])
 
             # update datatype
             newinfo.update_datatype(datatype)
 
             # parse each of the genes
             # For each of the gene
-            for gene in option.gene:
+            logging.debug(f"Gene found in db input {opt.gene}")
+            for gene in opt.gene:
                 seq_error = 0
                 if gene in df.columns:
-                    if (
-                        not (pd.isna(df[gene][n])) or str(df[gene][n]).strip() == ""
-                    ):  # skip blank sequences
-                        if df[gene][n].startswith(
-                            ">"
-                        ):  # automatically rearrange for total fasta style
+                    if not (pd.isna(df[gene][n])) or str(df[gene][n]).strip() == "":
+
+                        # skip blank sequences
+                        if df[gene][n].startswith(">"):
+                            # remove fasta header
                             seq_string = "".join(df[gene][n].split("\n")[1:])
                         else:
                             seq_string = df[gene][n]
+
+                        # adjust seq_string
+                        seq_string = seq_string.replace("\n", "").replace(" ", "")
 
                         # Finding if sequence contains error
                         seq_error_cnt = 0
@@ -495,28 +539,28 @@ def input_table(path, option, table_list, datatype):
 
                         if seq_error_cnt > 0:
                             logging.warning(
-                                f'Illegal DNA character {seq_error_list} found in {gene} of DB {df["accession"][n]}'
+                                f"Illegal DNA character {seq_error_list} found in {gene} of DB {df['id'][n]}"
                             )
                         elif seq_error_cnt == 0:
                             # remove gaps for preventing BLAST error
                             newinfo.update_seq(
                                 gene, seq_string.replace("-", "").replace(".", "")
                             )
-
     # make it to list at last
     list_funinfo = [funinfo_dict[x] for x in funinfo_dict]
 
     return list_funinfo, df_list
 
 
-def db_input(option, path) -> list:
+def db_input(opt, path) -> list:
 
     # Get DB input
-    logging.info(f"Input DB list: {option.db}")
-    db_namelist = [db.split("/")[-1] for db in option.db]
+    logging.info(f"Input DB list: {opt.db}")
+    db_namelist = [db.split("/")[-1] for db in opt.db]
 
-    funinfo_list, df_list = input_table(path, option, option.db, "db")
-    print(funinfo_list)
+    funinfo_list, df_list = input_table(
+        path=path, opt=opt, table_list=opt.db, datatype="db"
+    )
 
     # do it after save_db option enabled
     for n, db in enumerate(db_namelist):
@@ -525,55 +569,58 @@ def db_input(option, path) -> list:
         )
 
     # validate dataset
-    # if only one section exists, outgroup cannot work
-    section_set = set(funinfo.section for funinfo in funinfo_list)
-    section_set.discard("")
-    if len(section_set) <= 1:
+    # if only one group exists, outgroup cannot work
+    group_set = set(funinfo.group for funinfo in funinfo_list)
+    group_set.discard("")
+    if len(group_set) <= 1:
         logging.error(
-            f"Only {len(section_set)} detected : {section_set}. Please add outgroup sequences"
+            f"Only {len(group_set)} detected : {group_set}. Please add outgroup sequences"
         )
         raise Exception
 
-    # check if minimum outgroup number count exceeds minimum section
-    section_cnt_dict = {x: 0 for x in section_set}
+    # check if minimum outgroup number count exceeds minimum group
+    group_cnt_dict = {x: 0 for x in group_set}
     for funinfo in funinfo_list:
-        if type(funinfo.section) is str:
-            if funinfo.section in section_set:
-                section_cnt_dict[funinfo.section] += 1
+        if type(funinfo.group) is str:
+            if funinfo.group in group_set:
+                group_cnt_dict[funinfo.group] += 1
 
-    if any(section_cnt_dict[x] < option.maxoutgroup for x in section_cnt_dict):
+    if any(group_cnt_dict[x] < opt.maxoutgroup for x in group_cnt_dict):
         logging.warning(
-            f"Sequences in database of some section has lower number than MINIMUM_OUTGROUP_COUNT. It may cause error when outgroup selection, or may select not most appropriate outgroup to section. Please lower number of MINIMUM_OUTGROUP_COUNT in option or add more sequences to these sections"
+            f"Sequences in database of some group has lower number than MINIMUM_OUTGROUP_COUNT. It may cause error when outgroup selection, or may select not most appropriate outgroup to group. Please lower number of MINIMUM_OUTGROUP_COUNT in option or add more sequences to these groups"
         )
 
     return funinfo_list
 
 
-def query_input(option, path):
+def query_input(opt, path):
 
     query_fasta = [
         file
-        for file in option.query
+        for file in opt.query
         if any(file.endswith(x) for x in (".fa", ".fna", ".fas", ".fasta", ".txt"))
     ]
-    query_excel = [file for file in option.query if (file.endswith(".xlsx"))]
+    query_excel = [file for file in opt.query if (file.endswith(".xlsx"))]
 
     query_list = []
-    query_list += input_fasta(path, option, query_fasta, "query")
-    query_list += input_table(path, option, query_excel, "query")[0]
+    query_list += input_fasta(path, opt, query_fasta, "query")
+    query_list += input_table(
+        path=path, opt=opt, table_list=query_excel, datatype="query"
+    )[0]
 
     for file in query_fasta:
         shutil.copy(f"{file}", f"{path.out_query}/{file}")
 
     logging.info(f"Total {len(query_list)} sequences parsed")
 
-    return query_list, option
+    return query_list, opt
 
 
 # combined db and query input
 def data_input(V, R, opt, path):
     # get database input
     db_funinfo_list = db_input(opt, path)
+
     # get query input
     query_funinfo_list, opt = query_input(opt, path)
     # combine all data
@@ -591,76 +638,7 @@ def data_input(V, R, opt, path):
     return V, R, opt
 
 
-def save(list_funinfo, path, option):
-    def save_originalfasta(list_info, path, filename):
-        with open(f"{path}/{filename}", "w") as fp:
-            for info in list_info:
-                fp.write(f">{info.description}\n{info.seq}\n")
-
-    def save_excel(list_info, path, filename):
-        dict_excel = {
-            "hash": [],
-            "accession": [],
-            "genus": [],
-            "species": [],
-            "source": [],
-            "datatype": [],
-            "section": [],
-            "adjusted_section": [],
-        }
-
-        seq_set = set()
-        for info in list_info:
-            for gene in info.seq:
-                seq_set.add(gene)
-
-        for gene in seq_set:
-            dict_excel[gene] = []
-
-        for info in list_info:
-            dict_excel["hash"].append(info.hash)
-            dict_excel["accession"].append(info.original_accession)
-            dict_excel["genus"].append(info.genus)
-            dict_excel["species"].append(info.ori_species)
-            dict_excel["source"].append(info.source)
-            dict_excel["datatype"].append(info.datatype)
-            dict_excel["section"].append(info.section)
-            dict_excel["adjusted_section"].append(info.adjusted_section)
-            for gene in seq_set:
-                if gene in info.seq:
-                    dict_excel[gene].append(info.seq[gene])
-                else:
-                    dict_excel[gene].append("")
-
-        df = pd.DataFrame(dict_excel)
-        df.to_excel(f"{path}/{filename}", index=False)
-
-    save_excel(list_funinfo, path.data, f"{option.runname}_Section Assignment.xlsx")
-
-    # Save by source
-    origin_set = set()
-
-    for funinfo in list_funinfo:
-        origin_set.add((funinfo.source, funinfo.datatype))
-
-    for origin in origin_set:
-
-        # set path
-        if origin[1] in ["DB", "Query", "Outgroup"]:
-            outpath = path.data
-        else:
-            logging.info(origin)
-            logging.error("Wrong datatype")
-            raise Exception
-
-        tmp_list = []
-        for funinfo in list_funinfo:
-            if funinfo.datatype == origin[1]:
-                if funinfo.source == origin[0]:
-                    tmp_list.append(funinfo)
-
-
-def save_fasta(list_funinfo, gene, filename, by="accession"):
+def save_fasta(list_funinfo, gene, filename, by="id"):
 
     list_funinfo = list(set(list_funinfo))  # remove ambiguous seqs
 
@@ -672,7 +650,7 @@ def save_fasta(list_funinfo, gene, filename, by="accession"):
                     if by == "hash":
                         fp.write(f">{info.hash}_{n}\n{seq}\n")
                     else:
-                        fp.write(f">{info.accession}_{n}\n{seq}\n")
+                        fp.write(f">{info.id}_{n}\n{seq}\n")
                     flag = 1
 
         else:
@@ -683,7 +661,7 @@ def save_fasta(list_funinfo, gene, filename, by="accession"):
                         if by == "hash":
                             fp.write(f">{info.hash}\n{info.seq[gene]}\n")
                         else:
-                            fp.write(f">{info.accession}\n{info.seq[gene]}\n")
+                            fp.write(f">{info.id}\n{info.seq[gene]}\n")
                         flag = 1
 
     # returns 1 if meaningful sequence exists
@@ -696,31 +674,18 @@ def save_originalfasta(list_info, path, filename):
             fp.write(f">{info.description}\n{info.seq}\n")
 
 
-def save_fastabysection(list_funinfo, path, option, add="Reference", outgroup=False):
+def save_fastabygroup(list_funinfo, path, option, add="Reference", outgroup=False):
 
     outpath = path.data
-    set_section = set()
+    set_group = set()
 
-    for section in set_section:
+    for group in set_group:
         tmp_list = []
         for funinfo in list_funinfo:
-            if funinfo.adjusted_section == section:
+            if funinfo.adjusted_group == group:
                 tmp_list.append(funinfo)
 
-        save_fasta(tmp_list, outpath, f"{add}_{section}.fasta")
-
-
-# Save tree file to designated path, and decode it
-def save_tree(out, hash_dict, hash_file_path, decoded_file_path):
-
-    # print(out)
-    file = out.split("/")[-1]
-    shutil.move(out, hash_file_path)
-    decode(
-        hash_dict=hash_dict,
-        file=hash_file_path,
-        out=decoded_file_path,
-    )
+        save_fasta(tmp_list, outpath, f"{add}_{group}.fasta")
 
 
 def save_mergedfasta(fasta_list, out_path):

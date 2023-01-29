@@ -1,0 +1,9 @@
+README.md
+setup.py
+funid/FunID.egg-info/PKG-INFO
+funid/FunID.egg-info/SOURCES.txt
+funid/FunID.egg-info/dependency_links.txt
+funid/FunID.egg-info/entry_points.txt
+funid/FunID.egg-info/not-zip-safe
+funid/FunID.egg-info/requires.txt
+funid/FunID.egg-info/top_level.txt

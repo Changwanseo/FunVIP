@@ -2,10 +2,10 @@ import os, sys, shutil
 import json
 import pandas as pd
 from Bio import SeqIO
+from funid.src.logics import isnan
 import zipfile
 import numpy as np
 import re
-import datetime
 
 
 from funid.src.tool import (
@@ -23,6 +23,7 @@ INF = 99999999
 # make directory if directory does not exists
 
 
+"""
 def gettype(string):
     if string == "str":
         return str
@@ -37,13 +38,7 @@ def gettype(string):
     else:
         print(string)
         raise TypeError
-
-
-def isnan(value):
-    if type(value) is float or type(value) is np.float64:
-        if np.isnan(value):
-            return True
-    return False
+"""
 
 
 # checking input option
@@ -261,15 +256,6 @@ def initialize(path_run, parser):
     # Generate path class
     print(f"Output location: {path_run}")
     path = Path(path_run)
-
-    # Parse options
-    # df = pd.read_excel(path.option_attributes)  # read setup files
-    # df.set_index("option", inplace=True)
-
-    # make setup dataframe to json
-    # pre_dict = {}
-    # for n, var in enumerate(df["variable"]):
-    #    pre_dict[var] = ""
 
     # Parsing options
     opt, list_info, list_warning, list_error = initialize_option(parser, path_run)

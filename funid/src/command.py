@@ -89,6 +89,11 @@ class CommandParser:
             type=str,
         )
         group_run.add_argument(
+            "--level",
+            help="Taxonomic level to be included in each phylogenetic tree. Should be one of [subseries, series, subsection, section, subtribe, tribe, subfamily, family, suborder, order, subclass, class, subphylum, phylum, subdivision, division, subkingdom, kingdom]",
+            type=str,
+        )
+        group_run.add_argument(
             "--queryonly",
             action="store_true",
             help="Only phylogenetic analysis on query sequences, default : True",
@@ -109,7 +114,7 @@ class CommandParser:
         )
         group_method.add_argument(
             "--search",
-            help="Search methods to be used in selecting genes, sections and outgroups, [blast, mmseqs], default : mmseqs",
+            help="Search methods to be used in selecting genes, groups and outgroups, [blast, mmseqs], default : mmseqs",
             type=str,
         )
         group_method.add_argument(
@@ -146,7 +151,49 @@ class CommandParser:
         group_visualize.add_argument(
             "--fullgenus",
             action="store_true",
-            help="Show full genus name on tree, default : false",
+            help="Show full genus name on tree, default : False",
+        )
+        group_visualize.add_argument(
+            "--highlight",
+            help="Color to highlight query sequences in tree visualization. Either in html svg recognizable string or hex code, default: #AA0000",
+            type=str,
+        )
+        group_visualize.add_argument(
+            "--heightmultiplier",
+            help="Height multiplier in drawing collapsing nodes. Change it if you want to show collapse node more or less expanded. Default: 6",
+            type=float,
+        )
+        group_visualize.add_argument(
+            "--maxwordlength",
+            help="Maximum letters to be shown in single line of tree annotation. Default: 48",
+            type=int,
+        )
+        group_visualize.add_argument(
+            "--backgroundcolor",
+            help="List of background colors to be shown in tree, default: #f4f4f4, #c6c6c6",
+            nargs="*",
+            type=str,
+        )
+        group_visualize.add_argument(
+            "--outgroupcolor",
+            help="Background colors to indicate outgroup, default: #999999",
+            type=str,
+        )
+
+        group_visualize.add_argument(
+            "--ftype",
+            help="Font to use for phylogenetic tree, default: Arial",
+            type=str,
+        )
+        group_visualize.add_argument(
+            "--fsize",
+            help="Font size to use for phylogenetic tree, default: 10",
+            type=float,
+        )
+        group_visualize.add_argument(
+            "--fsize_bootstrap",
+            help="Font size to use for bootstrap support in phylogenetic tree, default: 9",
+            type=float,
         )
 
         # Advanced
@@ -193,7 +240,7 @@ class CommandParser:
         group_advanced.add_argument(
             "--cluster-cutoff",
             dest="cluster_cutoff",
-            help="Minimum percent identity to be considered as same section in clustering analysis. Should be between 0 and 1, default : 0.97",
+            help="Minimum percent identity to be considered as same group in clustering analysis. Should be between 0 and 1, default : 0.97",
             type=float,
         )
         group_advanced.add_argument(

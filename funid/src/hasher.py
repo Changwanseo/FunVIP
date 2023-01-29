@@ -27,17 +27,17 @@ def encode(funinfo_list: list, newick: bool = False) -> dict:
 
     if newick is False:
         for funinfo in funinfo_list:
-            hash_dict[funinfo.hash] = f"{funinfo.accession}"
+            hash_dict[funinfo.hash] = f"{funinfo.id}"
     else:
         for funinfo in funinfo_list:
             try:
                 hash_dict[
                     funinfo.hash
-                ] = f"{funinfo.accession}_{funinfo.genus}_{funinfo.species}"
+                ] = f"{funinfo.id}_{funinfo.genus}_{funinfo.species}"
             except:
                 hash_dict[
                     funinfo.hash
-                ] = f"{funinfo.accession}_{funinfo.genus}_{funinfo.ori_species}"
+                ] = f"{funinfo.id}_{funinfo.genus}_{funinfo.ori_species}"
 
     return hash_dict
 
@@ -83,19 +83,19 @@ def hasher(funinfo_list: list, path, option, outgroup: bool = False):
     # main pipeline
     Hash all
     """
-    section_result = {}
-    for section in section_list:
+    group_result = {}
+    for group in group_list:
         tmp_funinfo_list = []
         for funinfo in funinfo_list:
-            if funinfo.adjusted_section == section:
+            if funinfo.adjusted_group == group:
                 tmp_funinfo_list.append(funinfo)
 
-        section_result[section] = (
-            f"Hashed_{section}.fasta",
-            encode(tmp_funinfo_list, f"{path.out_hash}/Hashed_{section}.fasta"),
+        group_result[group] = (
+            f"Hashed_{group}.fasta",
+            encode(tmp_funinfo_list, f"{path.out_hash}/Hashed_{group}.fasta"),
         )
 
-    return section_result
+    return group_result
 
 
 def hash_funinfo_list(list_funinfo: list) -> list:

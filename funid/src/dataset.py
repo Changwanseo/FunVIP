@@ -7,14 +7,15 @@ import logging
 import re
 import json
 
+# Datasets are group of sequences with same genes for analysis, including query, database and outgroup
 # Each of the dataset varialbe
 class Dataset:
-    def __init__(self, gene, sect, list_qr, list_db, list_og):
+    def __init__(self, gene, group, list_qr, list_db, list_og):
 
         # Which gene is this dataset, gene name or concatenated
         self.gene = gene
-        # Which section is this dataset
-        self.sect = sect
+        # Which group is this dataset
+        self.group = group
         # query funinfo_list for this dataset
         self.list_qr_FI = list_qr
         # db funinfo_list for this dataset
@@ -30,7 +31,7 @@ class FunID_var:
         # FI : funinfo
         # SR : search result
         # prefix c : concatenated
-        # sect : section
+        # group : group
         # dict_A_B : dictionary, {A : B}
         # opt : list of option
         # qr : query
@@ -43,10 +44,10 @@ class FunID_var:
         self.list_FI = []
         # {funinfo.hash : funinfo}, old hash_dict
         self.dict_hash_FI = {}
-        # {funinfo.hash : "{funinfo.accession}_{funinfo.genus}_{funinfo.species}"}
+        # {funinfo.hash : "{funinfo.id}_{funinfo.genus}_{funinfo.species}"}
         self.dict_hash_name = {}
-        # {funinfo.hash : "{funinfo.accession}"}
-        self.dict_hash_acc = {}
+        # {funinfo.hash : "{funinfo.id}"}
+        self.dict_hash_id = {}
 
         # genus, gene - dataset
         # tuple of genera used for current run, old genus_list
@@ -55,23 +56,23 @@ class FunID_var:
         self.list_db_gene = []
         # list of gene used for query in current run
         self.list_qr_gene = []
-        # old section list
-        self.list_sect = []
+        # old group list
+        self.list_group = []
 
         # Search result datasets
         # {gene : search df}, old df_dict
         self.dict_gene_SR = {}
         # concatenated search df dict, old concatenated_df
         self.cSR = None
-        # {secton : concatenated search df dict}, old concatenated_df in dictionary form by section
-        # self.dict_sect_cSR = {}
+        # {groupon : concatenated search df dict}, old concatenated_df in dictionary form by group
+        # self.dict_group_cSR = {}
 
-        # dataset dict - dict_dataset[section][dict] = class Dataset
+        # dataset dict - dict_dataset[group][gene] = class Dataset
         # using key concat for concatenated
         self.dict_dataset = {}
 
         # Running options
-        # sectional clustering option
+        # groupal clustering option
         self.opt_cluster = []
         self.opt_append_og = []
         self.opt_align = []
@@ -91,61 +92,61 @@ class FunID_var:
         out_dict = {}
         for key in self.dict_dataset:
             out_dict[key] = len(self.dict_dataset[key])
-        return f"<< FunID_var object >>\nNumber of FI: {len(self.list_FI)}\nDB genes:{self.list_db_gene}\nQuery genes:{self.list_qr_gene}\nSections:{self.list_sect}\nDataset_dict:{json.dumps(out_dict, indent=2)}"
+        return f"<< FunID_var object >>\nNumber of FI: {len(self.list_FI)}\nDB genes:{self.list_db_gene}\nQuery genes:{self.list_qr_gene}\ngroups:{self.list_group}\nDataset_dict:{json.dumps(out_dict, indent=2)}"
 
-    def add_dataset(self, sect, gene, list_qr, list_db, list_og):
-        data = Dataset(sect, gene, list_qr, list_db, list_og)
-        if not (sect) in self.dict_dataset:
-            self.dict_dataset[sect] = {}
+    def add_dataset(self, group, gene, list_qr, list_db, list_og):
+        data = Dataset(group, gene, list_qr, list_db, list_og)
+        if not (group) in self.dict_dataset:
+            self.dict_dataset[group] = {}
 
-        if not (gene) in self.dict_dataset[sect]:
-            self.dict_dataset[sect][gene] = data
+        if not (gene) in self.dict_dataset[group]:
+            self.dict_dataset[group][gene] = data
         else:
-            logging.warning(f"Overriding dataset on {sect} {gene}")
-            self.dict_dataset[sect][gene] = data
+            logging.warning(f"Overriding dataset on {group} {gene}")
+            self.dict_dataset[group][gene] = data
 
         # If gene is concatenated, update ori_species
         if gene == "concatenated":
             for FI in list_qr + list_db:
                 FI.bygene_species[gene] = FI.ori_species
 
-    def remove_dataset(self, sect, gene):
+    def remove_dataset(self, group, gene):
 
-        if not (sect) in self.dict_dataset:
+        if not (group) in self.dict_dataset:
             logging.warning(
-                f"Passing removing dataset of {sect} {gene} because no {sect} priorly exists"
+                f"Passing removing dataset of {group} {gene} because no {group} priorly exists"
             )
-        elif not (gene) in self.dict_dataset[sect]:
+        elif not (gene) in self.dict_dataset[group]:
             logging.warning(
-                f"Passing removing dataset of {sect} {gene} because no {gene} priorly exists"
+                f"Passing removing dataset of {group} {gene} because no {gene} priorly exists"
             )
         else:
-            del self.dict_dataset[sect][gene]
+            del self.dict_dataset[group][gene]
             # if all gene removed
-            if len(self.dict_dataset[sect]) == 0:
-                del self.dict_dataset[sect]
+            if len(self.dict_dataset[group]) == 0:
+                del self.dict_dataset[group]
 
-    def exist_dataset(self, sect, gene):
-        if not (sect) in self.dict_dataset:
+    def exist_dataset(self, group, gene):
+        if not (group) in self.dict_dataset:
             return False
-        elif not (gene) in self.dict_dataset[sect]:
+        elif not (gene) in self.dict_dataset[group]:
             return False
         else:
             return True
 
-    # generate dataset by section and gene
+    # generate dataset by group and gene
     def generate_dataset(self, opt):
 
         dict_funinfo = {}
 
-        for sect in self.list_sect:
-            logging.info(f"Generating dataset for {sect}")
-            dict_funinfo[sect] = {}
+        for group in self.list_group:
+            logging.info(f"Generating dataset for {group}")
+            dict_funinfo[group] = {}
 
             # For query only option
             if opt.queryonly is True:
 
-                section_flag = 0  # whether to run this section
+                group_flag = 0  # whether to run this group
 
                 for gene in self.list_db_gene:
 
@@ -157,16 +158,16 @@ class FunID_var:
                         if (
                             gene in FI.seq
                             and FI.datatype == "query"
-                            and FI.adjusted_section == sect
+                            and FI.adjusted_group == group
                         )
                     ]
 
                     # do not manage db when query only mode and query does not exists
                     if len(list_qr) > 0:
-                        section_flag = 1
+                        group_flag = 1
 
-                if section_flag == 1:  # if decided to run this section
-                    logging.info(f"Section {sect} passed dataset construction")
+                if group_flag == 1:  # if decided to run this group
+                    logging.info(f"group {group} passed dataset construction")
                     for gene in self.list_db_gene:
                         list_qr = [
                             FI
@@ -174,7 +175,7 @@ class FunID_var:
                             if (
                                 gene in FI.seq
                                 and FI.datatype == "query"
-                                and FI.adjusted_section == sect
+                                and FI.adjusted_group == group
                             )
                         ]
 
@@ -184,14 +185,14 @@ class FunID_var:
                             if (
                                 gene in FI.seq
                                 and FI.datatype == "db"
-                                and FI.adjusted_section == sect
+                                and FI.adjusted_group == group
                             )
                         ]
-                        self.add_dataset(sect, gene, list_qr, list_db, [])
+                        self.add_dataset(group, gene, list_qr, list_db, [])
 
                 else:
                     logging.warning(
-                        f"Section {sect} did not passed dataset construction"
+                        f"group {group} did not passed dataset construction"
                     )
 
                 # for concatenated
@@ -199,7 +200,7 @@ class FunID_var:
                     list_qr = [
                         FI
                         for FI in self.list_FI
-                        if (FI.datatype == "query" and FI.adjusted_section == sect)
+                        if (FI.datatype == "query" and FI.adjusted_group == group)
                     ]
 
                     # do not manage db when query only mode and query does not exists
@@ -207,9 +208,9 @@ class FunID_var:
                         list_db = [
                             FI
                             for FI in self.list_FI
-                            if (FI.datatype == "db" and FI.adjusted_section == sect)
+                            if (FI.datatype == "db" and FI.adjusted_group == group)
                         ]
-                        self.add_dataset(sect, "concatenated", list_qr, list_db, [])
+                        self.add_dataset(group, "concatenated", list_qr, list_db, [])
 
             # For DB included opt
             else:
@@ -220,7 +221,7 @@ class FunID_var:
                         if (
                             gene in FI.seq
                             and FI.datatype == "query"
-                            and FI.adjusted_section == sect
+                            and FI.adjusted_group == group
                         )
                     ]
                     list_db = [
@@ -229,10 +230,10 @@ class FunID_var:
                         if (
                             gene in FI.seq
                             and FI.datatype == "db"
-                            and FI.adjusted_section == sect
+                            and FI.adjusted_group == group
                         )
                     ]
-                    self.add_dataset(sect, gene, list_qr, list_db, [])
+                    self.add_dataset(group, gene, list_qr, list_db, [])
 
                 # for concatenated
                 if opt.concatenate is True:
@@ -240,16 +241,16 @@ class FunID_var:
                     list_qr = [
                         FI
                         for FI in self.list_FI
-                        if (FI.datatype == "query" and FI.adjusted_section == sect)
+                        if (FI.datatype == "query" and FI.adjusted_group == group)
                     ]
                     list_db = [
                         FI
                         for FI in self.list_FI
-                        if (FI.datatype == "db" and FI.adjusted_section == sect)
+                        if (FI.datatype == "db" and FI.adjusted_group == group)
                     ]
-                    self.add_dataset(sect, "concatenated", list_qr, list_db, [])
+                    self.add_dataset(group, "concatenated", list_qr, list_db, [])
 
-    # homogenize list_dataset and dicts
+    # homogenize list_dataset and dicts from multiple results
     def homogenize_dataset(self):
         for FI in self.list_FI:
             if FI.hash in self.dict_hash_FI:
@@ -263,37 +264,35 @@ class FunID_var:
                         self.dict_hash_FI[h].final_species = FI.final_species
                     else:
                         logging.error(
-                            f"Both list_FI and dict_FI have conflicting final species, {FI.final_species} and {self.dict_hash_FI[h].final_species}"
+                            f"DEVELOPMNETAL ERROR Both list_FI and dict_FI have conflicting final species, {FI.final_species} and {self.dict_hash_FI[h].final_species}"
                         )
                         raise Exception
 
-                # adjusted section
-                if FI.adjusted_section != self.dict_hash_FI[h].adjusted_section:
-                    if FI.adjusted_section == "" or FI.adjusted_section == "":
-                        FI.adjusted_section = self.dict_hash_FI[h].adjusted_section
-                    elif self.dict_hash_FI[h].adjusted_section == "":
-                        self.dict_hash_FI[h].adjusted_section = FI.adjusted_section
+                # adjusted group
+                if FI.adjusted_group != self.dict_hash_FI[h].adjusted_group:
+                    if FI.adjusted_group == "" or FI.adjusted_group == "":
+                        FI.adjusted_group = self.dict_hash_FI[h].adjusted_group
+                    elif self.dict_hash_FI[h].adjusted_group == "":
+                        self.dict_hash_FI[h].adjusted_group = FI.adjusted_group
                     else:
                         logging.error(
-                            f"Both list_FI and dict_FI have conflicting final species, {FI.adjusted_section} and {self.dict_hash_FI[h].adjusted_section}, {FI}"
+                            f"DEVELOPMENTAL ERROR Both list_FI and dict_FI have conflicting final species, {FI.adjusted_group} and {self.dict_hash_FI[h].adjusted_group}, {FI}"
                         )
                         raise Exception
 
                 elif (
-                    FI.adjusted_section == ""
-                    and self.dict_hash_FI[h].adjusted_section == ""
+                    FI.adjusted_group == ""
+                    and self.dict_hash_FI[h].adjusted_group == ""
                 ):
-                    if FI.section != "":
-                        FI.adjusted_section = FI.section
-                        self.dict_hash_FI[h].adjusted_section = FI.section
+                    if FI.group != "":
+                        FI.adjusted_group = FI.group
+                        self.dict_hash_FI[h].adjusted_group = FI.group
 
-                    elif self.dict_hash_FI[h].section != "":
-                        FI.adjusted_section = self.dict_hash_FI[h].section
-                        self.dict_hash_FI[h].adjusted_section = self.dict_hash_FI[
-                            h
-                        ].section
+                    elif self.dict_hash_FI[h].group != "":
+                        FI.adjusted_group = self.dict_hash_FI[h].group
+                        self.dict_hash_FI[h].adjusted_group = self.dict_hash_FI[h].group
                     else:
-                        logging.error(f"{FI.accession} does not have assigned section!")
+                        logging.error(f"{FI.id} does not have assigned group!")
 
                 # bygene_species
                 if FI.bygene_species != self.dict_hash_FI[h].bygene_species:
@@ -308,7 +307,7 @@ class FunID_var:
                         self.dict_hash_FI[h].bygene_species = FI.bygene_species
                     else:
                         logging.error(
-                            f"Both list_FI and dict_FI have conflicting gene identification results, {FI.bygene_species} and {self.dict_hash_FI[h].bygene}"
+                            f"DEVELOPMENTAL ERROR Both list_FI and dict_FI have conflicting gene identification results, {FI.bygene_species} and {self.dict_hash_FI[h].bygene}"
                         )
                         raise Exception
 
@@ -317,23 +316,23 @@ class FunID_var:
 
         # collect remove list : removing after iterating
         list_remove = []
-        for sect in self.dict_dataset:
-            for gene in self.dict_dataset[sect]:
-                if len(self.dict_dataset[sect][gene].list_db_FI) == 0:
+        for group in self.dict_dataset:
+            for gene in self.dict_dataset[group]:
+                if len(self.dict_dataset[group][gene].list_db_FI) == 0:
                     logging.warning(
-                        f"Removing {gene} from section {sect} because there are no corresponding sequences"
+                        f"Removing {gene} from analysis in group {group} because there are no corresponding sequences"
                     )
-                    list_remove.append((sect, gene))
+                    list_remove.append((group, gene))
                 elif (
-                    len(self.dict_dataset[sect][gene].list_db_FI)
-                    + len(self.dict_dataset[sect][gene].list_qr_FI)
-                    + len(self.dict_dataset[sect][gene].list_og_FI)
+                    len(self.dict_dataset[group][gene].list_db_FI)
+                    + len(self.dict_dataset[group][gene].list_qr_FI)
+                    + len(self.dict_dataset[group][gene].list_og_FI)
                     < 4
                 ):
                     logging.warning(
-                        f"Removing {sect} from downstream phylogenetic analysis because there are not enough sequences"
+                        f"Removing {group} from downstream phylogenetic analysis because there are not enough sequences"
                     )
-                    list_remove.append((sect, gene))
+                    list_remove.append((group, gene))
 
         for x in list_remove:
             self.remove_dataset(*x)
@@ -341,39 +340,39 @@ class FunID_var:
     # save fasta for outgroup adjusted fasta
     def save_dataset(self, path, opt):
         print(self.dict_dataset)
-        for sect in self.dict_dataset:
-            for gene in self.dict_dataset[sect]:
+        for group in self.dict_dataset:
+            for gene in self.dict_dataset[group]:
                 if not (gene == "concatenated"):
                     if (
                         opt.concatenate is True
-                        and "concatenated" in self.dict_dataset[sect]
+                        and "concatenated" in self.dict_dataset[group]
                     ):
                         fasta_list = list(
                             set(
-                                self.dict_dataset[sect][gene].list_db_FI
-                                + self.dict_dataset[sect][gene].list_qr_FI
-                                + self.dict_dataset[sect][gene].list_og_FI
-                                + self.dict_dataset[sect]["concatenated"].list_og_FI
+                                self.dict_dataset[group][gene].list_db_FI
+                                + self.dict_dataset[group][gene].list_qr_FI
+                                + self.dict_dataset[group][gene].list_og_FI
+                                + self.dict_dataset[group]["concatenated"].list_og_FI
                             )
                         )
                     else:
                         fasta_list = (
-                            self.dict_dataset[sect][gene].list_db_FI
-                            + self.dict_dataset[sect][gene].list_qr_FI
-                            + self.dict_dataset[sect][gene].list_og_FI
+                            self.dict_dataset[group][gene].list_db_FI
+                            + self.dict_dataset[group][gene].list_qr_FI
+                            + self.dict_dataset[group][gene].list_og_FI
                         )
 
                     manage_input.save_fasta(
                         fasta_list,
                         gene,
-                        f"{path.out_adjusted}/{opt.runname}_Adjusted_{sect}_{gene}.fasta",
+                        f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta",
                         by="hash",
                     )
 
     # Validate if any multiple sequence alignment has no overlapping region
     def validate_alignments(self, path, opt):
-        for sect in self.dict_dataset:
-            for gene in self.dict_dataset[sect]:
+        for group in self.dict_dataset:
+            for gene in self.dict_dataset[group]:
 
                 # Check if dataset exists
                 pass
@@ -381,11 +380,11 @@ class FunID_var:
                 # Check if alignment corresponding to dataset exists
                 if not (
                     os.path.isfile(
-                        f"{path.out_alignment}/{opt.runname}_trimmed_{sect}_{gene}.fasta"
+                        f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta"
                     )
                 ):
                     logger.warning(
-                        f"Alignment file {path.out_alignment}/{opt.runname}_trimmed_{sect}_{gene}.fasta does not exists"
+                        f"Alignment file {path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta does not exists"
                     )
 
                 else:
@@ -394,7 +393,7 @@ class FunID_var:
                     ## Parse alignment
                     seq_list = list(
                         SeqIO.parse(
-                            f"{path.out_alignment}/{opt.runname}_trimmed_{sect}_{gene}.fasta",
+                            f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
                             "fasta",
                         )
                     )
@@ -417,10 +416,10 @@ class FunID_var:
                     ## Raise warning for this
                     if np.all((vector_products == 0)):
                         logging.warning(
-                            f"Alignment for {sect} {gene} does not have any overlapping regions! Please check alignment to find out if some of the sequences were from different regions"
+                            f"Alignment for {group} {gene} does not have any overlapping regions! Please check alignment to find out if some of the sequences were from different regions"
                         )
                     else:
-                        logging.info(f"Alignment for {sect} {gene} passed validation")
+                        logging.info(f"Alignment for {group} {gene} passed validation")
 
                 # If alignment corresponding to dataset does not exists, raise warning or error
                 pass

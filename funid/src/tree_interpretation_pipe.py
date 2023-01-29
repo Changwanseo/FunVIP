@@ -12,7 +12,7 @@ import multiprocessing as mp
 # Single dataset
 def pipe_module_tree_interpretation(
     out,
-    sect,
+    group,
     gene,
     V,
     path,
@@ -23,9 +23,9 @@ def pipe_module_tree_interpretation(
     funinfo_dict = V.dict_hash_FI
     funinfo_list = V.list_FI
     hash_dict = V.dict_hash_name
-    db_list = V.dict_dataset[sect][gene].list_db_FI
-    query_list = V.dict_dataset[sect][gene].list_qr_FI
-    outgroup = V.dict_dataset[sect][gene].list_og_FI
+    db_list = V.dict_dataset[group][gene].list_db_FI
+    query_list = V.dict_dataset[group][gene].list_qr_FI
+    outgroup = V.dict_dataset[group][gene].list_og_FI
     genus_list = V.tup_genus
 
     del V
@@ -34,16 +34,14 @@ def pipe_module_tree_interpretation(
     initialize_path(path)
 
     # Tree name selection for tree construction software
-    try:
-        tree_name = f"{path.out_tree}/hash/hash_{out}.nwk"
-        if os.path.isfile(tree_name):
-            pass
-        else:
-            print(f"Cannot find {tree_name}")
-        Tree(tree_name)
+    tree_name = f"{path.out_tree}/hash/hash_{out}.nwk"
+    print(tree_name)
 
-    except:
-        logging.warning(f"Cannot read {tree_name}")
+    if os.path.isfile(tree_name):
+        Tree(tree_name, format=2)
+    else:
+        logging.warning(f"Cannot find {tree_name}")
+        raise Exception
         return None
 
     try:
@@ -59,14 +57,14 @@ def pipe_module_tree_interpretation(
         tree_info.outgroup = outgroup
         tree_info.funinfo_dict = funinfo_dict
 
-        # make zero with alignment
+        # calculate zero with alignment
         if gene != "concatenated":
             tree_info.calculate_zero(
-                f"{path.out_alignment}/{opt.runname}_hash_trimmed_{sect}_{gene}.fasta"
+                f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_{gene}.fasta"
             )
         else:
             tree_info.calculate_zero(
-                f"{path.out_alignment}/{opt.runname}_hash_trimmed_{sect}_concatenated.fasta"
+                f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_concatenated.fasta"
             )
 
         # Reroot outgroup and save original tree into image
@@ -110,8 +108,26 @@ def pipe_module_tree_interpretation(
 
         report_list = []
         for taxon in list_taxon:
+            # If only one taxon exists, enumerate does not work properly
             if len(tree_info.collapse_dict[taxon]) <= 1:
                 collapse_info = tree_info.collapse_dict[taxon][0]
+<<<<<<< HEAD
+                # Get each of the leaf result to report
+                for leaf in collapse_info.leaf_list:
+                    report = Singlereport()
+                    report.id = funinfo_dict[leaf[0]].original_id
+                    report.hash = funinfo_dict[leaf[0]].hash
+                    report.update_group(group)
+                    report.update_gene(gene)
+                    report.update_species_original(
+                        get_genus_species(leaf[2], genus_list=genus_list)
+                    )
+                    report.update_species_assigned(taxon)
+                    report.ambiguous = collapse_info.clade_cnt
+                    report.flat = collapse_info.flat
+
+                    report_list.append(report)
+=======
                 tmp_dict[" ".join(taxon)] = [
                     collapse_info.n_db,
                     collapse_info.n_query,
@@ -123,15 +139,16 @@ def pipe_module_tree_interpretation(
                 for leaf in collapse_info.leaf_list:
                     if 1:  # tree_info.option.highlight:
                         report = Singlereport()
-                        report.accession = funinfo_dict[leaf[0]].original_accession
+                        report.id = funinfo_dict[leaf[0]].original_id
                         report.hash = funinfo_dict[leaf[0]].hash
-                        report.update_genussection(out, gene)
+                        report.update_genusgroup(out, gene)
                         report.update_inputtaxon(
                             get_genus_species(leaf[2], genus_list=genus_list)
                         )
                         report.taxon_cnt = collapse_info.clade_cnt
                         report.update_identifiedtaxon(taxon)
                         report_list.append(report)
+>>>>>>> parent of bbf88cd (0.2.0.1.0.7)
 
             else:
                 for n, collapse_info in enumerate(tree_info.collapse_dict[taxon]):
@@ -145,17 +162,23 @@ def pipe_module_tree_interpretation(
                     ]
 
                     for leaf in collapse_info.leaf_list:
-                        if 1:  # tree_info.option.highlight:
-                            report = Singlereport()
-                            report.accession = funinfo_dict[leaf[0]].original_accession
-                            report.hash = funinfo_dict[leaf[0]].hash
-                            report.update_genussection(out, gene)
-                            report.update_inputtaxon(
-                                get_genus_species(leaf[2], genus_list=genus_list)
-                            )
-                            report.taxon_cnt = collapse_info.clade_cnt
-                            report.update_identifiedtaxon((" ".join(taxon), f"{n+1}"))
-                            report_list.append(report)
+                        report = Singlereport()
+                        report.id = funinfo_dict[leaf[0]].original_id
+                        report.hash = funinfo_dict[leaf[0]].hash
+                        report.update_genusgroup(out, gene)
+                        report.update_inputtaxon(
+                            get_genus_species(leaf[2], genus_list=genus_list)
+                        )
+<<<<<<< HEAD
+                        report.update_species_assigned((" ".join(taxon), f"{n+1}"))
+                        report.ambiguous = collapse_info.clade_cnt
+                        report.flat = collapse_info.flat
+
+=======
+                        report.taxon_cnt = collapse_info.clade_cnt
+                        report.update_identifiedtaxon((" ".join(taxon), f"{n+1}"))
+>>>>>>> parent of bbf88cd (0.2.0.1.0.7)
+                        report_list.append(report)
 
         df = pd.DataFrame(tmp_dict, index=["db", "query", "others", "total"])
         df = df.transpose()
@@ -175,14 +198,13 @@ def pipe_module_tree_interpretation(
             tree_info.funinfo_dict = funinfo_dict
 
             # make zero with alignment
-            # make zero with alignment
             if gene != "concatenated":
                 tree_info.calculate_zero(
-                    f"{path.out_alignment}/{opt.runname}_hash_trimmed_{sect}_{gene}.fasta"
+                    f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_{gene}.fasta"
                 )
             else:
                 tree_info.calculate_zero(
-                    f"{path.out_alignment}/{opt.runname}_hash_trimmed_{sect}_concatenated.fasta"
+                    f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_concatenated.fasta"
                 )
 
             tree_info.reroot_outgroup(f"{path.out_tree}/hash_{out}_original.svg")
@@ -242,9 +264,9 @@ def pipe_module_tree_interpretation(
                     for leaf in collapse_info.leaf_list:
                         if 1:  # tree_info.option.highlight:
                             report = Singlereport()
-                            report.accession = funinfo_dict[leaf[0]].original_accession
+                            report.id = funinfo_dict[leaf[0]].original_id
                             report.hash = funinfo_dict[leaf[0]].hash
-                            report.update_genussection(out, gene)
+                            report.update_genusgroup(out, gene)
                             report.update_inputtaxon(
                                 get_genus_species(leaf[2], genus_list=genus_list)
                             )
@@ -264,21 +286,16 @@ def pipe_module_tree_interpretation(
                         ]
 
                         for leaf in collapse_info.leaf_list:
-                            if 1:  # tree_info.option.highlight:
-                                report = Singlereport()
-                                report.accession = funinfo_dict[
-                                    leaf[0]
-                                ].original_accession
-                                report.hash = funinfo_dict[leaf[0]].hash
-                                report.update_genussection(out, gene)
-                                report.update_inputtaxon(
-                                    get_genus_species(leaf[2], genus_list=genus_list)
-                                )
-                                report.taxon_cnt = collapse_info.clade_cnt
-                                report.update_identifiedtaxon(
-                                    (" ".join(taxon), f"{n+1}")
-                                )
-                                report_list.append(report)
+                            report = Singlereport()
+                            report.id = funinfo_dict[leaf[0]].original_id
+                            report.hash = funinfo_dict[leaf[0]].hash
+                            report.update_genusgroup(out, gene)
+                            report.update_inputtaxon(
+                                get_genus_species(leaf[2], genus_list=genus_list)
+                            )
+                            report.taxon_cnt = collapse_info.clade_cnt
+                            report.update_identifiedtaxon((" ".join(taxon), f"{n+1}"))
+                            report_list.append(report)
 
             df = pd.DataFrame(tmp_dict, index=["db", "query", "others", "total"])
             df = df.transpose()
@@ -292,16 +309,19 @@ def pipe_module_tree_interpretation(
 def pipe_tree_interpretation(V, path, opt):
     tree_interpretation_opt = []
 
-    for sect in V.dict_dataset:
-        for gene in V.dict_dataset[sect]:
+    for group in V.dict_dataset:
+        for gene in V.dict_dataset[group]:
             # draw tree only when query sequence exists
-            if len(V.dict_dataset[sect][gene].list_qr_FI) > 0 or opt.queryonly is False:
+            if (
+                len(V.dict_dataset[group][gene].list_qr_FI) > 0
+                or opt.queryonly is False
+            ):
 
                 # Generating tree_interpretation opts for multithreading support
                 tree_interpretation_opt.append(
                     (
-                        f"{opt.runname}_{sect}_{gene}",
-                        sect,
+                        f"{opt.runname}_{group}_{gene}",
+                        group,
                         gene,
                         V,
                         path,
@@ -329,11 +349,24 @@ def pipe_tree_interpretation(V, path, opt):
             for result in raw_result[2]:
                 FI = V.dict_hash_FI[result.hash]
                 if result.gene == "concatenated" or opt.concatenate is False:
+<<<<<<< HEAD
+                    logging.debug("Updating final species")
+                    FI.final_species = result.species_assigned
+                    FI.species_identifier = result.ambiguous
+                    if result.flat is True:
+                        FI.flat.append("concatenated")
+                else:
+                    logging.debug("Not updating final species")
+                    FI.bygene_species[result.gene] = result.species_assigned
+                    if result.flat is True:
+                        FI.flat.append(result.gene)
+=======
                     # print("Updating final species")
                     FI.final_species = result.identifiedtaxon
                     FI.species_identifier = result.taxon_cnt
                 else:
                     # print("Not updating final species")
                     FI.bygene_species[result.gene] = result.identifiedtaxon
+>>>>>>> parent of bbf88cd (0.2.0.1.0.7)
 
     return V, path, opt

@@ -281,11 +281,11 @@ def cleanup(modeltest_file):
 # main function
 def modeltest(V, path, opt) -> dict:
 
-    section_dict = V.dict_dataset
-    model_dict = copy.deepcopy(section_dict)
+    group_dict = V.dict_dataset
+    model_dict = copy.deepcopy(group_dict)
 
-    for section in section_dict:
-        for gene in section_dict[section]:
+    for group in group_dict:
+        for gene in group_dict[group]:
             if opt.method.modeltest.lower() == "modeltest-ng":
                 # As modeltest-ng shows only top 10 results,
                 # we should reduce number of models to prevent none of the model fits
@@ -296,26 +296,26 @@ def modeltest(V, path, opt) -> dict:
 
                 # run modeltest-ng
                 ext.Modeltest_ng(
-                    fasta=f"{path.out_alignment}/{opt.runname}_MAFFT_{section}_{gene}.fasta",
+                    fasta=f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
                     models=models,
-                    out=f"{path.out_modeltest}/{opt.runname}_{section}_{gene}",
+                    out=f"{path.out_modeltest}/{opt.runname}_{group}_{gene}",
                     thread=opt.thread,
                 )
 
                 # Change result name
                 try:
                     shutil.move(
-                        f"{path.out_modeltest}/{opt.runname}_{section}_{gene}.out",
-                        f"{path.out_modeltest}/{opt.runname}_{section}_{gene}.modeltest",
+                        f"{path.out_modeltest}/{opt.runname}_{group}_{gene}.out",
+                        f"{path.out_modeltest}/{opt.runname}_{group}_{gene}.modeltest",
                     )
                 except:
                     logging.warning(
-                        f"Cannot parse modeltest file for {path.out_modeltest}/{opt.runname}_{section}_{gene}.out. Running with default option"
+                        f"Cannot parse modeltest file for {path.out_modeltest}/{opt.runname}_{group}_{gene}.out. Running with default option"
                     )
 
                 # parse model from modeltest-ng result
-                model_dict[section][gene] = parse_model(
-                    modeltest_file=f"{path.out_modeltest}/{opt.runname}_{section}_{gene}.modeltest",
+                model_dict[group][gene] = parse_model(
+                    modeltest_file=f"{path.out_modeltest}/{opt.runname}_{group}_{gene}.modeltest",
                     path=path,
                     opt=opt,
                 )
@@ -324,7 +324,7 @@ def modeltest(V, path, opt) -> dict:
 
                     # Run IQTREE ModelFinder
                     ext.ModelFinder(
-                        fasta=f"{path.out_alignment}/{opt.runname}_MAFFT_{section}_{gene}.fasta",
+                        fasta=f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
                         opt=opt,
                         path=path,
                         thread=opt.thread,
@@ -333,17 +333,17 @@ def modeltest(V, path, opt) -> dict:
                     # Move modeltest result to appropriate location
                     try:
                         shutil.move(
-                            f"{path.out_alignment}/{opt.runname}_MAFFT_{section}_{gene}.fasta.iqtree",
-                            f"{path.out_modeltest}/{opt.runname}_{section}_{gene}.modeltest",
+                            f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta.iqtree",
+                            f"{path.out_modeltest}/{opt.runname}_{group}_{gene}.modeltest",
                         )
                     except:
                         logging.warning(
-                            f"Cannot parse modeltest file for {path.out_alignment}/{opt.runname}_MAFFT_{section}_{gene}.fasta.iqtree. Running with default option"
+                            f"Cannot parse modeltest file for {path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta.iqtree. Running with default option"
                         )
 
                     # parse model from IQTREE ModelFinder result
-                    model_dict[section][gene] = parse_model(
-                        modeltest_file=f"{path.out_modeltest}/{opt.runname}_{section}_{gene}.modeltest",
+                    model_dict[group][gene] = parse_model(
+                        modeltest_file=f"{path.out_modeltest}/{opt.runname}_{group}_{gene}.modeltest",
                         path=path,
                         opt=opt,
                     )
@@ -351,15 +351,15 @@ def modeltest(V, path, opt) -> dict:
                     logging.info(
                         "IQTREE will perform ModelFinder internally in tree construction step, skipping in modeltest step"
                     )
-                    model_dict[section][gene] = "skip"
+                    model_dict[group][gene] = "skip"
 
             else:  # including opt.model_method.lower() == "none":
                 if opt.method.tree == "raxml":
                     logging.info("Skipping modeltest. Using GTRGAMMA as default")
-                    model_dict[section][gene] = "-m GTRGAMMA"
+                    model_dict[group][gene] = "-m GTRGAMMA"
                 else:
                     logging.info("Skipping modeltest.")
-                    model_dict[section][gene] = "skip"
+                    model_dict[group][gene] = "skip"
 
     logging.info(model_dict)
 

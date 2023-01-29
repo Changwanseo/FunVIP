@@ -11,20 +11,20 @@ from funid.src import search, hasher
 def combine_alignment(V, opt, path):
 
     multigene_list = []
-    for sect in V.dict_dataset:
-        if "concatenated" in V.dict_dataset[sect]:
+    for group in V.dict_dataset:
+        if "concatenated" in V.dict_dataset[group]:
             # get alignment length
             len_dict = {}  # length of each of the alignments
             seq_dict = {}
             hash_set = set()
             gene_list = []
 
-            for gene in V.dict_dataset[sect]:
+            for gene in V.dict_dataset[group]:
                 if not (gene == "concatenated"):
 
                     fasta_list = list(
                         SeqIO.parse(
-                            f"{path.out_alignment}/{opt.runname}_trimmed_{sect}_{gene}.fasta",
+                            f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
                             "fasta",
                         )
                     )
@@ -35,15 +35,15 @@ def combine_alignment(V, opt, path):
                     total_dataset = (
                         [
                             FI.hash
-                            for FI in V.dict_dataset[sect]["concatenated"].list_qr_FI
+                            for FI in V.dict_dataset[group]["concatenated"].list_qr_FI
                         ]
                         + [
                             FI.hash
-                            for FI in V.dict_dataset[sect]["concatenated"].list_db_FI
+                            for FI in V.dict_dataset[group]["concatenated"].list_db_FI
                         ]
                         + [
                             FI.hash
-                            for FI in V.dict_dataset[sect]["concatenated"].list_og_FI
+                            for FI in V.dict_dataset[group]["concatenated"].list_og_FI
                         ]
                     )
 
@@ -54,7 +54,7 @@ def combine_alignment(V, opt, path):
 
             # Generate partition file
             with open(
-                f"{path.out_alignment}/{opt.runname}_{sect}.partition", "w"
+                f"{path.out_alignment}/{opt.runname}_{group}.partition", "w"
             ) as fw:
                 tot_len = 0
                 for gene in sorted(len_dict.keys()):
@@ -79,19 +79,19 @@ def combine_alignment(V, opt, path):
 
             SeqIO.write(
                 concatenate_list,
-                f"{path.out_alignment}/{opt.runname}_trimmed_{sect}_concatenated.fasta",
+                f"{path.out_alignment}/{opt.runname}_trimmed_{group}_concatenated.fasta",
                 "fasta",
             )
 
             SeqIO.write(
                 concatenate_list,
-                f"{path.out_alignment}/{opt.runname}_MAFFT_{sect}_concatenated.fasta",
+                f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_concatenated.fasta",
                 "fasta",
             )
 
         else:
             logging.warning(
-                f"For {sect}, no more than genes were detected. Passing combining alignment"
+                f"For {group}, no more than genes were detected. Passing combining alignment"
             )
 
     V.multigene_list = multigene_list
@@ -177,22 +177,22 @@ def concatenate_df(V, path, opt):
                             drop_list.append("bitscore1")
                             drop_list.append("bitscore2")
 
-                        # concatenate query section column
-                        if "query_section1" in V.cSR.columns:
-                            V.cSR["query_section1"].fillna(
-                                V.cSR["query_section2"], inplace=True
+                        # concatenate query group column
+                        if "query_group1" in V.cSR.columns:
+                            V.cSR["query_group1"].fillna(
+                                V.cSR["query_group2"], inplace=True
                             )
-                            rename_dict["query_section1"] = "query_section"
-                            drop_list.append("query_section2")
+                            rename_dict["query_group1"] = "query_group"
+                            drop_list.append("query_group2")
 
-                        # concatenate subject section column
-                        if "subject_section1" in V.cSR.columns:
+                        # concatenate subject group column
+                        if "subject_group1" in V.cSR.columns:
 
-                            V.cSR["subject_section1"].fillna(
-                                V.cSR["subject_section2"], inplace=True
+                            V.cSR["subject_group1"].fillna(
+                                V.cSR["subject_group2"], inplace=True
                             )
-                            rename_dict["subject_section1"] = "subject_section"
-                            drop_list.append("subject_section2")
+                            rename_dict["subject_group1"] = "subject_group"
+                            drop_list.append("subject_group2")
 
                         V.cSR.rename(columns=rename_dict, inplace=True)
 
@@ -206,11 +206,11 @@ def concatenate_df(V, path, opt):
         # Save it
         search.save_df(
             hasher.decode_df(V.dict_hash_name, V.cSR),
-            f"{path.out_matrix}/{opt.runname}_BLAST_result_concatenated.{opt.df_format}",
-            fmt=opt.df_format,
+            f"{path.out_matrix}/{opt.runname}_BLAST_result_concatenated.{opt.matrixformat}",
+            fmt=opt.matrixformat,
         )
 
     else:
-        logging.info("[INFO] Concatenation not selected, passing concatenation")
+        logging.info("Concatenation not selected, passing concatenation")
 
     return V

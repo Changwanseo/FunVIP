@@ -11,8 +11,8 @@ def opt_generator(V, opt, path, step):
 
     # alignment options generator
     if step == "alignment":
-        for sect in V.dict_dataset:
-            for gene in V.dict_dataset[sect]:
+        for group in V.dict_dataset:
+            for gene in V.dict_dataset[group]:
                 # thread assignment
                 if opt.verbose < 3:
                     if opt.thread in (1, 3):
@@ -24,12 +24,12 @@ def opt_generator(V, opt, path, step):
 
                 # double checking path
                 if os.path.isfile(
-                    f"{path.out_adjusted}/{opt.runname}_Adjusted_{sect}_{gene}.fasta"
+                    f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta"
                 ):
                     list_opt.append(
                         (
-                            f"{path.out_adjusted}/{opt.runname}_Adjusted_{sect}_{gene}.fasta",
-                            f"{path.out_alignment}/{opt.runname}_MAFFT_{sect}_{gene}.fasta",
+                            f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta",
+                            f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
                             path,
                             thread,
                             opt.mafft.algorithm,
@@ -41,22 +41,22 @@ def opt_generator(V, opt, path, step):
 
     elif step == "trimming":
         # Generate trimming opts for multiprocessing
-        for sect in V.dict_dataset:
-            for gene in V.dict_dataset[sect]:
+        for group in V.dict_dataset:
+            for gene in V.dict_dataset[group]:
                 if not (gene == "concatenated"):
                     if opt.method.trim.lower() == "gblocks":
                         list_opt.append(
                             (
-                                f"{path.out_alignment}/{opt.runname}_MAFFT_{sect}_{gene}.fasta",
-                                f"{path.out_alignment}/{opt.runname}_trimmed_{sect}_{gene}.fasta",
+                                f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
+                                f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
                                 path,
                             )
                         )
                     elif opt.method.trim.lower() == "trimal":
                         list_opt.append(
                             (
-                                f"{path.out_alignment}/{opt.runname}_MAFFT_{sect}_{gene}.fasta",
-                                f"{path.out_alignment}/{opt.runname}_trimmed_{sect}_{gene}.fasta",
+                                f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
+                                f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
                                 path,
                                 opt.trimal.algorithm,
                                 opt.trimal.gt,
@@ -65,8 +65,8 @@ def opt_generator(V, opt, path, step):
                     else:  # for just copy
                         list_opt.append(
                             (
-                                f"{path.out_alignment}/{opt.runname}_MAFFT_{sect}_{gene}.fasta",
-                                f"{path.out_alignment}/{opt.runname}_trimmed_{sect}_{gene}.fasta",
+                                f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
+                                f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
                             )
                         )
 

@@ -12,10 +12,10 @@ import multiprocessing as mp
 import numpy as np
 import os
 
-# for visualizing statistical analysis on sectional clustering
+# for visualizing statistical analysis on groupal clustering
 
 
-def plot_pca(name, section_range, seq_matrix, path):
+def plot_pca(name, group_range, seq_matrix, path):
 
     matplotlib.use("cairo")
 
@@ -29,9 +29,9 @@ def plot_pca(name, section_range, seq_matrix, path):
 
     len_f = 0
 
-    for n, section in enumerate(section_range.keys()):
-        i = section_range[section][0]
-        j = section_range[section][1]
+    for n, group in enumerate(group_range.keys()):
+        i = group_range[group][0]
+        j = group_range[group][1]
         ax.scatter(X3d[i:j], X3d[i:j], cmap=cm.get_cmap("rainbow", n))
 
     plt.legend()
@@ -42,7 +42,7 @@ def plot_pca(name, section_range, seq_matrix, path):
     plt.close()
 
 
-def plot_heatmap(name, section_range, seq_matrix, path, vmax=100):
+def plot_heatmap(name, group_range, seq_matrix, path, vmax=100):
 
     # matplotlib.use("cairo")
 
@@ -52,20 +52,20 @@ def plot_heatmap(name, section_range, seq_matrix, path, vmax=100):
     ax = fig.add_subplot(1, 1, 1)
     plt.pcolor(seq_matrix, vmax=vmax)
     plt.colorbar()
-    for key in section_range.keys():
+    for key in group_range.keys():
         ax.add_patch(
             Rectangle(
-                (section_range[key][0], section_range[key][0]),
-                section_range[key][1] - section_range[key][0],
-                section_range[key][1] - section_range[key][0],
+                (group_range[key][0], group_range[key][0]),
+                group_range[key][1] - group_range[key][0],
+                group_range[key][1] - group_range[key][0],
                 fill=False,
                 edgecolor="white",
                 lw=0.5,
             )
         )
     ax.set_xticks(
-        [(section_range[x][0] + section_range[x][1]) / 2 for x in section_range.keys()]
+        [(group_range[x][0] + group_range[x][1]) / 2 for x in group_range.keys()]
     )
-    ax.set_xticklabels([x for x in section_range.keys()], fontsize=2)
+    ax.set_xticklabels([x for x in group_range.keys()], fontsize=2)
     # plt.savefig(f"{path.result}/heatmap_{name}.svg", dpi=1200)
     plt.savefig(f"{path.result}/heatmap_{name}.png", dpi=1200)

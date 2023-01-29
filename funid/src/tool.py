@@ -16,7 +16,6 @@ def initialize_path(path):
 
 def mkdir(path):
     if os.path.exists(path) == False:
-        print(path)
         os.makedirs(path)
 
 
@@ -32,12 +31,13 @@ def union_funinfo_list(funinfo_list1, funinfo_list2):
 
 # if string is not ascii, automatically solve it with unicode library
 def manage_unicode(string, column="", row=""):
+
     try:
         string.encode("ascii")
         return string
     except:
         logging.warning(
-            f"Illegal unicode character found in Accession column, {row}th row : {string}. Trying flexible solve"
+            f"Illegal unicode character found in ID/Accession column, {row}th row : {string}. Trying flexible solve"
         )
         try:
             return unidecode(string)
@@ -147,34 +147,34 @@ def get_genus_species(
     return return_genus, return_species
 
 
-# get accession from string by regex match
+# get id from string by regex match
 # return message as error, not print it
 @lru_cache(maxsize=10000)
-def get_accession(string, accession_list):
-    accession_set = set()
-    accession = ""
-    for regex in accession_list:
+def get_id(string, id_list):
+    id_set = set()
+    id_ = ""
+    for regex in id_list:
         if re.search(regex, string):
-            accession_set.add(re.search(regex, string).group(0))
+            id_set.add(re.search(regex, string).group(0))
             # longest match as a best match
-            if len(re.search(regex, string).group(0)) > len(accession):
-                accession = re.search(regex, string).group(0)
+            if len(re.search(regex, string).group(0)) > len(id_):
+                id_ = re.search(regex, string).group(0)
         else:
             pass
 
-    if len(accession_set) >= 2:
+    if len(id_set) >= 2:
         logging.warning(
-            f"[Warning] Ambiguous regex match found. {accession} selected among {accession_set}"
+            f"[Warning] Ambiguous regex match found. {id_} selected among {id_set}"
         )
 
-    if accession == "":
+    if id_ == "":
         logging.warning(
             f"[Warning] Cannot find regex match from {string}, using default fasta name"
         )
-        accession = string
+        id_ = string
 
-    accession = str(accession)
-    return accession
+    id_ = str(id_)
+    return id_
 
 
 # select FI with specific datatype from FI_list
@@ -244,3 +244,26 @@ def cleanup_tree_image(path):
         except:
             os.remove(f"{path.out_tree}/original/{file}")
             shutil.move(f"{path.out_tree}/{file}", f"{path.out_tree}/original/{file}")
+
+
+# Change step string into numbered step
+def index_step(step):
+    # Declaring available steps
+    step_list = [
+        "setup",
+        "search",
+        "cluster",
+        "align",
+        "trim",
+        "concatenate",
+        "modeltest",
+        "tree",
+        "visualize",
+        "report",
+    ]
+
+    try:
+        return step_list.index(step.lower().strip())
+    except:
+        logging.error(f"DEVELOPMENTAL ERROR, INVALID STEP {step} USED")
+        raise Exception

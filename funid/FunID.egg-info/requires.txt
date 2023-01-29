@@ -1,0 +1,14 @@
+biopython
+ete3
+GenMine
+lxml
+matplotlib
+numpy
+openpyxl
+pandas
+plotly
+scikit-learn
+streamlit
+unidecode
+xlrd
+xmltodict

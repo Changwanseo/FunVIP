@@ -38,6 +38,13 @@ def module_alignment(
 
     SeqIO.write(fasta_list, out_fasta, "fasta")
 
+    # Fix unexpected spaces on mafft
+    with open(out_fasta, "r") as fr:
+        alignment = fr.read()
+
+    with open(out_fasta, "w") as fw:
+        fw.write(alignment.replace(" HS", "HS"))
+
 
 # Alignment pipeline
 def pipe_alignment(V, path, opt):
@@ -60,4 +67,5 @@ def pipe_alignment(V, path, opt):
         alignment_result = []
         for option in alignment_opt:
             alignment_result.append(module_alignment(*option))
+
     return V, path, opt

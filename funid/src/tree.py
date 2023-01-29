@@ -16,31 +16,34 @@ def pipe_tree(V, path, opt, model_dict):
 
     # Single Gene
     fasttree_opt = []  # for multiprocessing on fasttree
-    for sect in V.dict_dataset:
-        for gene in V.dict_dataset[sect]:
+    for group in V.dict_dataset:
+        for gene in V.dict_dataset[group]:
             # draw tree only when query sequence exists
-            if len(V.dict_dataset[sect][gene].list_qr_FI) > 0 or opt.queryonly is False:
+            if (
+                len(V.dict_dataset[group][gene].list_qr_FI) > 0
+                or opt.queryonly is False
+            ):
                 # If not trimming use this
                 if opt.method.tree.lower() == "raxml":
                     ext.RAxML(
-                        fasta=f"{path.out_alignment}/{opt.runname}_trimmed_{sect}_{gene}.fasta",
-                        out=f"{opt.runname}_{sect}_{gene}.nwk",
+                        fasta=f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
+                        out=f"{opt.runname}_{group}_{gene}.nwk",
                         hash_dict=tree_hash_dict,
                         path=path,
                         thread=opt.thread,
                         bootstrap=opt.bootstrap,
-                        model=model_dict[sect][gene],
+                        model=model_dict[group][gene],
                     )
 
                 elif opt.method.tree.lower() == "iqtree":
                     ext.IQTREE(
-                        fasta=f"{path.out_alignment}/{opt.runname}_trimmed_{sect}_{gene}.fasta",
-                        out=f"{opt.runname}_{sect}_{gene}.nwk",
+                        fasta=f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
+                        out=f"{opt.runname}_{group}_{gene}.nwk",
                         hash_dict=tree_hash_dict,
                         path=path,
                         thread=opt.thread,
                         bootstrap=opt.bootstrap,
-                        model=model_dict[sect][gene],
+                        model=model_dict[group][gene],
                     )
 
                 # if fasttree, append to opt
@@ -51,11 +54,11 @@ def pipe_tree(V, path, opt, model_dict):
                         )
                     fasttree_opt.append(
                         (
-                            f"{path.out_alignment}/{opt.runname}_trimmed_{sect}_{gene}.fasta",
-                            f"{opt.runname}_{sect}_{gene}.nwk",
+                            f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
+                            f"{opt.runname}_{group}_{gene}.nwk",
                             tree_hash_dict,
                             path,
-                            model_dict[sect][gene],
+                            model_dict[group][gene],
                         )
                     )
 
@@ -77,29 +80,29 @@ def pipe_tree(V, path, opt, model_dict):
     # MultiGene tree
     fasttree_concatenated_opt = []
     if opt.concatenate is True:
-        for sect in V.multigene_list:
+        for group in V.multigene_list:
             if opt.method.tree.lower() == "raxml":
                 ext.RAxML(
-                    f"{path.out_alignment}/{opt.runname}_{sect}_concatenated.fasta",
-                    f"{opt.runname}_{sect}_concatenated.nwk",
+                    f"{path.out_alignment}/{opt.runname}_{group}_concatenated.fasta",
+                    f"{opt.runname}_{group}_concatenated.nwk",
                     tree_hash_dict,
                     path,
                     thread=opt.thread,
                     bootstrap=opt.bootstrap,
-                    partition=f"{path.out_alignment}/{opt.runname}_{sect}.partition",
-                    model=model_dict[sect][gene],
+                    partition=f"{path.out_alignment}/{opt.runname}_{group}.partition",
+                    model=model_dict[group][gene],
                 )
 
             elif opt.method.tree.lower() == "iqtree":
                 ext.IQTREE(
-                    f"{path.out_alignment}/{opt.runname}_{sect}_concatenated.fasta",
-                    f"{opt.runname}_{sect}_concatenated.nwk",
+                    f"{path.out_alignment}/{opt.runname}_{group}_concatenated.fasta",
+                    f"{opt.runname}_{group}_concatenated.nwk",
                     tree_hash_dict,
                     path,
                     thread=opt.thread,
                     bootstrap=opt.bootstrap,
-                    partition=f"{path.out_alignment}/{opt.runname}_{sect}.partition",
-                    model=model_dict[sect][gene],
+                    partition=f"{path.out_alignment}/{opt.runname}_{group}.partition",
+                    model=model_dict[group][gene],
                 )
 
             else:
@@ -109,11 +112,11 @@ def pipe_tree(V, path, opt, model_dict):
                     )
                 fasttree_concatenated_opt.append(
                     (
-                        f"{path.out_alignment}/{opt.runname}_{sect}_concatenated.fasta",
-                        f"{opt.runname}_{sect}_concatenated.nwk",
+                        f"{path.out_alignment}/{opt.runname}_{group}_concatenated.fasta",
+                        f"{opt.runname}_{group}_concatenated.nwk",
                         tree_hash_dict,
                         path,
-                        model_dict[sect][gene],
+                        model_dict[group][gene],
                     )
                 )
 
@@ -135,46 +138,49 @@ def pipe_tree(V, path, opt, model_dict):
                 fasttree_concatenated_result.append(ext.FastTree(*option))
 
     # decode alignments for each gene after building tree
-    for sect in V.dict_dataset:
-        for gene in V.dict_dataset[sect]:
+    for group in V.dict_dataset:
+        for gene in V.dict_dataset[group]:
             # draw tree only when query sequence exists
-            if len(V.dict_dataset[sect][gene].list_qr_FI) > 0 or opt.queryonly is False:
+            if (
+                len(V.dict_dataset[group][gene].list_qr_FI) > 0
+                or opt.queryonly is False
+            ):
                 os.rename(
-                    f"{path.out_alignment}/{opt.runname}_MAFFT_{sect}_{gene}.fasta",
-                    f"{path.out_alignment}/{opt.runname}_hash_MAFFT_{sect}_{gene}.fasta",
+                    f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
+                    f"{path.out_alignment}/{opt.runname}_hash_MAFFT_{group}_{gene}.fasta",
                 )
 
                 os.rename(
-                    f"{path.out_alignment}/{opt.runname}_trimmed_{sect}_{gene}.fasta",
-                    f"{path.out_alignment}/{opt.runname}_hash_trimmed_{sect}_{gene}.fasta",
+                    f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
+                    f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_{gene}.fasta",
                 )
 
                 # decoding
                 hasher.decode(
                     tree_hash_dict,
-                    f"{path.out_alignment}/{opt.runname}_hash_MAFFT_{sect}_{gene}.fasta",
-                    f"{path.out_alignment}/{opt.runname}_MAFFT_{sect}_{gene}.fasta",
+                    f"{path.out_alignment}/{opt.runname}_hash_MAFFT_{group}_{gene}.fasta",
+                    f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
                 )
 
                 hasher.decode(
                     tree_hash_dict,
-                    f"{path.out_alignment}/{opt.runname}_hash_trimmed_{sect}_{gene}.fasta",
-                    f"{path.out_alignment}/{opt.runname}_trimmed_{sect}_{gene}.fasta",
+                    f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_{gene}.fasta",
+                    f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
                 )
 
     # decode concatenated fasta after building tree
     if opt.concatenate is True:
-        for sect in V.dict_dataset:
+        for group in V.dict_dataset:
             try:
                 os.rename(
-                    f"{path.out_alignment}/{opt.runname}_{sect}_concatenated.fasta",
-                    f"{path.out_alignment}/{opt.runname}_hash_{sect}_concatenated.fasta",
+                    f"{path.out_alignment}/{opt.runname}_{group}_concatenated.fasta",
+                    f"{path.out_alignment}/{opt.runname}_hash_{group}_concatenated.fasta",
                 )
 
                 hasher.decode(
                     tree_hash_dict,
-                    f"{path.out_alignment}/{opt.runname}_hash_{sect}_concatenated.fasta",
-                    f"{path.out_alignment}/{opt.runname}_{sect}_concatenated.fasta",
+                    f"{path.out_alignment}/{opt.runname}_hash_{group}_concatenated.fasta",
+                    f"{path.out_alignment}/{opt.runname}_{group}_concatenated.fasta",
                 )
             except:
                 pass

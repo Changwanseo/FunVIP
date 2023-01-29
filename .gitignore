@@ -46,3 +46,5 @@
 /penicillium_*/*
 log.txt
 DB.fasta
+/Penicillium_*/*
+/Penicillium/*

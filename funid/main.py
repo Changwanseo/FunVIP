@@ -1,28 +1,25 @@
 def main():
 
-    from funid.src import (
-        align,
-        tree_interpretation_pipe,
-        cluster,
-        dataset,
-        ext,
-        hasher,
-        initialize,
-        logger,
-        manage_input,
-        modeltest,
-        multigene,
-        patch,
-        reporter,
-        tool,
-        save,
-        search,
-        tree,
-        trim,
-    )
-
+    from funid.src import align
+    from funid.src import tree_interpretation_pipe
+    from funid.src import cluster
+    from funid.src import dataset
+    from funid.src import ext
+    from funid.src import hasher
+    from funid.src import initialize
+    from funid.src import logger
+    from funid.src import manage_input
+    from funid.src import modeltest
+    from funid.src import multigene
+    from funid.src import patch
+    from funid.src import reporter
+    from funid.src import tool
+    from funid.src import save
+    from funid.src import search
+    from funid.src import tree
+    from funid.src import trim
     from funid.src.command import CommandParser
-    from funid.src.tool import initialize_path
+    from funid.src.tool import initialize_path, index_step
     from funid.src.opt_generator import opt_generator
     from time import time
     import pandas as pd
@@ -48,20 +45,6 @@ def main():
     # Argument parsing in commandline mode
     args = CommandParser().get_args()
 
-    # Declaring available steps
-    step = [
-        "setup",
-        "search",
-        "cluster",
-        "align",
-        "trim",
-        "concatenate",
-        "modeltest",
-        "tree",
-        "visualize",
-        "report",
-    ]
-
     ############################################################################
     #     Start of initializing blocks should not be moved for function!!!     #
     ############################################################################
@@ -81,7 +64,7 @@ def main():
         handlers=[logging.FileHandler(path.log), logging.StreamHandler()],
     )
 
-    # Delayed option parsing logging
+    # Delayed logging for option parsing
     for info in list_info:
         logging.info(info)
 
@@ -95,8 +78,8 @@ def main():
     V = dataset.FunID_var()
     # R includes all reporting objects such as warnings, errors, statistics
     R = reporter.Report()
-    # Initialize logging process
-    R.log.initialize_log(step)
+    ## Initialize logging process
+    # R.log.initialize_log(step)
 
     ##########################################################################
     #     End of initializing blocks should not be moved for function!!!     #
@@ -107,49 +90,51 @@ def main():
     ##########################################################################
 
     # IO stage
-    if opt.continue_from_previous is False or step.index(opt.step) <= 0:
-        logging.info("Set up")
+    if opt.continue_from_previous is False or index_step(opt.step) <= 0:
+        step = "setup"
+        logging.info("SETUP")
 
         # save metadata input to report
-        R.initialize_metadata(opt)
-        # input data
+        # R.initialize_metadata(opt)
+        # get input data
         V, R, opt = manage_input.data_input(V, R, opt, path)
+
         # get possible genus list for recognizing genus name
         V = initialize.get_genus_list(V, opt, path)
 
+        R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
 
     # Searching (BLAST or mmseqss)
-    if opt.continue_from_previous is False or step.index(opt.step) <= 1:
-
+    if opt.continue_from_previous is False or index_step(opt.step) <= 1:
+        step = "search"
         logging.info("SEARCHING")
 
         # Generate BLAST or mmseqs matrices for further analysis
         V = search.search_df(V, path, opt)
         # Concatenate search matrix among genes
         V = multigene.concatenate_df(V, path, opt)
+        R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
 
     # Clustering
-    if opt.continue_from_previous is False or step.index(opt.step) <= 2:
+    if opt.continue_from_previous is False or index_step(opt.step) <= 2:
+        step = "cluster"
         logging.info("CLUSTERING")
 
-        # Assign section
-        logging.info("ASSIGNING SECTION")
+        # Assign group
+        logging.info("ASSIGNING GROUPS")
 
         V, opt, path = cluster.pipe_cluster(V, opt, path)
 
-        # Save assigned section info in table format
-        save.save(V.list_FI, path, opt)
-
         # Append query column to each of the df in df_dict as query assigned
-        V = cluster.append_query_section(V)
+        V = cluster.append_query_group(V)
 
         # Append query column to concatenated_df as query assigned
         if opt.concatenate is True:
-            V = cluster.append_concatenated_query_section(V)
+            V = cluster.append_concatenated_query_group(V)
 
-        # Both gene and section was assigned, dataset was confirmed
+        # Both gene and group was assigned, dataset was confirmed
         V.generate_dataset(opt)
 
         # Appending outgroup
@@ -161,34 +146,44 @@ def main():
         V, path, opt = cluster.pipe_append_outgroup(V, path, opt)
 
         # Wrap up outgroup appending results
-        # outgroup result : (gene, section, outgroup_list, section_list)
+        # outgroup result : (gene, group, outgroup_list, group_list)
         V = cluster.outgroup_result_collector(V)
         # remove invalid dataset to be analyzed ()
         V.remove_invalid_dataset()
+
         # Save dataset to outgroups
         V.save_dataset(path, opt)
 
+        R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
 
     # Alignment
-    if opt.continue_from_previous is False or step.index(opt.step) <= 3:
-
+    if opt.continue_from_previous is False or index_step(opt.step) <= 3:
+        step = "align"
         logging.info("ALIGNMENT")
         V, path, opt = align.pipe_alignment(V, path, opt)
+
+        R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
 
     # Trimming
-    if opt.continue_from_previous is False or step.index(opt.step) <= 4:
+    if opt.continue_from_previous is False or index_step(opt.step) <= 4:
+        step = "trim"
         logging.info("TRIMMING")
         V, path, opt = trim.pipe_trimming(V, path, opt)
+
+        R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
 
     # Concatenation (multigene)
-    if opt.continue_from_previous is False or step.index(opt.step) <= 5:
+    if opt.continue_from_previous is False or index_step(opt.step) <= 5:
+        step = "concatenate"
         logging.info("CONCATENATING MULTIGENE ALIGNMENTS")
         if opt.concatenate is True:
             # Multigene
             V = multigene.combine_alignment(V, opt, path)
+
+            R.update_report(V=V, path=path, opt=opt, step=step)
             save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
         else:
             logging.info("Passing concatenated tree")
@@ -197,27 +192,36 @@ def main():
     V.validate_alignments(path, opt)
 
     # Modeltest
-    if opt.continue_from_previous is False or step.index(opt.step) <= 6:
+    if opt.continue_from_previous is False or index_step(opt.step) <= 6:
+        step = "modeltest"
         logging.info("MODELTEST")
 
         # most of the modeltest algorithms are well working with multiprocessing
         model_dict = modeltest.modeltest(V, path, opt)
+
+        R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
 
     # Tree construction
-    if opt.continue_from_previous is False or step.index(opt.step) <= 7:
+    if opt.continue_from_previous is False or index_step(opt.step) <= 7:
+        step = "tree"
         logging.info("TREE CONSTRUCTION")
 
         # Build phylogenetic trees
         V, path, opt = tree.pipe_tree(V, path, opt, model_dict)
+
+        R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
 
-        # move tree image files
+        # move tree files
         tool.cleanup_tree(path)
+
+        R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
 
     # Visualize
-    if opt.continue_from_previous is False or step.index(opt.step) <= 8:
+    if opt.continue_from_previous is False or index_step(opt.step) <= 8:
+        step = "visualize"
         logging.info("VISUALIZE")
 
         # Running visualization
@@ -226,11 +230,12 @@ def main():
         # move tree image files
         tool.cleanup_tree_image(path)
 
-        # raise Exception
+        R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=dir())
 
     # Report
-    if opt.continue_from_previous is False or step.index(opt.step) <= 9:
+    if opt.continue_from_previous is False or index_step(opt.step) <= 9:
+        step = "report"
         logging.info("REPORT")
 
         writer = pd.ExcelWriter(
@@ -238,22 +243,22 @@ def main():
         )
 
         # raw_result: (out, df, report_list)
-        # out: f"{opt.runname}_{sect}_{gene}"
+        # out: f"{opt.runname}_{group}_{gene}"
         # df: db, query, others, total dataframe
-        # report_list: report: SingleReport - accession, hash, section, gene, inputtaxon, identifiedtaxon
+        # report_list: report: SingleReport - id, hash, group, gene, inputtaxon, identifiedtaxon
 
         # Reporting
         V.homogenize_dataset()
-        R.statistics.update_statistics(V, opt)
-        R.arrange(V, opt, f"{path.root}/{opt.runname}_Identification_result.xlsx")
+        # R.statistics.update_statistics(V, opt)
+        # R.arrange(V, opt, f"{path.root}/{opt.runname}_Identification_result.xlsx")
 
         # Testing
-        R.initialize_section_report(V, opt)
-        R.render(opt, out=f"{path.root}/{opt.runname}_report.html")
+        # R.initialize_group_report(V, opt)
+        # R.render(opt, out=f"{path.root}/{opt.runname}_report.html")
 
         """
         try:
-            R.initialize_section_report(V, opt)
+            R.initialize_group_report(V, opt)
             R.render(opt, out=f"{path.root}/{opt.runname}_report.html")
         except:
             logging.error(
@@ -261,6 +266,7 @@ def main():
             )
         """
 
+        R.update_report(V, path, opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
 
         end_time = time()

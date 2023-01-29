@@ -3,24 +3,23 @@ from setuptools import setup, find_packages
 from sys import platform
 
 name = "FunID"
-version = "0.2.0.0.1.1"
-release = "0.2.0.0.1.1"
+__version__ = "0.2.0.1.0.4"
+release = "0.2.0.1.0.4"
 
 # Default setup options
 setup_options = dict(
     name=name,
-    version=version,
+    version=__version__,
     description="Fungal Identification Pipeline",
     author="Changwan Seo",
     author_email="wan101010@snu.ac.kr",
     url="https://github.com/Changwanseo/FunID-dev",
     python_requires="<3.11, >3.8",
-    packages=["funid", "funid.src", "funid.data", "funid.test_dataset", "funid.db"],
+    packages=["funid", "funid.src", "funid.data", "funid.test_dataset"],
     install_requires=[
         "biopython==1.78",
         "ete3==3.1.2",
         "Cython",
-        "datapane",
         "dendropy",
         "GenMine",
         "lxml",
@@ -33,6 +32,7 @@ setup_options = dict(
         "pyyaml",
         "sip>=4.19.4",
         "scikit-learn==1.0.2",
+        "tabulate",
         "unidecode==1.2.0",
         "xlrd==2.0.1",
         "xlsxwriter",

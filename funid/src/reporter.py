@@ -1,42 +1,44 @@
-from datetime import datetime
+import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
 import io
 import logging
 import plotly.express as px
+from tabulate import tabulate
+from funid.src.tool import index_step
+from funid.src.save import save_df
 
+# For version reporting
+__version__ = "0.2.0.1.0.4"
 
-try:
-    # from upsetplot import from_indicators, UpSet
-    import datapane as dp
-
-    # import altair as alt
-except:
-    logging.error(
-        "Please update your conda environment with following commands:\n Linux: conda env update --file FunID.yaml --prune\n Windows: conda env update --file FunID_Windows.yaml"
-    )
-    raise Exception
-
-
-# Temporary report for tree_interpretation_pipe
+### Temporary report for tree_interpretation_pipe
+### To collect result from multiprocessing on tree_interpretation
 class Singlereport:
     def __init__(self):
-        self.accession = ""
+        self.id = ""
         self.hash = ""
-        self.section = ""
+        self.group = ""
         self.gene = ""
+<<<<<<< HEAD
+        self.species_original = ""
+        self.species_assigned = ""
+
+        # abnormalities
+        # for if ambiguous clade exists e.g. Amanita subglobosa "1", Amanita subglobosa "2"
+=======
         self.inputtaxon = ""
         self.identifiedtaxon = ""
         # for if ambiguous clade exists e.g. Amanita subglobosa 1, Amanita subglobosa 2
+>>>>>>> parent of bbf88cd (0.2.0.1.0.7)
         # 0 if none of them exists
         self.taxon_cnt = ""
 
-    def update_genussection(self, string, gene):
+    def update_genusgroup(self, string, gene):
 
         if "concatenated" in string:
-            self.section = "_".join(string.split("_")[1:])
+            self.group = "_".join(string.split("_")[1:])
         else:
-            self.section = string.split("_")[-2]
+            self.group = string.split("_")[-2]
         self.gene = gene
 
     def update_inputtaxon(self, taxon):
@@ -52,711 +54,728 @@ class Singlereport:
 #############################################################
 
 #############################################################
+### Final reporting data
+### All reports should be generated from here
+class Report:
 
-
-# Metadata for the run
-class Metadata:
+    # Try to make report in dictionary form, most of them should be printed in tabular form
     def __init__(self):
-        self.runname = ""
-        self.datetime = ""
-        self.time_consumption = 0
-        self.mode = ""
+        # Should be finished after release
+        # self.metadata = Metadata()
 
+        # Dataset - group by gene
+        # Example)
+        #  GROUP        ITS     BenA        CaM        Concatenated
+        #  Penicillium   O       O       Fail outgroup      O
+        #  Exilicaluis   O     no query      O              O
+        # Whether to use just simple O/X or detailed description is not determined
 
-class Statistics:
-    def __init__(self):
-        # list of genes designated by option
-        self.list_gene = []
-        # list of genes found in db
-        self.list_gene_db = []
-        # list of genes found in query
-        self.list_gene_query = []
-        # list of genes used for analysis
-        self.list_gene_used = []
+        self.dataset = {"GROUP": []}
 
-        # number of total database accessions
-        self.cnt_total_db_acc = 0
-        # number of used database accessions
-        self.cnt_used_db_acc = 0
-        # number of downloaded seqs
-        self.cnt_db_downloaded_seqs = 0
-        # number of failed seqs
-        self.cnt_db_failed_seqs = 0
+        # Identification result statistics : how many of them were well identified
+        # Example)
+        #
 
-        # number of total query accessions
-        self.cnt_query_acc = 0
-        # number of query accessions with sections assigned
-        self.cnt_query_section_assigned = 0
-        # number of query accessions finally assigned to species level
-        self.cnt_query_identified = 0
-
-        # number of total sections used for analysis
-        self.list_section_used = []
-
-    def update_statistics(self, V, opt):
-
-        self.list_gene = opt.gene
-        self.cnt_query_acc = len([FI for FI in V.list_FI if FI.datatype == "Query"])
-        self.cnt_query_section_assigned = len(
-            [
-                FI
-                for FI in V.list_FI
-                if (FI.datatype == "Query" and FI.adjusted_section != "")
-            ]
-        )
-        self.cnt_query_identified = len(
-            [
-                FI
-                for FI in V.list_FI
-                if (FI.datatype == "Query" and FI.final_species != "")
-            ]
-        )
-
-
-class Section_Report:
-    def __init__(self):
-        self.section = ""
-        self.genes = []  # genes used for section analysis
-        self.gene_statistics = None
-        self.upsetplot = None
-
-        # identification statistics
-        # number of accessions correctly identified in all possible genes compared to original identifications
-        self.cnt_consistent_correctly_identified = 0
-        # number of accessions correctly identified in concatenated analysis compared to original identifications
-        self.cnt_inconsistent_correctly_identified = 0
-        # number of accessions identified to new species candidates
-        self.cnt_new_species_candidates = 0
-        # number of accessions misidentified
-        self.cnt_misidentified = 0
-        # number of accessions not included to tree analysis
-        self.cnt_errors = 0
-        # query identification plot
-        self.identificationplot = None
-        # clade ambiguity plot
-        self.ambiguityplot = None
-
-        self.cnt_ambiguous_species = 0
-        self.cnt_unambiguous_species = 0
-
-    def initialize_data(self, V, sect):
-
-        #  for each section
-        if sect != "all":
-
-            self.section = sect
-            self.genes = list(V.dict_dataset[sect].keys())
-        else:
-
-            self.section = sect
-            self.genes = list(V.dict_gene_SR.keys()) + ["concatenated"]  # hard coding
-
-    def update_upsetplot(self, V, sect):
-
-        #  for each section
-        if sect != "all":
-
-            dataset = V.dict_dataset[sect]
-
-            # gene availaty upsetplot reports
-            # initialize upsetplot - columns
-            dict_upsetplot = {}
-            for gene in self.genes:
-                dict_upsetplot[gene] = {}
-            dict_upsetplot["Type"] = {}
-
-            # gather all FIs
-            set_all_FI = set()
-            set_qr_FI = set()
-            set_db_FI = set()
-            set_og_FI = set()
-
-            for gene in dataset:
-                set_qr_FI = set_qr_FI.union(set(dataset[gene].list_qr_FI))
-                set_db_FI = set_db_FI.union(set(dataset[gene].list_db_FI))
-                set_og_FI = set_og_FI.union(set(dataset[gene].list_og_FI))
-
-            set_all_FI = set_all_FI.union(set_qr_FI)
-            set_all_FI = set_all_FI.union(set_db_FI)
-            set_all_FI = set_all_FI.union(set_og_FI)
-
-            # initialize upsetplot - index
-            for FI in set_all_FI:
-                for gene in self.genes:
-                    dict_upsetplot[gene][FI.hash] = False
-
-            for FI in set_qr_FI:
-                dict_upsetplot["Type"][FI.hash] = "qr"
-
-            for FI in set_db_FI:
-                dict_upsetplot["Type"][FI.hash] = "db"
-
-            for FI in set_og_FI:
-                dict_upsetplot["Type"][FI.hash] = "og"
-
-            for gene in dataset:
-                for FI in dataset[gene].list_qr_FI:
-                    dict_upsetplot[gene][FI.hash] = True
-
-                for FI in dataset[gene].list_db_FI:
-                    dict_upsetplot[gene][FI.hash] = True
-
-                for FI in dataset[gene].list_og_FI:
-                    dict_upsetplot[gene][FI.hash] = True
-
-            df_upsetplot = pd.DataFrame(dict_upsetplot)
-
-            for datatype in ("qr", "db", "og", "all"):
-                if datatype == "all":
-                    df_upsetplot_input = df_upsetplot
-                else:
-                    df_upsetplot_input = df_upsetplot[df_upsetplot["Type"] == datatype]
-
-            input_upsetplot = from_indicators(
-                indicators=self.genes, data=df_upsetplot_input
-            )
-
-            upset = UpSet(input_upsetplot, intersection_plot_elements=0)
-            upset.add_stacked_bars(by="Type", elements=10)
-            upset.plot()
-            plt.title(f"Gene availability for section {sect}")
-
-            tmp = io.BytesIO()
-            plt.savefig(tmp, format="svg")
-            plt.close()
-
-            self.upsetplot = tmp
-
-        else:
-
-            # gene availaty upsetplot reports
-            # initialize upsetplot - columns
-            dict_upsetplot = {}
-            for gene in self.genes:
-                dict_upsetplot[gene] = {}
-            dict_upsetplot["Type"] = {}
-
-            for FI in V.list_FI:
-                for gene in self.genes:
-                    dict_upsetplot[gene][FI.hash] = False
-
-            for FI in V.list_FI:
-                if FI.datatype == "Query":
-                    dict_upsetplot["Type"][FI.hash] = "qr"
-                elif FI.datatype == "DB":
-                    dict_upsetplot["Type"][FI.hash] = "db"
-                else:
-                    raise Exception
-
-                for gene in FI.seq.keys():
-                    dict_upsetplot[gene][FI.hash] = True
-
-            df_upsetplot = pd.DataFrame(dict_upsetplot)
-
-            df_upsetplot_input = df_upsetplot
-
-            input_upsetplot = from_indicators(
-                indicators=self.genes, data=df_upsetplot_input
-            )
-
-            upset = UpSet(input_upsetplot, intersection_plot_elements=0)
-            upset.add_stacked_bars(by="Type", elements=10)
-            upset.plot()
-            plt.title(f"Overall gene availability for inputs")
-
-            tmp = io.BytesIO()
-            plt.savefig(tmp, format="svg")
-            plt.close()
-
-            self.upsetplot = tmp
-
-            # WIP for all data
-            pass
-
-    def update_cntdata(self, V, overall=False):
-
-        # Identification report xlsx file generation
-        dict_tmp = {
-            "accession": [],
-            "hash": [],
-            "section": [],
-            "original identification": [],
+        self.statistics = {
+            "GROUP": [],
+            "IDENTIFIED": [],
+            "AMBIGUOUS": [],
+            "NEW SPECIES CANDIDATE": [],
+            "MISIDENTIFIED": [],
+            "ERROR": [],
+            "TOTAL": [],
         }
 
-        def counter(self, FI, sect, set_gene):
+        # For linking in html, should be added later (on GUI)
+        # self.statistics_link = {}
 
-            # making output excel
-            # 0: consistent identification over all genes, 1: not
-            inconsistency_flag = 0
-            # 1 if correctly identified in final
-            correct_flag = 0
-            # 1 if new species
-            wrong_flag = 0
-            newspecies_flag = 0
-            # 1 if no concatenated analysis result exists
-            error_flag = 0
+        # By gene results, and sequence should be added
+        self.result = {
+            "ID": [],
+            "HASH": [],
+            "DATATYPE": [],
+            "GROUP_ORIGINAL": [],
+            "GROUP_ASSIGNED": [],
+            "SPECIES_ORIGINAL": [],
+            "SPECIES_ASSIGNED": [],
+            "FLAT_BRANCH": [],
+            "INCONSISTENT": [],
+            "AMBIGUOUS": [],
+            "STATUS": [],
+        }
 
-            if FI.datatype == "Query" and (
-                FI.adjusted_section == sect or sect == "all"
-            ):
-                for gene in set_gene:
-                    if gene in FI.bygene_species:
-                        if FI.bygene_species[gene] != f"{FI.final_species}":
-                            inconsistency_flag = 1
+    def update_dataset(self, V, opt):
+        for gene in V.list_qr_gene:
+            self.dataset[gene.upper()] = []
+
+        if opt.concatenate is True:
+            self.dataset["CONCATENATE"] = []
+
+        for group in V.list_group:
+            self.dataset["GROUP"].append(group)
+            if group in V.dict_dataset:
+                for gene in V.list_qr_gene:
+                    # if group - gene dataset exists
+                    if gene in V.dict_dataset[group]:
+                        self.dataset[gene.upper()].append("O")
+                    # if gene exists but group does not exists
                     else:
-                        pass
+                        self.dataset[gene.upper()].append("-")
 
-                # if final species designated by concatenated analysis
-                if FI.final_species != "":
-                    if "sp." in f"{FI.final_species}":
-                        newspecies_flag = 1
-                    elif f"{FI.final_species}" == f"{FI.ori_genus} {FI.ori_species}":
-                        correct_flag = 1
-
-                # if not final species designated and only one gene analysis exists, take it
-                elif len(set_gene) == 1:
-
-                    if "sp." in f"{FI.genus} {FI.bygene_species[list(set_gene)[0]]}":
-                        newspecies_flag = 1
-                    elif (
-                        f"{FI.genus} {FI.bygene_species[list(set_gene)[0]]}"
-                        == f"{FI.ori_genus} {FI.ori_species}"
-                    ):
-                        correct_flag = 1
-                else:
-                    error_flag = 1
-
-                if error_flag == 1:
-                    self.cnt_errors += 1
-                elif newspecies_flag == 1:
-                    self.cnt_new_species_candidates += 1
-                elif correct_flag == 1 and inconsistency_flag == 1:
-                    self.cnt_inconsistent_correctly_identified += 1
-                elif correct_flag == 1 and inconsistency_flag == 0:
-                    self.cnt_consistent_correctly_identified += 1
-                else:
-                    self.cnt_misidentified += 1
+                if opt.concatenate is True:
+                    if "concatenate" in V.dict_dataset[group]:
+                        self.dataset["CONCATENATE"].append("O")
+                    else:
+                        self.dataset["CONCATENATE"].append("-")
 
             else:
-                pass
+                # If group does not exists
+                for gene in V.list_qr_gene:
+                    self.dataset[gene.upper()].append("-")
 
-        set_gene = set(self.genes)  ## problematic
-
-        #  for each section
-        if overall == False:
-            sect = self.section
-            for h in V.dict_hash_FI:
-                FI = V.dict_hash_FI[h]
-                counter(self, FI, sect, set_gene)
-
-        # for all sections
-        else:
-            for FI in V.list_FI:
-                counter(self, FI, "all", set_gene)
-
-    def update_ambiguity_plot(self, V, overall=False):
-
-        set_ambiguous = set()
-        set_unambiguous = set()
-
-        if overall == False:
-            # print(self.section)
-            for FI in V.list_FI:
-                # if FI is in the right section
-                if FI.adjusted_section == self.section or FI.section == self.section:
-                    # print(f"Found {FI} for section {self.section}")
-                    # FI.final_identification = ""
-                    if not (FI.species_identifier == 0):
-                        # print("Found non-zero identifier")
-                        # debugging
-                        # print(FI.final_species, end=" | ")
-                        # print(FI.ori_species, end=" | ")
-                        # print(FI.species_identifier)
-                        # remove from unambiguous list if exists
-                        set_unambiguous.discard(FI.final_species)
-                        set_ambiguous.add(FI.final_species)
-                    else:
-                        # print(f"Found zero identifier")
-                        if not (FI.final_species in set_ambiguous):
-                            # print(f"Final species: {FI.final_species}")
-                            set_unambiguous.add(FI.final_species)
-                        else:
-                            print(f"Exceptional cases: {FI.final_species}")
-
-            # raise Exception
-
-        else:
-            pass
-
-        # print(set_ambiguous)
-        # print(set_unambiguous)
-        self.cnt_ambiguous_species = len(set_ambiguous)
-        # print(self.cnt_ambiguous_species)
-        self.cnt_unambiguous_species = len(set_unambiguous)
-        # print(self.cnt_unambiguous_species)
-
-
-# logs for each steps
-class Singlelog:
-    def __init__(self):
-        self.info = {}
-        self.warning = {}
-        self.error = {}
-
-
-class Log:
-    def __init__(self):
-        self.log = {}
-
-    def initialize_log(self, list_step):
-        for step in list_step:
-            self.log[step] = Singlelog()
-
-
-# Yes, real report
-class Report:
-    def __init__(self):
-
-        # metadata of the current run
-        self.metadata = Metadata()
-        # Statistics of the current run
-        self.statistics = Statistics()
-        # All results - section - report pair dictionary
-        self.section_report = {}
-        # total report
-        self.total_report = Section_Report()
-        # Logs - message, warnings, errors
-        self.log = Log()
-
-    def initialize_metadata(self, opt):
-        self.metadata.runname = opt.runname
-        self.metadata.datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        # self.metadata.time_consumption = opt.time_consumption
-        self.metadata.mode = opt.mode
-
-        ###### WIP ######
-
-    def initialize_section_report(self, V, opt):
-
-        sections = tuple(V.dict_dataset.keys())
-
-        for sect in sections:
-            self.section_report[sect] = Section_Report()
-            self.section_report[sect].initialize_data(V, sect)
-            if opt.concatenate is True:
-                self.section_report[sect].update_upsetplot(V, sect)
-            self.section_report[sect].update_cntdata(V)
-            self.section_report[sect].update_ambiguity_plot(V)
-
-        self.section_report["all"] = Section_Report()
-        self.section_report["all"].initialize_data(V, "all")
-        if opt.concatenate is True:
-            self.section_report["all"].update_upsetplot(V, "all")
-        self.section_report["all"].update_cntdata(V, overall=True)
-
-    # arrange bunch of Singlereport into single dataframe and save
-    def arrange(self, V, opt, out):
-
-        # Identification report xlsx file generation
-        dict_tmp = {
-            "accession": [],
-            "hash": [],
-            "section": [],
-            "original identification": [],
-            "final identification": [],
-            "compare": [],
-        }
-
+    # Combining result into dictionary form
+    def update_result(self, V, opt):
+        # get all gene list -> check if V.list_qr_gene is enough for query_only : False analysis
         set_gene = set(V.list_db_gene + V.list_qr_gene)
 
+        # Generate each gene identification report
         for gene in sorted(list(set_gene)):
             if gene != "concatenated":
                 # dict_tmp["original identification"] = []
-                dict_tmp[f"{gene} identified"] = []
+                self.result[f"{gene.upper()}_ASSIGNED"] = []
 
-        set_gene.discard("concatenated")
+        # Concatenated analysis will be operated seperately
+        # set_gene.discard("concatenated") try if without discarding works
 
-        for h in V.dict_hash_FI:  # h for hash
-            FI = V.dict_hash_FI[h]
-            if opt.queryonly is False or FI.datatype == "Query":
-                dict_tmp["accession"].append(FI.accession)
-                dict_tmp["hash"].append(FI.hash)
-                dict_tmp["section"].append(FI.adjusted_section)
-                dict_tmp["original identification"].append(
+        # Collect result from each hash
+        for _hash in V.dict_hash_FI:
+
+            FI = V.dict_hash_FI[_hash]
+            if opt.queryonly is False or FI.datatype == "query":
+
+                # Default results
+                self.result["ID"].append(FI.id)
+                self.result["HASH"].append(FI.hash)
+                self.result["DATATYPE"].append(FI.datatype)
+
+<<<<<<< HEAD
+            if str(FI.group).strip() == "":
+                self.result["GROUP_ORIGINAL"].append("-")
+            else:
+                self.result["GROUP_ORIGINAL"].append(FI.group)
+
+            self.result["GROUP_ASSIGNED"].append(FI.adjusted_group)
+
+            if f"{FI.ori_genus} {FI.ori_species}".strip() == "":
+                self.result["SPECIES_ORIGINAL"].append("-")
+            else:
+                self.result["SPECIES_ORIGINAL"].append(
                     f"{FI.ori_genus} {FI.ori_species}"
                 )
 
+            # Collect identification result for each gene analysis
+            possible_taxon = set()
+            for gene in set_gene:
+                if gene in FI.bygene_species:
+                    self.result[f"{gene.upper()}_ASSIGNED"].append(
+                        FI.bygene_species[gene]
+                    )
+                    possible_taxon.add(FI.bygene_species[gene])
+=======
+                if str(FI.group).strip() == "":
+                    self.result["GROUP_ORIGINAL"].append("-")
+>>>>>>> parent of bbf88cd (0.2.0.1.0.7)
+                else:
+                    self.result["GROUP_ORIGINAL"].append(FI.group)
+
+<<<<<<< HEAD
+            # Add final identification result
+            if FI.final_species != "":
+                self.result["SPECIES_ASSIGNED"].append(f"{FI.final_species}")
+                possible_taxon.add(FI.final_species)
+            else:
+                self.result["SPECIES_ASSIGNED"].append("UNDETERMINED")
+
+            # Add abnormalities
+            self.result["FLAT_BRANCH"].append("/".join(FI.flat))
+            if len(possible_taxon) > 1:
+                self.result["INCONSISTENT"].append("inconsistent")
+            else:
+                self.result["INCONSISTENT"].append("-")
+
+            self.result["AMBIGUOUS"].append(FI.species_identifier)
+=======
+                self.result["GROUP_ASSIGNED"].append(FI.adjusted_group)
+
+                if f"{FI.ori_genus} {FI.ori_species}".strip() == "":
+                    self.result["SPECIES_ORIGINAL"].append("-")
+                else:
+                    self.result["SPECIES_ORIGINAL"].append(
+                        f"{FI.ori_genus} {FI.ori_species}"
+                    )
+>>>>>>> parent of bbf88cd (0.2.0.1.0.7)
+
+                # Collect identification result for each gene analysis
                 for gene in set_gene:
                     if gene in FI.bygene_species:
-                        dict_tmp[f"{gene} identified"].append(FI.bygene_species[gene])
+                        self.result[f"{gene.upper()}_ASSIGNED"].append(
+                            FI.bygene_species[gene]
+                        )
                     else:
-                        dict_tmp[f"{gene} identified"].append("-")
+                        self.result[f"{gene.upper()}_ASSIGNED"].append("-")
 
+                # Add final identification result
                 if FI.final_species != "":
-                    dict_tmp["final identification"].append(f"{FI.final_species}")
-
-                # elif len(set_gene) == 1:
-                #    dict_tmp[f"final identification"].append(
-                #        f"{FI.genus} {FI.bygene_species[list(set_gene)[0]]}"
-                #    )
-
+                    self.result["SPECIES_ASSIGNED"].append(f"{FI.final_species}")
                 else:
-                    dict_tmp[f"final identification"].append("undetermined")
+                    self.result["SPECIES_ASSIGNED"].append("UNDETERMINED")
+
+                # Add abnormalities
+                self.result["FLAT_BRANCH"].append("")
+                self.result["INCONSISTENT"].append("")
+                self.result["AMBIGUOUS"].append("")
 
                 if FI.final_species.strip() == "":
-                    dict_tmp["compare"].append("error")
+                    self.result["STATUS"].append("ERROR")
                 elif (
                     f"{FI.ori_genus} {FI.ori_species}".strip() == ""
                     and "sp." in FI.final_species.strip()
                 ):
-                    dict_tmp["compare"].append("new species candidates")
+                    self.result["STATUS"].append("new species candidate")
                 elif f"{FI.ori_genus} {FI.ori_species}".strip() == "":
-                    dict_tmp["compare"].append("identified")
+                    self.result["STATUS"].append("undetermined")
                 elif FI.final_species == f"{FI.ori_genus} {FI.ori_species}":
-                    dict_tmp["compare"].append("correctly identified")
+                    self.result["STATUS"].append("correctly identified")
                 else:
-                    dict_tmp["compare"].append("misidentified")
+                    self.result["STATUS"].append("misidentified")
 
-        pd.DataFrame(dict_tmp).to_excel(out, index=None)
+        # Update statistics by result
+        # Change format to dataframe
+        df_result = pd.DataFrame(self.result)
 
-    def render(self, opt, out="test.html"):  # render to report
+        # Filter query if opt.query_only is True
+        if opt.query_only is True:
+            df_result = df_result[df_result["DATATYPE"] == "query"]
 
-        dp_list = []
+        # Groupby group
+        df_result_group = df_result.groupby(["GROUP_ASSIGNED"])
 
-        # overall plotting
-        dp_list.append(dp.Text("# FunID Report"))
-        dp_list.append(
-            dp.Text(
-                "FunID is a automated fungal identification pipeline with phylogenetic analysis"
+        # Count groups
+        for group in sorted(list(set(df_result["GROUP_ASSIGNED"]))):
+            df_group = df_result_group.get_group(group)
+
+            # Collect statistics
+            cnt_correctly_identified = list(df_group["STATUS"]).count(
+                "correctly identified"
             )
-        )
-        dp_list.append(dp.Text("## Overall statistics"))
-        dp_list.append(dp.Text("### Metadata"))
-        dp_list.append(dp.Text(f"__Run Name__ : {self.metadata.runname}"))
-        dp_list.append(dp.Text(f"__Date__ : {self.metadata.datetime}"))
-        dp_list.append(dp.Text(f"__Mode__ : {self.metadata.mode}"))
-
-        dict_df_all = {
-            "section": [],
-            "consistent_correctly_identified": [],
-            "inconsistent_correctly_identified": [],
-            "new_species_candidates": [],
-            "misidentified": [],
-            "errors": [],
-        }
-
-        # stacked bar graph of identification status for overall results
-
-        dict_df_all["section"].append("all")
-        dict_df_all["consistent_correctly_identified"].append(
-            self.section_report["all"].cnt_consistent_correctly_identified
-        )
-        dict_df_all["inconsistent_correctly_identified"].append(
-            self.section_report["all"].cnt_inconsistent_correctly_identified
-        )
-        dict_df_all["new_species_candidates"].append(
-            self.section_report["all"].cnt_new_species_candidates
-        )
-        dict_df_all["misidentified"].append(
-            self.section_report["all"].cnt_misidentified
-        )
-        dict_df_all["errors"].append(self.section_report["all"].cnt_errors)
-
-        dp_list.append(
-            dp.Group(
-                dp.BigNumber(
-                    heading="Total Query Input", value=self.statistics.cnt_query_acc
-                ),
-                dp.BigNumber(
-                    heading="Total Query Identified",
-                    value=self.statistics.cnt_query_identified,
-                ),
-                dp.Plot(
-                    px.bar(
-                        pd.DataFrame(dict_df_all),
-                        x="section",
-                        y=[
-                            "consistent_correctly_identified",
-                            "inconsistent_correctly_identified",
-                            "new_species_candidates",
-                            "misidentified",
-                            "errors",
-                        ],
-                    )
-                ),
-                columns=3,
+            cnt_undetermined = list(df_group["STATUS"]).count("undetermined")
+            cnt_new_species_candidate = list(df_group["STATUS"]).count(
+                "new species candidate"
             )
-        )
-
-        # all_plots = []
-
-        if not (self.section_report["all"].identificationplot is None):
-            dp_list.append(
-                dp.Plot(
-                    self.section_report["all"].identificationplot,
-                    caption=f"Overall identification result compared to original annotations",
+            cnt_misidentified = list(df_group["STATUS"]).count("misidentified")
+            cnt_error = list(df_group["STATUS"]).count("ERROR")
+            cnt_total = sum(
+                (
+                    cnt_correctly_identified,
+                    cnt_undetermined,
+                    cnt_new_species_candidate,
+                    cnt_misidentified,
+                    cnt_error,
                 )
             )
 
-        """
-        if not (self.section_report["all"].upsetplot is None):
+            # Write into dictionary
+            self.statistics["GROUP"].append(group)
+            self.statistics["IDENTIFIED"].append(cnt_correctly_identified)
+            self.statistics["AMBIGUOUS"].append(cnt_undetermined)
+            self.statistics["NEW SPECIES CANDIDATE"].append(cnt_new_species_candidate)
+            self.statistics["MISIDENTIFIED"].append(cnt_misidentified)
+            self.statistics["ERROR"].append(cnt_error)
+            self.statistics["TOTAL"].append(cnt_total)
 
-            all_plots.append(
-                dp.HTML(self.section_report["all"].upsetplot.getvalue().decode("utf-8"))
-            )
-
-        dp_list.append(
-            dp.Group(
-                *all_plots,
-                columns=2,
-            )
+        # Add final summations
+        self.statistics["GROUP"].append("TOTAL")
+        self.statistics["IDENTIFIED"].append(sum(self.statistics["IDENTIFIED"]))
+        self.statistics["AMBIGUOUS"].append(sum(self.statistics["AMBIGUOUS"]))
+        self.statistics["NEW SPECIES CANDIDATE"].append(
+            sum(self.statistics["NEW SPECIES CANDIDATE"])
         )
-        """
+        self.statistics["MISIDENTIFIED"].append(sum(self.statistics["MISIDENTIFIED"]))
+        self.statistics["ERROR"].append(sum(self.statistics["ERROR"]))
+        self.statistics["TOTAL"].append(sum(self.statistics["TOTAL"]))
 
-        # stacked bar of identification status for each of the section
+    ### Main report runner
+    # Update report by pipeline step
+    def update_report(self, V, path, opt, step):
 
-        list_index = []
-
-        dict_df = {
-            "section": [],
-            "consistent_correctly_identified": [],
-            "inconsistent_correctly_identified": [],
-            "new_species_candidates": [],
-            "misidentified": [],
-            "errors": [],
-        }
-
-        for sect in self.section_report:
-            if not (sect == "all"):
-                dict_df["section"].append(sect)
-                dict_df["consistent_correctly_identified"].append(
-                    self.section_report[sect].cnt_consistent_correctly_identified
-                )
-                dict_df["inconsistent_correctly_identified"].append(
-                    self.section_report[sect].cnt_inconsistent_correctly_identified
-                )
-                dict_df["new_species_candidates"].append(
-                    self.section_report[sect].cnt_new_species_candidates
-                )
-                dict_df["misidentified"].append(
-                    self.section_report[sect].cnt_misidentified
-                )
-                dict_df["errors"].append(self.section_report[sect].cnt_errors)
-
-        dp_list.append(
-            dp.Plot(
-                px.bar(
-                    pd.DataFrame(dict_df),
-                    x="section",
-                    y=[
-                        "consistent_correctly_identified",
-                        "inconsistent_correctly_identified",
-                        "new_species_candidates",
-                        "misidentified",
-                        "errors",
-                    ],
-                )
+        if step == "setup":
+            self.report_text(V, path, opt, step)
+        elif step == "search":
+            self.report_table(V, path, opt, step)
+            self.report_text(V, path, opt, step)
+        elif step == "cluster":
+            self.update_dataset(V, opt)
+            self.report_table(V, path, opt, step)
+            self.report_text(V, path, opt, step)
+            # Datasets are made after clustering
+        elif step == "align":
+            self.report_text(V, path, opt, step)
+        elif step == "trim":
+            self.report_text(V, path, opt, step)
+        elif step == "modeltest":
+            self.report_text(V, path, opt, step)
+        elif step == "tree":
+            self.report_text(V, path, opt, step)
+        elif step == "visualize":
+            self.report_text(V, path, opt, step)
+        elif step == "report":
+            self.update_result(V, opt)
+            self.report_table(V, path, opt, step)
+            self.report_text(V, path, opt, step)
+        else:
+            logging.error(
+                f"DEVELOPMENTAL ERROR : BAD STEP INPUT {step} WHILE UPDATE REPORT"
             )
-        )
+            raise Exception
 
-        # same stacked bar graph, for percentage
-        dp_list.append(
-            dp.Plot(
-                px.histogram(
-                    pd.DataFrame(dict_df),
-                    barnorm="percent",
-                    x="section",
-                    y=[
-                        "consistent_correctly_identified",
-                        "inconsistent_correctly_identified",
-                        "new_species_candidates",
-                        "misidentified",
-                        "errors",
-                    ],
+    # Generate report in text file
+    def report_text(self, V, path, opt, step):
+
+        # Rewrite everytime when called, the io step won't be that much
+        with open(f"{path.root}/{opt.runname}.report.txt", "wt", encoding="UTF8") as f:
+            if index_step(step) >= 0:
+                f.write("FunID Report\n\n")
+                ## Write runinfo
+                f.write("[INFO]\n")
+                # Runname
+                f.write(f"RUNNAME      : {opt.runname}\n")
+                # Running date
+                f.write(
+                    f"DATE         : {datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}\n"
                 )
+                # Running time
+                # f.write(f"TIME CONSUMED: {}\n")
+                # Number of warnings
+                # f.write(f"WARNINGS     : {}\n")
+                # Number of errors
+                # f.write(f"ERRORS       : {}\n")
+                f.write(f"FINAL STEP   : {step}")
+
+            f.write("\n")
+
+            ## Write locations to result files
+            if index_step(step) >= 0:
+                # DB and Query locations can be written after input step
+                f.write(f"* DB files are saved in {path.out_db}\n")
+                f.write(f"* Query files are saved in {path.out_query}\n")
+                # Options location can be written after option validation step
+                f.write(f"* Options are saved in {path.root}/Options.yaml\n")
+
+            if index_step(step) >= 2:
+                # Datset table can be written after cluster and outgroup selection step
+                f.write(
+                    f"* Dataset table can be found in {path.root}/{opt.runname}_Dataset.{opt.matrixformat}\n"
+                )
+                # Identification table can be written after cluster step
+                f.write(
+                    f"* Identification result table can be found in {path.root}/{opt.runname}_Identification.{opt.matrixformat}\n"
+                )
+                f.write(f"* Log files can be found in {path.log}\n")
+                f.write("\n")
+
+            ## Write options used (in concise form)
+            if index_step(step) >= 0:
+                f.write(f"[OPTION]\n")
+                f.write(f"DB:                     {opt.query}\n")
+                f.write(f"QUERY:                  {opt.db}\n")
+                f.write(f"GENE:                   {opt.gene}\n")
+                f.write(f"EMAIL:                  {opt.email}\n")
+                f.write(f"API:                    {opt.api}\n")
+                f.write(f"TEST:                   {opt.test}\n")
+                f.write(f"THREAD:                 {opt.thread}\n")
+                f.write(f"OUTDIR:                 {opt.outdir}\n")
+                f.write(f"RUNNAME:                {opt.runname}\n")
+                f.write(f"MODE:                   {opt.mode}\n")
+                f.write(f"CONTINUE_FROM_PREVIOUS: {opt.continue_from_previous}\n")
+                f.write(f"CRITERION:              {opt.criterion}\n")
+                f.write(f"STEP:                   {opt.step}\n")
+                f.write(f"LEVEL:                  {opt.level}\n")
+                f.write(f"QUERYONLY:              {opt.queryonly}\n")
+                f.write(f"CONFIDENT:              {opt.confident}\n")
+                f.write(f"CONCATENATE:            {opt.concatenate}\n")
+                f.write(f"VERBOSE:                {opt.verbose}\n")
+                f.write(f"MAXOUTGROUP:            {opt.maxoutgroup}\n")
+                f.write(f"COLLAPSEDISTCUTOFF:     {opt.collapsedistcutoff}\n")
+                f.write(f"COLLAPSEBSCUTOFF:       {opt.collapsebscutoff}\n")
+                f.write(f"BOOTSTRAP:              {opt.bootstrap}\n")
+                f.write(f"SOLVEFLAT:              {opt.solveflat}\n")
+                f.write(f"REGEX:                  {opt.regex}\n")
+                f.write(f"AVX:                    {opt.avx}\n")
+                f.write(f"CACHEDB:                {opt.cachedb}\n")
+                f.write(f"USECACHE:               {opt.usecache}\n")
+                f.write(f"MATRIXFORMAT:           {opt.matrixformat}\n")
+                f.write(f"SAVESEARCHMATRIX:       {opt.savesearchmatrix}\n")
+                f.write(f"SAVESEARCHRESULT:       {opt.savesearchresult}\n")
+                f.write(f"METHOD:                 \n")
+                f.write(f" - SEARCH:              {opt.method.search}\n")
+                f.write(f" - ALIGNMENT:           {opt.method.alignment}\n")
+                f.write(f" - TRIM:                {opt.method.trim}\n")
+                f.write(f" - MODELTEST:           {opt.method.modeltest}\n")
+                f.write(f" - TREE:                {opt.method.tree}\n")
+                f.write(f"VISUALIZE:              \n")
+                f.write(f" - BSCUTOFF:            {opt.visualize.bscutoff}\n")
+                f.write(f" - FULLGENUS:           {opt.visualize.fullgenus}\n")
+                f.write(f" - HIGHLIGHT:           {opt.visualize.highlight}\n")
+                f.write(f" - HEIGHTMULTIPLIER:    {opt.visualize.heightmultiplier}\n")
+                f.write(f" - MAXWORDLENGTH:       {opt.visualize.maxwordlength}\n")
+                f.write(f" - BGCOlOR:             {opt.visualize.backgroundcolor}\n")
+                f.write(f" - OUTGROUPCOLOR:       {opt.visualize.outgroupcolor}\n")
+                f.write(f" - FTYPE:               {opt.visualize.ftype}\n")
+                f.write(f" - FSIZE:               {opt.visualize.fsize}\n")
+                f.write(f" - FSIZE_BOOTSTRAP:     {opt.visualize.fsize_bootstrap}\n")
+                f.write(f"CLUSTER:                \n")
+                f.write(f" - CUTOFF:              {opt.cluster.cutoff}\n")
+                f.write(f" - EVALUE:              {opt.cluster.evalue}\n")
+                f.write(f" - WORDSIZE:            {opt.cluster.wordsize}\n")
+                f.write(f"MAFFT:                  \n")
+                f.write(f" - ALGORITHM:           {opt.mafft.algorithm}\n")
+                f.write(f" - OP:                  {opt.mafft.op}\n")
+                f.write(f" - EP:                  {opt.mafft.ep}\n")
+                f.write(f"TRIMAL:                 \n")
+                f.write(f" - ALGORITHM:           {opt.trimal.algorithm}\n")
+                f.write(f" - GT:                  {opt.trimal.gt}\n")
+                f.write("\n")
+
+            ## Write datasets
+            # Should be written after clustering
+            if index_step(step) >= 2:
+                f.write(f"[DATASET]\n")
+                f.write(tabulate(self.dataset, headers=self.dataset.keys()))
+                f.write("\n\n")
+                f.write(" * O : Group - Gene dataset analysis done\n")
+                f.write(
+                    " * - : Group - Gene dataset analysis cannot be performed (absence of query sequence, no appropriate outgroup etc..)\n"
+                )
+                f.write("\n\n")
+
+            ## Write identification statistics
+            # Should be written after tree_interpretation
+            if index_step(step) >= 8:
+                f.write(f"[STATISTICS]\n")
+                f.write(tabulate(self.statistics, headers=self.statistics.keys()))
+                f.write("\n\n")
+                f.write(
+                    " IDENTIFIED : Number of well-identified strains without any concerns. \n"
+                )
+                f.write(
+<<<<<<< HEAD
+                    "AMBIGUOUS : Multiple clades with same taxon name. Your database may contain misidentified sequences. \n"
+=======
+                    " AMBIGUOUS : Strains that show different identification result across genes. Please check sequences were contaminated or misused\n"
+                )
+                f.write(
+                    " NEW SPECIES CANDIDATE : New species candidate strains found by topology, phylogenetic distance and bootstrap criteria\n"
+>>>>>>> parent of bbf88cd (0.2.0.1.0.7)
+                )
+                f.write(
+                    " MISIDENTIFIED : Strains that shows different identification result from original annotation\n"
+                )
+                f.write(
+                    " ERROR : Strains that cannot be analyzed. Please check if appropriate database sequence / outgroup sequences are given\n"
+                )
+                f.write("\n\n")
+
+            ## Write identification result
+            # Should be written after tree_interpretation
+            if index_step(step) >= 8:
+                f.write(f"[IDENTIFICATION]\n")
+                f.write(tabulate(self.result, headers=self.result.keys()))
+                f.write("\n\n")
+                f.write(" ID : Name of the strain\n")
+                f.write(
+                    " HASH : Temporary name of the strain to prevent unexpected error during run. Use this when manually edit intermediate step data and run from middle, or debugging unexpectively terminated run\n"
+                )
+                f.write(" DATATYPE : query or database\n")
+                f.write(" GROUP_ORIGINAL : group name given by user\n")
+                f.write(" GROUP_ASSIGNED : group assigned by FunID clustering\n")
+                f.write(" SPECIES_ORIGINAL : species name given by user\n")
+                f.write(
+                    " SPECIES_ASSIGNED : final species name (usually result from concatenated analysis) assigned by FunID tree_interpretation\n"
+                )
+                f.write(
+                    " FLAT_BRANCH : Strains with flat_branch in phylogenetic analysis. If checked, please check your barcode region have enough taxonomic resolution\n"
+                )
+                f.write(
+                    " AMBIGUITY : Strains that show different identification result across genes. Please check sequences were contaminated or misused\n"
+                )
+
+                self.result = {
+                    "ID": [],
+                    "HASH": [],
+                    "DATATYPE": [],
+                    "GROUP_ORIGINAL": [],
+                    "GROUP_ASSIGNED": [],
+                    "SPECIES_ORIGINAL": [],
+                    "SPECIES_ASSIGNED": [],
+                    "FLAT_BRANCH": [],
+                    "AMBIGUITY": [],
+                    "STATUS": [],
+                }
+
+                f.write("\n\n")
+
+            ## Write identification methods
+            # Can be written after clustering step
+            if index_step(step) >= 1:
+                f.write(f"[METHOD]\n")
+                f.write(f"Sequences were identified with FunID {__version__}\n")
+                f.write("\n")
+
+                cnt_db = len([FI for FI in V.list_FI if FI.datatype == "db"])
+                cnt_query = len([FI for FI in V.list_FI if FI.datatype == "query"])
+
+                f.write("- Sequence validation -\n")
+                f.write(
+                    f"Total of {cnt_db} database strains and {cnt_query} strains "
+                    f"were used for analysis. "
+                )
+
+                f.write(
+                    f"Sequences used for analysis were first adjusted to prevent errors during analysis, "
+                    f"such as containing invalid bases, non-ascii unicodes, or empty database.\n"
+                    # f"During sequences validation step, {cnt_warning} warnings and {cnt_error} errors occured"
+                )
+                f.write("\n")
+                """
+                for warning in manage_input_warning:
+                    f.write(f"\n")
+                for error in manage_input_error:
+                    f.write(f"\n")
+                """
+                f.write(
+                    "* Most of the warnings in this step are usually typo problems "
+                    "(blanks, tabs, foreign languages that cannot be used in certain programs - like german umlauts) "
+                    "and can be automatically fixed by FunID. So you don't have to consider about it that much if you are not going to publish data.\n"
+                )
+                f.write("\n")
+
+            if index_step(step) >= 2:
+                f.write("- Sequence type identification -\n")
+                f.write(
+                    f"Sequence type (loci or gene) of query sequences were examined through {opt.method.search} search "
+                    f"by using gene of the closeset match. However, ambiguous match with multiple number of genes were revised. "
+                    # f"During gene clustering, {cnt_warning} warnings and {cnt_error} errors occured "
+                )
+                f.write("\n")
+                """
+                for warning in gene_clustering_warning:
+                    f.write(f"\n")
+                for error in gene_clustering_error:
+                    f.write(f"\n")
+                """
+                f.write("\n")
+
+                f.write("- Group assignment -\n")
+                f.write(
+                    f"Sequences were grouped to each datasets by {opt.level} level for phylogenetic analysis through {opt.method.search} search. "
+                    f"Therefore, {opt.level} of query sequences are either assigned (when {opt.level} is not given) or validated for clustering "
+                    # f"During clustering, {cnt_warning} warnings and {cnt_error}  errors occured "
+                )
+                f.write("\n")
+                """
+                for warning in group_clustering_warning:
+                    f.write(f"\n")
+                for error in group_clustering_error:
+                    f.write(f"\n")
+                """
+                f.write("\n")
+
+                f.write("- Outgroup selection -\n")
+                f.write(
+                    f"Outgroup sequences were appended to each datasets. "
+                    f"{opt.maxoutgroup} sequences closest, but apperantly in distinct group were found by {opt.method.search} search. "
+                    # f"During outgroup selection, {cnt_warning} warnings and {cnt_error} errors occured"
+                )
+                f.write("\n")
+                """
+                for warning in append_outgroup_warning:
+                    f.write(f"\n")
+                for error in append_outgroup_error:
+                    f.write(f"\n")
+                """
+                f.write("\n")
+
+                f.write("- Multiple sequence alignment -\n")
+                f.write(
+                    f"Multiple sequence alignment to each datasets were performed with {opt.method.alignment}. "
+                    f"{opt.mafft.algorithm} algorithm was selected with --op {opt.mafft.op} and --ep {opt.mafft} options. "
+                    # f"During alignment, {cnt_warning} warnings and {cnt_error} errors occured"
+                )
+                f.write("\n")
+                """
+                for warning in mafft_warning:
+                    f.write(f"\n")
+                for error in mafft_error:
+                    f.write(f"\n")
+                    """
+                f.write("\n")
+
+                f.write("- Alignment trimming -\n")
+                f.write(
+                    f"Trimming to each datasets were performed with {opt.method.trim}. "
+                    # f"{somewhat} options were used"
+                    # f"During trimming, {cnt_warning} warnings and {cnt_error} errors occured"
+                )
+                f.write("\n")
+                """
+                for warning in trim_warning:
+                    f.write(f"\n")
+                for error in trim_error:
+                    f.write(f"\n")
+                    """
+                f.write("\n")
+
+                f.write("- Phylogenetic tree construction -\n")
+                f.write(
+                    f"Maximum Likelihood tree analysis to each datasets were performed with {opt.method.tree}. "
+                    # f"{somewhat} options were used"
+                    # f"During trimming, {cnt_warning} warnings and {cnt_error} errors occured"
+                )
+                f.write("\n")
+                """
+                for warning in tree_warning:
+                    f.write(f"\n")
+                for error in tree_error:
+                    f.write(f"\n")
+                    """
+                f.write("\n")
+
+                f.write("- Phylogenetic tree interpretation and identification -\n")
+                f.write(
+                    f"Tree interpretation were performed to each datasets for species delimitation and tree visualization. "
+                    f"Trees were rerooted by outgroup clades. "
+                    f"Leaves in ambiguous tree topology, with over {opt.collapsedistcutoff} tree distance or {opt.collapsebscutoff} support in common ancestor diverge were considered as distinct species. "
+                    # f"During tree interpretation, {cnt_warning} warnings and {cnt_error} errors occured"
+                )
+
+                f.write("\n")
+                """
+                for warning in tree_interpretation_warning:
+                    f.write(f"\n")
+                for error in tree_interpretation_error:
+                    f.write(f"\n")
+                    """
+                f.write("\n")
+
+                """
+                f.write(
+                    f"As a result of FunID analysis, a total of {cnt_query} strains were identified"
+                    f"{cnt_query} sequences constists of"
+                    f"{cnt_consistent} well identified strains,"
+                    f"{cnt_ambiguous} strains that showed different results by genes,"
+                    f"{cnt_new_species_candidates} new species candidates,"
+                    f"{cnt_error} failed on analysis due to error"
+                    f"During tree interpreation, {cnt_warning} warnings and {cnt_error} errors occured"
+                )
+                for warning in tree_interpretation_warning:
+                    f.write(f"\n")
+                for error in tree_interpretation_error:
+                    f.write(f"\n")
+                """
+
+            f.write("\n")
+            f.write(
+                f"* For precise identification and publications, please double check all warnings and errors\n"
             )
-        )
+            f.write("\n")
 
-        # stacked bar graph for ambiguous species
-        dict_df = {"section": [], "ambiguous": [], "unambiguous": []}
-        for sect in self.section_report:
-            if not (sect == "all"):
-                dict_df["section"].append(sect)
-                dict_df["ambiguous"].append(
-                    self.section_report[sect].cnt_ambiguous_species
-                )
-                dict_df["unambiguous"].append(
-                    self.section_report[sect].cnt_unambiguous_species
-                )
+            ### Version for each software notation
+            f.write(f"[VERSIONS]\n")
+            software_list = ["FunID"]
 
-        dp_list.append(
-            dp.Plot(
-                px.bar(
-                    pd.DataFrame(dict_df),
-                    x="section",
-                    y=["ambiguous", "unambiguous"],
-                )
-            )
-        )
+            # append software list by step
+            dict_version = {
+                "FunID": f"{__version__}",
+                "BLASTn": "",
+                "MMseqs2": "",
+                "MAFFT": "",
+                "Gblocks": "0.91b",
+                "TrimAl": "",
+                "Modeltest-NG": "",
+                "Partitionfinder": "",
+                "FastTree": "",
+                "IQTREE2": "",
+                "RAxML": "",
+            }
 
-        dp_list.append(
-            dp.Plot(
-                px.histogram(
-                    pd.DataFrame(dict_df),
-                    barnorm="percent",
-                    x="section",
-                    y=["ambiguous", "unambiguous"],
-                )
-            )
-        )
-        """
-        dp_list.append(dp.Text("## Sectional statistics"))
-        # per section plotting
-        section_list = sorted(list(self.section_report.keys()))
+            for n, software in enumerate(software_list):
+                f.write(f"{'{:<15}'.format(software)} : {dict_version[software]}\n")
 
+            f.write(f"\n")
 
-        tab_list = []
-        for sect in section_list:
-            if sect != "all":
+            ### Write citations
+            f.write(f"[CITATION]\n")
+            dict_citation = {
+                "FunID": "https://github.com/Changwanseo/FunID",
+                "BLASTn": "Altschul, S. F., Gish, W., Miller, W., Myers, E. W., & Lipman, D. J. (1990). Basic local alignment search tool. Journal of molecular biology, 215(3), 403-410.",
+                "MMseqs2": "Steinegger, M., & Söding, J. (2017). MMseqs2 enables sensitive protein sequence searching for the analysis of massive data sets. Nature biotechnology, 35(11), 1026-1028.",
+                "MAFFT": "Katoh, K., & Standley, D. M. (2013). MAFFT multiple sequence alignment software version 7: improvements in performance and usability. Molecular biology and evolution, 30(4), 772-780.",
+                "Gblocks": "Talavera, G., & Castresana, J. (2007). Improvement of phylogenies after removing divergent and ambiguously aligned blocks from protein sequence alignments. Systematic biology, 56(4), 564-577.",
+                "TrimAl": "Capella-Gutiérrez, S., Silla-Martínez, J. M., & Gabaldón, T. (2009). trimAl: a tool for automated alignment trimming in large-scale phylogenetic analyses. Bioinformatics, 25(15), 1972-1973.",
+                "Modeltest-NG": "Darriba, D., Posada, D., Kozlov, A. M., Stamatakis, A., Morel, B., & Flouri, T. (2020). ModelTest-NG: a new and scalable tool for the selection of DNA and protein evolutionary models. Molecular biology and evolution, 37(1), 291-294.",
+                "Partitionfinder": "Lanfear, R., Frandsen, P. B., Wright, A. M., Senfeld, T., & Calcott, B. (2017). PartitionFinder 2: new methods for selecting partitioned models of evolution for molecular and morphological phylogenetic analyses. Molecular biology and evolution, 34(3), 772-773.",
+                "FastTree": "Price, M. N., Dehal, P. S., & Arkin, A. P. (2010). FastTree 2–approximately maximum-likelihood trees for large alignments. PloS one, 5(3), e9490.",
+                "IQTREE2": "Minh, B. Q., Schmidt, H. A., Chernomor, O., Schrempf, D., Woodhams, M. D., Von Haeseler, A., & Lanfear, R. (2020). IQ-TREE 2: new models and efficient methods for phylogenetic inference in the genomic era. Molecular biology and evolution, 37(5), 1530-1534.",
+                "RAxML": "Stamatakis, A. (2014). RAxML version 8: a tool for phylogenetic analysis and post-analysis of large phylogenies. Bioinformatics, 30(9), 1312-1313.",
+            }
 
-                section_plots = []
-
-                # pie chart for section
-                if not (self.section_report[sect].identificationplot is None):
-                    section_plots.append(
-                        dp.Plot(
-                            self.section_report[sect].identificationplot,
-                            caption=f"Identification result of section {sect} compared to original annotations",
-                        )
-                    )
-
-                # upset plot for section
-                if not (self.section_report[sect].upsetplot is None):
-
-                    section_plots.append(
-                        dp.HTML(
-                            self.section_report[sect]
-                            .upsetplot.getvalue()
-                            .decode("utf-8")
-                        )
-                    )
-
-                # merge all to tab
-                # tab_list.append(dp.Text(f"### Statistics for Section {sect}"))
-                tab_list.append(
-                    dp.Group(
-                        dp.Text(f"### Statistics for Section {sect}"),
-                        dp.Group(
-                            *section_plots,
-                            columns=2,
-                            label=f"Statistics for Section {sect}",
-                        ),
-                        columns=1,
-                    )
+            for n, software in enumerate(software_list):
+                f.write(
+                    f"[{n+1}] {'{:<15}'.format(software)} : {dict_citation[software]}"
                 )
 
-        print(tab_list)
-        dp_list.append(dp.Select(blocks=tab_list))
-        """
+    def report_table(self, V, path, opt, step):
 
-        dp.Report(*tuple(dp_list)).save(path=out)
+        # Generate list of table to be written
+        list_table = []
+
+        if index_step(step) >= 2:
+            list_table.append("dataset")
+<<<<<<< HEAD
+
+        if index_step(step) >= 9:
+=======
+        elif index_step(step) >= 8:
+>>>>>>> parent of bbf88cd (0.2.0.1.0.7)
+            list_table.append("identification")
+            list_table.append("statistics")
+
+        # Write tables
+        for table in list_table:
+            if table == "dataset":
+                save_df(
+                    df=pd.DataFrame(self.dataset),
+                    out=f"{path.root}/{opt.runname}.dataset.{opt.matrixformat}",
+                    fmt=opt.matrixformat,
+                )
+            elif table == "identification":
+                save_df(
+                    df=pd.DataFrame(self.result),
+                    out=f"{path.root}/{opt.runname}.result.{opt.matrixformat}",
+                    fmt=opt.matrixformat,
+                )
+
+            elif table == "statistics":
+                save_df(
+                    df=pd.DataFrame(self.statistics),
+                    out=f"{path.root}/{opt.runname}.statistics.{opt.matrixformat}",
+                    fmt=opt.matrixformat,
+                )
+            else:
+                logging.error(
+                    f"DEVELOPMENTAL ERROR : WRONG TABLE TYPE {table} ATTEMPTED TO BE WRITTEN"
+                )
+                raise Exception
+
+    def report_html(V, path, opt):
+        pass

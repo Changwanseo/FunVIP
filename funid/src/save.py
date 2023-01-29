@@ -13,7 +13,7 @@ from Bio import SeqIO
 from funid.src.tool import (
     initialize_path,
     get_genus_species,
-    get_accession,
+    get_id,
     manage_unicode,
 )
 from funid.src.logics import isnewicklegal
@@ -57,57 +57,58 @@ def load_session(opt, global_var: dict, savefile: str) -> None:
     save.close()
 
 
-def save(list_funinfo, path, option):
-    def save_originalfasta(list_info, path, filename):
+"""
+def save(list_FI, path, option):
+    def save_originalfasta(list_FI, path, filename):
         with open(f"{path}/{filename}", "w") as fp:
-            for info in list_info:
-                fp.write(f">{info.description}\n{info.seq}\n")
+            for FI in list_FI:
+                fp.write(f">{FI.description}\n{FI.seq}\n")
 
-    def save_excel(list_info, path, filename):
+    def save_excel(list_FI, path, filename):
         dict_excel = {
             "hash": [],
-            "accession": [],
+            "id": [],
             "genus": [],
             "species": [],
             "source": [],
             "datatype": [],
-            "section": [],
-            "adjusted_section": [],
+            "group": [],
+            "adjusted_group": [],
         }
 
         seq_set = set()
-        for info in list_info:
-            for gene in info.seq:
+        for FI in list_FI:
+            for gene in FI.seq:
                 seq_set.add(gene)
 
         for gene in seq_set:
             dict_excel[gene] = []
 
-        for info in list_info:
-            dict_excel["hash"].append(info.hash)
-            dict_excel["accession"].append(info.original_accession)
-            dict_excel["genus"].append(info.genus)
-            dict_excel["species"].append(info.ori_species)
-            dict_excel["source"].append(info.source)
-            dict_excel["datatype"].append(info.datatype)
-            dict_excel["section"].append(info.section)
-            dict_excel["adjusted_section"].append(info.adjusted_section)
+        for FI in list_FI:
+            dict_excel["hash"].append(FI.hash)
+            dict_excel["id"].append(FI.original_id)
+            dict_excel["genus"].append(FI.genus)
+            dict_excel["species"].append(FI.ori_species)
+            dict_excel["source"].append(FI.source)
+            dict_excel["datatype"].append(FI.datatype)
+            dict_excel["group"].append(FI.group)
+            dict_excel["adjusted_group"].append(FI.adjusted_group)
             for gene in seq_set:
-                if gene in info.seq:
-                    dict_excel[gene].append(info.seq[gene])
+                if gene in FI.seq:
+                    dict_excel[gene].append(FI.seq[gene])
                 else:
                     dict_excel[gene].append("")
 
         df = pd.DataFrame(dict_excel)
         df.to_excel(f"{path}/{filename}", index=False)
 
-    save_excel(list_funinfo, path.data, f"{option.runname}_Section Assignment.xlsx")
+    save_excel(list_FI, path.data, f"{option.runname}_group Assignment.xlsx")
 
     # Save by source
     origin_set = set()
 
-    for funinfo in list_funinfo:
-        origin_set.add((funinfo.source, funinfo.datatype))
+    for FI in list_FI:
+        origin_set.add((FI.source, FI.datatype))
 
     for origin in origin_set:
 
@@ -120,13 +121,14 @@ def save(list_funinfo, path, option):
             raise Exception
 
         tmp_list = []
-        for funinfo in list_funinfo:
-            if funinfo.datatype == origin[1]:
-                if funinfo.source == origin[0]:
-                    tmp_list.append(funinfo)
+        for FI in list_FI:
+            if FI.datatype == origin[1]:
+                if FI.source == origin[0]:
+                    tmp_list.append(FI)
+"""
 
 
-def save_fasta(list_funinfo, gene, filename, by="accession"):
+def save_fasta(list_funinfo, gene, filename, by="id"):
 
     list_funinfo = list(set(list_funinfo))  # remove ambiguous seqs
 
@@ -138,7 +140,7 @@ def save_fasta(list_funinfo, gene, filename, by="accession"):
                     if by == "hash":
                         fp.write(f">{info.hash}_{n}\n{seq}\n")
                     else:
-                        fp.write(f">{info.accession}_{n}\n{seq}\n")
+                        fp.write(f">{info.id}_{n}\n{seq}\n")
                     flag = 1
 
         else:
@@ -149,7 +151,7 @@ def save_fasta(list_funinfo, gene, filename, by="accession"):
                         if by == "hash":
                             fp.write(f">{info.hash}\n{info.seq[gene]}\n")
                         else:
-                            fp.write(f">{info.accession}\n{info.seq[gene]}\n")
+                            fp.write(f">{info.id}\n{info.seq[gene]}\n")
                         flag = 1
 
     # returns 1 if meaningful sequence exists
@@ -162,31 +164,31 @@ def save_originalfasta(list_info, path, filename):
             fp.write(f">{info.description}\n{info.seq}\n")
 
 
-def save_fastabysection(list_funinfo, path, option, add="Reference", outgroup=False):
+def save_fastabygroup(list_funinfo, path, option, add="Reference", outgroup=False):
 
     outpath = path.data
-    set_section = set()
+    set_group = set()
 
     """
     for funinfo in list_funinfo:
-        set_section.add(funinfo.adjusted_section)
-        if funinfo.adjusted_section != str:
+        set_group.add(funinfo.adjusted_group)
+        if funinfo.adjusted_group != str:
             print(funinfo)
     """
 
-    # print(set_section)
+    # print(set_group)
 
-    for section in set_section:
+    for group in set_group:
         tmp_list = []
         for funinfo in list_funinfo:
-            if funinfo.adjusted_section == section:
+            if funinfo.adjusted_group == group:
                 tmp_list.append(funinfo)
 
-        save_fasta(tmp_list, outpath, f"{add}_{section}.fasta")
+        save_fasta(tmp_list, outpath, f"{add}_{group}.fasta")
 
 
 # Save tree file to designated path, and decode it
-def save_tree(out, hash_dict, hash_file_path, decoded_file_path):
+def save_tree(out, hash_dict, hash_file_path, decoded_file_path, fix=False):
 
     # print(out)
     file = out.split("/")[-1]
@@ -196,6 +198,20 @@ def save_tree(out, hash_dict, hash_file_path, decoded_file_path):
         file=hash_file_path,
         out=decoded_file_path,
     )
+
+    # In fasttree result, 0 supports are not shown. so fix it
+    if fix is True:
+        with open(hash_file_path, "r") as fr:
+            newick = fr.read()
+
+        with open(hash_file_path, "w") as fw:
+            fw.write(newick.replace("):", ")0.0:"))
+
+        with open(decoded_file_path, "r") as fr:
+            newick = fr.read()
+
+        with open(decoded_file_path, "w") as fw:
+            fw.write(newick.replace("):", ")0.0:"))
 
 
 def save_mergedfasta(fasta_list, out_path):

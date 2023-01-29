@@ -5,7 +5,7 @@ import logging
 import os, subprocess
 import shutil
 from pathlib import Path
-from funid.src.manage_input import save_tree
+from funid.src.save import save_tree
 
 # Search methods
 # BLAST
@@ -28,9 +28,9 @@ def mmseqs(query, db, out, tmp, path, opt):
     path_mmseqs = f"{path.sys_path}/external/mmseqs_Windows/mmseqs.bat"
 
     if platform == "win32":
-        CMD = f"{path_mmseqs} easy-search {query} {db} {out} {tmp} --threads {opt.thread} --search-type 3 -e {opt.cluster.evalue}"
+        CMD = f"{path_mmseqs} easy-search {query} {db} {out} {tmp} --threads {opt.thread} --search-type 3 -e {opt.cluster.evalue} -v 1"
     else:
-        CMD = f"mmseqs easy-search {query} {db} {out} {tmp} --threads {opt.thread} --search-type 3 -e {opt.cluster.evalue}"
+        CMD = f"mmseqs easy-search {query} {db} {out} {tmp} --threads {opt.thread} --search-type 3 -e {opt.cluster.evalue} -v 1"
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
@@ -82,7 +82,7 @@ def MAFFT(
     seqlist = list(SeqIO.parse(fasta, "fasta"))
     if len(seqlist) == 1:
         logging.warning(
-            f"[Warning] {fasta} has only one sequence. Using original sequence as alignment"
+            f"{fasta} has only one sequence. Using original sequence as alignment"
         )
         shutil.copy(fasta, out)
     else:
@@ -90,11 +90,12 @@ def MAFFT(
             CMD = f"{path.sys_path}/external/MAFFT_Windows/mafft-win/mafft.bat --thread {thread} --{algorithm} --maxiterate {maxiterate} --{adjust} --op {op} --ep {ep} --quiet {fasta} > {out}"
         else:
             CMD = f"mafft --thread {thread} --{algorithm} --maxiterate {maxiterate} --{adjust} --op {op} --ep {ep} --quiet {fasta} > {out}"
+
         logging.info(CMD)
         try:
             Run = subprocess.call(CMD, shell=True)
         except:
-            logging.error(f"[ERROR] Failed on {CMD}")
+            logging.error(f"Failed on {CMD}")
             raise Exception
 
 
@@ -195,17 +196,17 @@ def RAxML(
         CMD += f" -q {partition}"
 
     logging.info(CMD)
-
     Run = subprocess.call(CMD, shell=True)
-    # Return to original directory
+
+    # Return result to original directory
     os.chdir(path_ori)
     file = out.split("/")[-1]
     out = f"RAxML_bipartitions.{out}"
     save_tree(
-        f"{path.tmp}/{out}",
-        hash_dict,
-        f"{path.out_tree}/hash_{file}",
-        f"{path.out_tree}/{file}",
+        out=f"{path.tmp}/{out}",
+        hash_dict=hash_dict,
+        hash_file_path=f"{path.out_tree}/hash_{file}",
+        decoded_file_path=f"{path.out_tree}/{file}",
     )
 
 
@@ -214,17 +215,19 @@ def FastTree(fasta, out, hash_dict, path, model=""):
     if model == "skip":
         model = ""
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/FastTree_Windows/FastTree.exe -quiet -nt {model} {fasta} > {path.tmp}/{out}"
+        CMD = f"{path.sys_path}/external/FastTree_Windows/FastTree.exe -quiet -nt {model} -log {path.tmp}/fasttreelog {fasta} > {path.tmp}/{out}"
     else:
-        CMD = f"FastTree -quiet -nt {model} {fasta}  > {path.tmp}/{out}"
+        CMD = f"FastTree -quiet -nt {model} -log {path.tmp}/fasttreelog {fasta}  > {path.tmp}/{out}"
+
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
     file = out.split("/")[-1]
     save_tree(
-        f"{path.tmp}/{out}",
-        hash_dict,
-        f"{path.out_tree}/hash_{file}",
-        f"{path.out_tree}/{file}",
+        out=f"{path.tmp}/{out}",
+        hash_dict=hash_dict,
+        hash_file_path=f"{path.out_tree}/hash_{file}",
+        decoded_file_path=f"{path.out_tree}/{file}",
+        fix=True,
     )
 
 
@@ -259,8 +262,8 @@ def IQTREE(
 
     file = out.split("/")[-1]
     save_tree(
-        f"{path.tmp}/{out}",
-        hash_dict,
-        f"{path.out_tree}/hash_{file}",
-        f"{path.out_tree}/{file}",
+        out=f"{path.tmp}/{out}",
+        hash_dict=hash_dict,
+        hash_file_path=f"{path.out_tree}/hash_{file}",
+        decoded_file_path=f"{path.out_tree}/{file}",
     )
