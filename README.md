@@ -1,11 +1,6 @@
-### This is Alpha release. May be unstable
-
+### This is Beta release. Unstable
 
 # Scheduling
-## Alpha release
-- For source code disclosure
-- Need specific settings, and may not work well for some datasets
-
 ## Beta release part 1 (2023 Feburary ~ As paper published, ver 0.3)
 - ~~Will operate normally most of the case~~ We tried our best, but it's still very buggy. Please report bugs for us
 - Will be tested by our lab memebers to fix bugs and advance features
