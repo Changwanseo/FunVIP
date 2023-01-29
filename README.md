@@ -31,9 +31,25 @@ A automatic tree-based sequence identification pipeline for fungal species
 ## Requirements
 - Conda environment (See https://www.anaconda.com/products/individual to install)
 
+
+## Installation with conda
+1. conda create -n FunID python=3.9
+2. conda activate FunID
+3. conda install -c cwseo FunID
+4. run ```FunID --test Penicillium ``` to check installation
+
+## Installation with conda (using pip)
+1. conda create -n FunID python=3.9
+2. conda activate FunID
+3. conda install pip
+4. pip install FunID
+5. run ```FunID --test Penicillium ``` to check installation
+
+
+
 ## Installation from source
-1. git clone https://github.com/Changwanseo/FunID-dev.git
-2. Move to ~/FunID-dev
+1. git clone https://github.com/Changwanseo/FunID.git
+2. Move to ~/FunID
 3. conda create -n FunID python=3.9
 4. conda activate FunID
 5. pip install ./
