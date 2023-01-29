@@ -1,14 +1,14 @@
-### This is Beta release. Unstable
+#### This is Beta release. Unstable
 
-# Scheduling
-## Beta release part 1 (2023 Feburary ~ As paper published, ver 0.3)
+## Scheduling
+### Beta release part 1 (2023 Feburary ~ As paper published, ver 0.3)
 - ~~Will operate normally most of the case~~ We tried our best, but it's still very buggy. Please report bugs for us
 - Will be tested by our lab memebers to fix bugs and advance features
 
-## Beta release part 2 (As paper published ~ When pipeline gets stabled, ver 0.4)
+### Beta release part 2 (As paper published ~ When pipeline gets stabled, ver 0.4)
 - Will be tested by peer taxonomists
 
-## Stable release (ver 1.0)
+### Stable release (ver 1.0)
 
 
 
