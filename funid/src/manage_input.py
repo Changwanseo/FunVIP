@@ -643,6 +643,7 @@ def data_input(V, R, opt, path):
     return V, R, opt
 
 
+"""
 def save_fasta(list_funinfo, gene, filename, by="id"):
 
     list_funinfo = list(set(list_funinfo))  # remove ambiguous seqs
@@ -671,6 +672,7 @@ def save_fasta(list_funinfo, gene, filename, by="id"):
 
     # returns 1 if meaningful sequence exists
     return flag
+"""
 
 
 # Try removing this, revive if error occurs

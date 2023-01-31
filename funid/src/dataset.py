@@ -1,4 +1,4 @@
-from funid.src import manage_input
+from funid.src import save
 from Bio import SeqIO
 import os
 import sys
@@ -392,7 +392,7 @@ class FunID_var:
                             + self.dict_dataset[group][gene].list_og_FI
                         )
 
-                    manage_input.save_fasta(
+                    save.save_fasta(
                         fasta_list,
                         gene,
                         f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta",

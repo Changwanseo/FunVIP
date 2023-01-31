@@ -1,4 +1,4 @@
-from funid.src import cluster, tool, hasher, manage_input
+from funid.src import cluster, tool, hasher, manage_input, save
 from funid.src.ext import blast, makeblastdb, mmseqs, makemmseqsdb
 from funid.src.manage_input import save_df
 import copy
@@ -264,8 +264,11 @@ def search_df(V, path, opt):
     # Make database by genes
     for gene in opt.gene:
 
-        db_state = manage_input.save_fasta(
-            list_db_FI, gene, f"{path.tmp}/{opt.runname}_DB_{gene}.fasta", by="hash"
+        db_state = save.save_fasta(
+            list_funinfo=list_db_FI,
+            gene=gene,
+            filename=f"{path.tmp}/{opt.runname}_DB_{gene}.fasta",
+            by="hash",
         )
 
         if db_state == 0:
@@ -310,7 +313,7 @@ def search_df(V, path, opt):
 
     # if query sequence exists
     else:
-        query_state = manage_input.save_fasta(
+        query_state = save.save_fasta(
             list_qr_FI,
             "unclassified",
             f"{path.tmp}/{opt.runname}_Query_unclassified.fasta",
@@ -341,7 +344,7 @@ def search_df(V, path, opt):
         for gene in opt.gene:
             # if database is very confident, so no more validation is required
             if opt.confident is True:
-                query_state = manage_input.save_fasta(
+                query_state = save.save_fasta(
                     [FI for FI in V.list_FI if FI.datatype == "query"],
                     gene,
                     f"{path.tmp}/{opt.runname}_Query_{gene}.fasta",
@@ -350,7 +353,7 @@ def search_df(V, path, opt):
 
             # for most of the cases
             else:
-                query_state = manage_input.save_fasta(
+                query_state = save.save_fasta(
                     V.list_FI,
                     gene,
                     f"{path.tmp}/{opt.runname}_Query_{gene}.fasta",

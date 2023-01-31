@@ -110,7 +110,7 @@ def concatenate_df(V, path, opt):
 
     if len(df_list) <= 0:
         logging.warning(f"Stop concatenating because same or less than 0 gene exists")
-        return None
+        return V
 
     else:
         # drop unused columns
