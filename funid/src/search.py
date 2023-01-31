@@ -301,7 +301,7 @@ def search_df(V, path, opt):
             V.dict_gene_SR[gene] = df_search
 
             # Save dataframe
-            if opt.savesearchresult is True:
+            if opt.nosearchresult is False:
                 save_df(
                     hasher.decode_df(V.dict_id_hash, df_search),
                     f"{path.out_matrix}/{opt.runname}_BLAST_result_{gene}.{opt.matrixformat}",
@@ -387,7 +387,7 @@ def search_df(V, path, opt):
             V.dict_gene_SR[gene] = df_search
 
             # Save dataframe
-            if opt.savesearchresult is True:
+            if opt.nosearchresult is False:
                 save_df(
                     hasher.decode_df(V.dict_id_hash, df_search),
                     f"{path.out_matrix}/{opt.runname}_BLAST_result_{gene}.{opt.matrixformat}",

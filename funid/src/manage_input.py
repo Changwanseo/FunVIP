@@ -101,7 +101,9 @@ class Funinfo:
         # Try to solve illegal unicode characters
         if pd.isnull(genus):
             genus = ""
-        genus = genus.strip()
+
+        # Genus with space causes error while mafft
+        genus = genus.strip().replace(" ", "_")
         genus = manage_unicode(genus)
 
         # Check ambiguity
@@ -146,7 +148,9 @@ class Funinfo:
         # Try to solve illegal unicode characters
         if pd.isnull(group):
             group = ""
-        group = group.strip()
+
+        # Group with space causes error while mafft
+        group = group.strip().replace(" ", "_")
         group = manage_unicode(group)
 
         # Check ambiguity
@@ -668,10 +672,13 @@ def save_fasta(list_funinfo, gene, filename, by="id"):
     return flag
 
 
+# Try removing this, revive if error occurs
+"""
 def save_originalfasta(list_info, path, filename):
     with open(f"{path}/{filename}", "w") as fp:
         for info in list_info:
             fp.write(f">{info.description}\n{info.seq}\n")
+"""
 
 
 def save_fastabygroup(list_funinfo, path, option, add="Reference", outgroup=False):

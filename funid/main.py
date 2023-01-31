@@ -131,8 +131,7 @@ def main():
         V = cluster.append_query_group(V)
 
         # Append query column to concatenated_df as query assigned
-        if opt.concatenate is True:
-            V = cluster.append_concatenated_query_group(V)
+        V = cluster.append_concatenated_query_group(V)
 
         # Both gene and group was assigned, dataset was confirmed
         V.generate_dataset(opt)
@@ -179,14 +178,12 @@ def main():
     if opt.continue_from_previous is False or index_step(opt.step) <= 5:
         step = "concatenate"
         logging.info("CONCATENATING MULTIGENE ALIGNMENTS")
-        if opt.concatenate is True:
-            # Multigene
-            V = multigene.combine_alignment(V, opt, path)
 
-            R.update_report(V=V, path=path, opt=opt, step=step)
-            save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
-        else:
-            logging.info("Passing concatenated tree")
+        # Multigene
+        V = multigene.combine_alignment(V, opt, path)
+
+        R.update_report(V=V, path=path, opt=opt, step=step)
+        save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
 
     # Alignment validations - whether some of the sequences does not have overlapping regions
     V.validate_alignments(path, opt)

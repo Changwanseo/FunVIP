@@ -102,115 +102,113 @@ def combine_alignment(V, opt, path):
 # for concatenating blast result to get single bitscore among results
 def concatenate_df(V, path, opt):
 
-    if opt.concatenate is True:
+    print("Working on concatenate_df")
 
-        df_list = [V.dict_gene_SR[gene] for gene in V.dict_gene_SR]
+    logging.info("Concatenating search results")
 
-        if len(df_list) <= 0:
-            logging.warning(
-                f"Stop concatenating because same or less than 0 gene exists"
-            )
-            return None
+    df_list = [V.dict_gene_SR[gene] for gene in V.dict_gene_SR]
 
-        else:
-            # drop unused columns
-            cnt = 0
+    if len(df_list) <= 0:
+        logging.warning(f"Stop concatenating because same or less than 0 gene exists")
+        return None
 
-            # initializing because search result for specific gene may not exists
-            while 1:
-                if isinstance(df_list[cnt], pd.DataFrame):
-                    if not (df_list[cnt].empty):
-                        V.cSR = df_list[cnt]
-                        V.cSR.drop(
-                            columns=[
-                                "pident",
-                                "length",
-                                "mismatch",
-                                "gaps",
-                                "qstart",
-                                "qend",
-                                "sstart",
-                                "send",
-                                "evalue",
-                            ],
-                            inplace=True,
+    else:
+        # drop unused columns
+        cnt = 0
+
+        # initializing because search result for specific gene may not exists
+        while 1:
+            if isinstance(df_list[cnt], pd.DataFrame):
+                if not (df_list[cnt].empty):
+                    V.cSR = df_list[cnt]
+                    V.cSR.drop(
+                        columns=[
+                            "pident",
+                            "length",
+                            "mismatch",
+                            "gaps",
+                            "qstart",
+                            "qend",
+                            "sstart",
+                            "send",
+                            "evalue",
+                        ],
+                        inplace=True,
+                    )
+                    cnt += 1
+                    break
+
+            cnt += 1
+
+        # generate concatenated search result
+        for df in df_list[cnt:]:
+            if isinstance(df_list[cnt], pd.DataFrame):
+                if not (df_list[cnt].empty):
+                    df.drop(
+                        columns=[
+                            "pident",
+                            "length",
+                            "mismatch",
+                            "gaps",
+                            "qstart",
+                            "qend",
+                            "sstart",
+                            "send",
+                            "evalue",
+                        ],
+                        inplace=True,
+                    )
+                    V.cSR = pd.merge(
+                        V.cSR,
+                        df,
+                        how="outer",
+                        on=["sseqid", "qseqid"],
+                        suffixes=("1", "2"),
+                    )
+
+                    drop_list = []
+                    rename_dict = {}
+
+                    # concatenate bitscore columns
+                    if "bitscore1" in V.cSR.columns:
+                        V.cSR["bitscore1"].fillna(value=0, inplace=True)
+                        V.cSR["bitscore2"].fillna(value=0, inplace=True)
+                        V.cSR["bitscore"] = V.cSR["bitscore1"] + V.cSR["bitscore2"]
+                        drop_list.append("bitscore1")
+                        drop_list.append("bitscore2")
+
+                    # concatenate query group column
+                    if "query_group1" in V.cSR.columns:
+                        V.cSR["query_group1"].fillna(
+                            V.cSR["query_group2"], inplace=True
                         )
-                        cnt += 1
-                        break
+                        rename_dict["query_group1"] = "query_group"
+                        drop_list.append("query_group2")
 
-                cnt += 1
+                    # concatenate subject group column
+                    if "subject_group1" in V.cSR.columns:
 
-            # generate concatenated search result
-            for df in df_list[cnt:]:
-                if isinstance(df_list[cnt], pd.DataFrame):
-                    if not (df_list[cnt].empty):
-                        df.drop(
-                            columns=[
-                                "pident",
-                                "length",
-                                "mismatch",
-                                "gaps",
-                                "qstart",
-                                "qend",
-                                "sstart",
-                                "send",
-                                "evalue",
-                            ],
-                            inplace=True,
+                        V.cSR["subject_group1"].fillna(
+                            V.cSR["subject_group2"], inplace=True
                         )
-                        V.cSR = pd.merge(
-                            V.cSR,
-                            df,
-                            how="outer",
-                            on=["sseqid", "qseqid"],
-                            suffixes=("1", "2"),
-                        )
+                        rename_dict["subject_group1"] = "subject_group"
+                        drop_list.append("subject_group2")
 
-                        drop_list = []
-                        rename_dict = {}
+                    V.cSR.rename(columns=rename_dict, inplace=True)
 
-                        # concatenate bitscore columns
-                        if "bitscore1" in V.cSR.columns:
-                            V.cSR["bitscore1"].fillna(value=0, inplace=True)
-                            V.cSR["bitscore2"].fillna(value=0, inplace=True)
-                            V.cSR["bitscore"] = V.cSR["bitscore1"] + V.cSR["bitscore2"]
-                            drop_list.append("bitscore1")
-                            drop_list.append("bitscore2")
+                    V.cSR.drop(
+                        columns=drop_list,
+                        inplace=True,
+                    )
 
-                        # concatenate query group column
-                        if "query_group1" in V.cSR.columns:
-                            V.cSR["query_group1"].fillna(
-                                V.cSR["query_group2"], inplace=True
-                            )
-                            rename_dict["query_group1"] = "query_group"
-                            drop_list.append("query_group2")
+    V.cSR = V.cSR
 
-                        # concatenate subject group column
-                        if "subject_group1" in V.cSR.columns:
-
-                            V.cSR["subject_group1"].fillna(
-                                V.cSR["subject_group2"], inplace=True
-                            )
-                            rename_dict["subject_group1"] = "subject_group"
-                            drop_list.append("subject_group2")
-
-                        V.cSR.rename(columns=rename_dict, inplace=True)
-
-                        V.cSR.drop(
-                            columns=drop_list,
-                            inplace=True,
-                        )
-
-        V.cSR = V.cSR
-
-        # Save it
+    # Save it
+    if opt.nosearchresult is False:
         search.save_df(
             hasher.decode_df(V.dict_hash_name, V.cSR),
             f"{path.out_matrix}/{opt.runname}_BLAST_result_concatenated.{opt.matrixformat}",
             fmt=opt.matrixformat,
         )
-
-    else:
-        logging.info("Concatenation not selected, passing concatenation")
 
     return V

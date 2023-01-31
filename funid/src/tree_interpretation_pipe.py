@@ -111,7 +111,7 @@ def pipe_module_tree_interpretation(
             # If only one taxon exists, enumerate does not work properly
             if len(tree_info.collapse_dict[taxon]) <= 1:
                 collapse_info = tree_info.collapse_dict[taxon][0]
-<<<<<<< HEAD
+
                 # Get each of the leaf result to report
                 for leaf in collapse_info.leaf_list:
                     report = Singlereport()
@@ -127,7 +127,7 @@ def pipe_module_tree_interpretation(
                     report.flat = collapse_info.flat
 
                     report_list.append(report)
-=======
+
                 tmp_dict[" ".join(taxon)] = [
                     collapse_info.n_db,
                     collapse_info.n_query,
@@ -148,7 +148,6 @@ def pipe_module_tree_interpretation(
                         report.taxon_cnt = collapse_info.clade_cnt
                         report.update_identifiedtaxon(taxon)
                         report_list.append(report)
->>>>>>> parent of bbf88cd (0.2.0.1.0.7)
 
             else:
                 for n, collapse_info in enumerate(tree_info.collapse_dict[taxon]):
@@ -169,15 +168,12 @@ def pipe_module_tree_interpretation(
                         report.update_inputtaxon(
                             get_genus_species(leaf[2], genus_list=genus_list)
                         )
-<<<<<<< HEAD
                         report.update_species_assigned((" ".join(taxon), f"{n+1}"))
                         report.ambiguous = collapse_info.clade_cnt
                         report.flat = collapse_info.flat
 
-=======
                         report.taxon_cnt = collapse_info.clade_cnt
                         report.update_identifiedtaxon((" ".join(taxon), f"{n+1}"))
->>>>>>> parent of bbf88cd (0.2.0.1.0.7)
                         report_list.append(report)
 
         df = pd.DataFrame(tmp_dict, index=["db", "query", "others", "total"])
@@ -188,6 +184,7 @@ def pipe_module_tree_interpretation(
     except:  # for debugging
 
         if opt.verbose >= 3:
+            # if 1:
             logging.error(f"Error occured on {tree_name}, running debugging mode")
             # initialize before analysis
             Tree_style = tree_interpretation.Tree_style()
@@ -346,10 +343,10 @@ def pipe_tree_interpretation(V, path, opt):
     # put identified result to V
     for raw_result in tree_interpretation_result:
         if raw_result is not (None):
+            change_FI = []
             for result in raw_result[2]:
                 FI = V.dict_hash_FI[result.hash]
-                if result.gene == "concatenated" or opt.concatenate is False:
-<<<<<<< HEAD
+                if result.gene == "concatenated":
                     logging.debug("Updating final species")
                     FI.final_species = result.species_assigned
                     FI.species_identifier = result.ambiguous
@@ -360,13 +357,19 @@ def pipe_tree_interpretation(V, path, opt):
                     FI.bygene_species[result.gene] = result.species_assigned
                     if result.flat is True:
                         FI.flat.append(result.gene)
-=======
                     # print("Updating final species")
                     FI.final_species = result.identifiedtaxon
                     FI.species_identifier = result.taxon_cnt
-                else:
-                    # print("Not updating final species")
-                    FI.bygene_species[result.gene] = result.identifiedtaxon
->>>>>>> parent of bbf88cd (0.2.0.1.0.7)
+
+                change_FI.append(FI)
+
+            # update list_FI
+            change_FI_hash = [FI.hash for FI in change_FI]
+            print(sorted(change_FI_hash))
+            print(len(change_FI_hash))
+            print(len(set(change_FI_hash)))
+            V.list_FI = [
+                FI for FI in V.list_FI if not FI.hash in change_FI_hash
+            ] + change_FI
 
     return V, path, opt

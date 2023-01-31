@@ -19,17 +19,15 @@ class Singlereport:
         self.hash = ""
         self.group = ""
         self.gene = ""
-<<<<<<< HEAD
         self.species_original = ""
         self.species_assigned = ""
+        self.ambiguous = 0
 
         # abnormalities
         # for if ambiguous clade exists e.g. Amanita subglobosa "1", Amanita subglobosa "2"
-=======
         self.inputtaxon = ""
         self.identifiedtaxon = ""
         # for if ambiguous clade exists e.g. Amanita subglobosa 1, Amanita subglobosa 2
->>>>>>> parent of bbf88cd (0.2.0.1.0.7)
         # 0 if none of them exists
         self.taxon_cnt = ""
 
@@ -90,6 +88,39 @@ class Report:
         # self.statistics_link = {}
 
         # By gene results, and sequence should be added
+        self.result = {}
+
+    def update_dataset(self, V, opt):
+        for gene in V.list_qr_gene:
+            self.dataset[gene.upper()] = []
+
+        self.dataset["CONCATENATE"] = []
+
+        for group in V.list_group:
+            self.dataset["GROUP"].append(group)
+            if group in V.dict_dataset:
+                for gene in V.list_qr_gene:
+                    # if group - gene dataset exists
+                    if gene in V.dict_dataset[group]:
+                        self.dataset[gene.upper()].append("O")
+                    # if gene exists but group does not exists
+                    else:
+                        self.dataset[gene.upper()].append("-")
+
+                if "concatenate" in V.dict_dataset[group]:
+                    self.dataset["CONCATENATE"].append("O")
+                else:
+                    self.dataset["CONCATENATE"].append("-")
+
+            else:
+                # If group does not exists
+                for gene in V.list_qr_gene:
+                    self.dataset[gene.upper()].append("-")
+
+    # Combining result into dictionary form
+    def update_result(self, V, opt, step):
+
+        # Initialize result everytime when update
         self.result = {
             "ID": [],
             "HASH": [],
@@ -104,37 +135,6 @@ class Report:
             "STATUS": [],
         }
 
-    def update_dataset(self, V, opt):
-        for gene in V.list_qr_gene:
-            self.dataset[gene.upper()] = []
-
-        if opt.concatenate is True:
-            self.dataset["CONCATENATE"] = []
-
-        for group in V.list_group:
-            self.dataset["GROUP"].append(group)
-            if group in V.dict_dataset:
-                for gene in V.list_qr_gene:
-                    # if group - gene dataset exists
-                    if gene in V.dict_dataset[group]:
-                        self.dataset[gene.upper()].append("O")
-                    # if gene exists but group does not exists
-                    else:
-                        self.dataset[gene.upper()].append("-")
-
-                if opt.concatenate is True:
-                    if "concatenate" in V.dict_dataset[group]:
-                        self.dataset["CONCATENATE"].append("O")
-                    else:
-                        self.dataset["CONCATENATE"].append("-")
-
-            else:
-                # If group does not exists
-                for gene in V.list_qr_gene:
-                    self.dataset[gene.upper()].append("-")
-
-    # Combining result into dictionary form
-    def update_result(self, V, opt):
         # get all gene list -> check if V.list_qr_gene is enough for query_only : False analysis
         set_gene = set(V.list_db_gene + V.list_qr_gene)
 
@@ -151,14 +151,13 @@ class Report:
         for _hash in V.dict_hash_FI:
 
             FI = V.dict_hash_FI[_hash]
-            if opt.queryonly is False or FI.datatype == "query":
+            # if opt.queryonly is False or FI.datatype == "query":
 
-                # Default results
-                self.result["ID"].append(FI.id)
-                self.result["HASH"].append(FI.hash)
-                self.result["DATATYPE"].append(FI.datatype)
+            # Default results
+            self.result["ID"].append(FI.id)
+            self.result["HASH"].append(FI.hash)
+            self.result["DATATYPE"].append(FI.datatype)
 
-<<<<<<< HEAD
             if str(FI.group).strip() == "":
                 self.result["GROUP_ORIGINAL"].append("-")
             else:
@@ -181,14 +180,16 @@ class Report:
                         FI.bygene_species[gene]
                     )
                     possible_taxon.add(FI.bygene_species[gene])
-=======
+                else:
+                    self.result[f"{gene.upper()}_ASSIGNED"].append("-")
+
+                """
                 if str(FI.group).strip() == "":
                     self.result["GROUP_ORIGINAL"].append("-")
->>>>>>> parent of bbf88cd (0.2.0.1.0.7)
                 else:
                     self.result["GROUP_ORIGINAL"].append(FI.group)
+                """
 
-<<<<<<< HEAD
             # Add final identification result
             if FI.final_species != "":
                 self.result["SPECIES_ASSIGNED"].append(f"{FI.final_species}")
@@ -198,63 +199,39 @@ class Report:
 
             # Add abnormalities
             self.result["FLAT_BRANCH"].append("/".join(FI.flat))
+
             if len(possible_taxon) > 1:
                 self.result["INCONSISTENT"].append("inconsistent")
             else:
                 self.result["INCONSISTENT"].append("-")
 
             self.result["AMBIGUOUS"].append(FI.species_identifier)
-=======
-                self.result["GROUP_ASSIGNED"].append(FI.adjusted_group)
 
-                if f"{FI.ori_genus} {FI.ori_species}".strip() == "":
-                    self.result["SPECIES_ORIGINAL"].append("-")
-                else:
-                    self.result["SPECIES_ORIGINAL"].append(
-                        f"{FI.ori_genus} {FI.ori_species}"
-                    )
->>>>>>> parent of bbf88cd (0.2.0.1.0.7)
-
-                # Collect identification result for each gene analysis
-                for gene in set_gene:
-                    if gene in FI.bygene_species:
-                        self.result[f"{gene.upper()}_ASSIGNED"].append(
-                            FI.bygene_species[gene]
-                        )
-                    else:
-                        self.result[f"{gene.upper()}_ASSIGNED"].append("-")
-
-                # Add final identification result
-                if FI.final_species != "":
-                    self.result["SPECIES_ASSIGNED"].append(f"{FI.final_species}")
-                else:
-                    self.result["SPECIES_ASSIGNED"].append("UNDETERMINED")
-
-                # Add abnormalities
-                self.result["FLAT_BRANCH"].append("")
-                self.result["INCONSISTENT"].append("")
-                self.result["AMBIGUOUS"].append("")
-
-                if FI.final_species.strip() == "":
-                    self.result["STATUS"].append("ERROR")
-                elif (
-                    f"{FI.ori_genus} {FI.ori_species}".strip() == ""
-                    and "sp." in FI.final_species.strip()
-                ):
-                    self.result["STATUS"].append("new species candidate")
-                elif f"{FI.ori_genus} {FI.ori_species}".strip() == "":
-                    self.result["STATUS"].append("undetermined")
-                elif FI.final_species == f"{FI.ori_genus} {FI.ori_species}":
-                    self.result["STATUS"].append("correctly identified")
-                else:
-                    self.result["STATUS"].append("misidentified")
+            if FI.final_species.strip() == "":
+                self.result["STATUS"].append("ERROR")
+            elif (
+                f"{FI.ori_genus} {FI.ori_species}".strip() == ""
+                and "sp." in FI.final_species.strip()
+            ):
+                self.result["STATUS"].append("new species candidate")
+            elif f"{FI.ori_genus} {FI.ori_species}".strip() == "":
+                self.result["STATUS"].append("undetermined")
+            elif FI.final_species == f"{FI.ori_genus} {FI.ori_species}":
+                self.result["STATUS"].append("correctly identified")
+            else:
+                self.result["STATUS"].append("misidentified")
+        else:
+            logging.info(f"{FI} removed from report because not used in analysis")
 
         # Update statistics by result
         # Change format to dataframe
+        for key in self.result:
+            print(f"{key} {len(self.result[key])}")
+
         df_result = pd.DataFrame(self.result)
 
-        # Filter query if opt.query_only is True
-        if opt.query_only is True:
+        # Filter query if opt.queryonly is True
+        if opt.queryonly is True:
             df_result = df_result[df_result["DATATYPE"] == "query"]
 
         # Groupby group
@@ -315,12 +292,15 @@ class Report:
             self.report_text(V, path, opt, step)
         elif step == "cluster":
             self.update_dataset(V, opt)
+            self.update_result(V, opt, step)
             self.report_table(V, path, opt, step)
             self.report_text(V, path, opt, step)
             # Datasets are made after clustering
         elif step == "align":
             self.report_text(V, path, opt, step)
         elif step == "trim":
+            self.report_text(V, path, opt, step)
+        elif step == "concatenate":
             self.report_text(V, path, opt, step)
         elif step == "modeltest":
             self.report_text(V, path, opt, step)
@@ -329,7 +309,7 @@ class Report:
         elif step == "visualize":
             self.report_text(V, path, opt, step)
         elif step == "report":
-            self.update_result(V, opt)
+            self.update_result(V, opt, step)
             self.report_table(V, path, opt, step)
             self.report_text(V, path, opt, step)
         else:
@@ -402,7 +382,6 @@ class Report:
                 f.write(f"LEVEL:                  {opt.level}\n")
                 f.write(f"QUERYONLY:              {opt.queryonly}\n")
                 f.write(f"CONFIDENT:              {opt.confident}\n")
-                f.write(f"CONCATENATE:            {opt.concatenate}\n")
                 f.write(f"VERBOSE:                {opt.verbose}\n")
                 f.write(f"MAXOUTGROUP:            {opt.maxoutgroup}\n")
                 f.write(f"COLLAPSEDISTCUTOFF:     {opt.collapsedistcutoff}\n")
@@ -414,8 +393,8 @@ class Report:
                 f.write(f"CACHEDB:                {opt.cachedb}\n")
                 f.write(f"USECACHE:               {opt.usecache}\n")
                 f.write(f"MATRIXFORMAT:           {opt.matrixformat}\n")
-                f.write(f"SAVESEARCHMATRIX:       {opt.savesearchmatrix}\n")
-                f.write(f"SAVESEARCHRESULT:       {opt.savesearchresult}\n")
+                f.write(f"NOSEARCHMATRIX:         {opt.nosearchmatrix}\n")
+                f.write(f"NOSEARCHRESULT:         {opt.nosearchresult}\n")
                 f.write(f"METHOD:                 \n")
                 f.write(f" - SEARCH:              {opt.method.search}\n")
                 f.write(f" - ALIGNMENT:           {opt.method.alignment}\n")
@@ -468,14 +447,11 @@ class Report:
                     " IDENTIFIED : Number of well-identified strains without any concerns. \n"
                 )
                 f.write(
-<<<<<<< HEAD
                     "AMBIGUOUS : Multiple clades with same taxon name. Your database may contain misidentified sequences. \n"
-=======
                     " AMBIGUOUS : Strains that show different identification result across genes. Please check sequences were contaminated or misused\n"
                 )
                 f.write(
                     " NEW SPECIES CANDIDATE : New species candidate strains found by topology, phylogenetic distance and bootstrap criteria\n"
->>>>>>> parent of bbf88cd (0.2.0.1.0.7)
                 )
                 f.write(
                     " MISIDENTIFIED : Strains that shows different identification result from original annotation\n"
@@ -508,19 +484,6 @@ class Report:
                 f.write(
                     " AMBIGUITY : Strains that show different identification result across genes. Please check sequences were contaminated or misused\n"
                 )
-
-                self.result = {
-                    "ID": [],
-                    "HASH": [],
-                    "DATATYPE": [],
-                    "GROUP_ORIGINAL": [],
-                    "GROUP_ASSIGNED": [],
-                    "SPECIES_ORIGINAL": [],
-                    "SPECIES_ASSIGNED": [],
-                    "FLAT_BRANCH": [],
-                    "AMBIGUITY": [],
-                    "STATUS": [],
-                }
 
                 f.write("\n\n")
 
@@ -741,13 +704,9 @@ class Report:
 
         if index_step(step) >= 2:
             list_table.append("dataset")
-<<<<<<< HEAD
+            list_table.append("identification")
 
         if index_step(step) >= 9:
-=======
-        elif index_step(step) >= 8:
->>>>>>> parent of bbf88cd (0.2.0.1.0.7)
-            list_table.append("identification")
             list_table.append("statistics")
 
         # Write tables

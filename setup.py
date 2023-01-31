@@ -3,8 +3,8 @@ from setuptools import setup, find_packages
 from sys import platform
 
 name = "FunID"
-__version__ = "0.2.0.1.0.4"
-release = "0.2.0.1.0.4"
+__version__ = "0.3.0"
+release = "0.3.0.0.0"
 
 # Default setup options
 setup_options = dict(
@@ -13,9 +13,9 @@ setup_options = dict(
     description="Fungal Identification Pipeline",
     author="Changwan Seo",
     author_email="wan101010@snu.ac.kr",
-    url="https://github.com/Changwanseo/FunID-dev",
+    url="https://github.com/Changwanseo/FunID",
     python_requires="<3.11, >3.8",
-    packages=["funid", "funid.src", "funid.data", "funid.test_dataset"],
+    packages=["funid", "funid.src", "funid.data", "funid.test_dataset", "funid.preset"],
     install_requires=[
         "biopython==1.78",
         "ete3==3.1.2",
@@ -44,7 +44,7 @@ setup_options = dict(
     package_data={
         "funid.data": ["*.xlsx", "*.txt"],
         "funid.test_dataset": ["**"],
-        "funid.db": ["**"],
+        "funid.preset": ["**"],
     },
     include_package_data=True,
     license="GPL3",

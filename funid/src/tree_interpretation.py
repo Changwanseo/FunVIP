@@ -22,14 +22,13 @@ import re
 import sys
 import json
 
-<<<<<<< HEAD
+
 # Default zero length branch for concatenation
 CONCAT_ZERO = 0  # for better binding
 
 # Get maximum tree distance among all leaf pairs in given tree
-=======
+
 # Get maximum tree distance in given tree
->>>>>>> parent of bbf88cd (0.2.0.1.0.7)
 def get_max_distance(tree):
 
     max_distance = 0
@@ -327,9 +326,28 @@ class Tree_information:
                     or (seq1.id, seq2.id) in pairs
                     or (seq2.id, seq1.id) in pairs
                 ):
-                    seq1_clean = str(seq1.seq).replace("-", "")
-                    seq2_clean = str(seq2.seq).replace("-", "")
-                    if seq1_clean in seq2_clean or seq2_clean in seq1_clean:
+
+                    # Chenge unusable chars into gap
+                    seq1_str = str(seq1.seq).lower()
+                    seq2_str = str(seq2.seq).lower()
+
+                    for char in set(seq1_str) - {"a", "t", "g", "c", "-"}:
+                        seq1_str = seq1_str.replace(char, "-")
+
+                    for char in set(seq2_str) - {"a", "t", "g", "c", "-"}:
+                        seq2_str = seq2_str.replace(char, "-")
+
+                    identical_flag = True
+
+                    for n, i in enumerate(seq1_str):
+                        # For valid part
+
+                        if seq1_str[n] != "-" and seq2_str[n] != "-":
+                            if seq1_str[n] != seq2_str[n]:
+                                identical_flag = False
+                                break
+
+                    if identical_flag is True:
                         pairs.append(
                             tuple(sorted([str(seq1.id).strip(), str(seq2.id).strip()]))
                         )
@@ -577,7 +595,6 @@ class Tree_information:
                 )
                 collapse_info.n_query += 1
             else:
-<<<<<<< HEAD
                 print(
                     f"[ERROR] DEVELOPMENTAL ERROR : UNEXPECTED LEAF TYPE FOR {leaf.name}"
                 )
@@ -678,14 +695,12 @@ class Tree_information:
 
         ## start of tree_search
         # At the final leaf tip
-=======
-                # if some errornous count occurs, that maybe because of this part
-                # however, the last part of tuple is essential for CAT_V pipe to collect data
-                # it is not sure why "other" exists - that might be outgroup
-                collapse_info.leaf_lisvisualize.t.append(
-                    (leaf.name, "#000000", leaf.name)
-                )
-                collapse_info.n_ovisualize.thers += 1
+
+        # if some errornous count occurs, that maybe because of this part
+        # however, the last part of tuple is essential for CAT_V pipe to collect data
+        # it is not sure why "other" exists - that might be outgroup
+        collapse_info.leaf_lisvisualize.t.append((leaf.name, "#000000", leaf.name))
+        collapse_info.n_ovisualize.thers += 1
 
     def tree_search(self, clade, gene, opt=None):
         def check_monophyletic(self, clade, gene):
@@ -776,7 +791,6 @@ class Tree_information:
 
         # start of tree_search
         # at the last leaf
->>>>>>> parent of bbf88cd (0.2.0.1.0.7)
         if len(clade.children) == 1:
             generate_collapse_information(clade, opt=opt)
             return
@@ -785,7 +799,6 @@ class Tree_information:
         elif len(clade.children) == 2:
 
             for child_clade in clade.children:
-<<<<<<< HEAD
 
                 # Calculate root distance between two childs to check flat
                 flat = True if child_clade.dist <= opt.collapsedistcutoff else False
@@ -796,11 +809,11 @@ class Tree_information:
                     self.generate_collapse_information(
                         child_clade, gene, opt=opt, flat=flat
                     )
-=======
+
                 datatype, monophyletic = check_monophyletic(self, child_clade, gene)
                 if monophyletic is True:
                     generate_collapse_information(self, child_clade, opt=opt)
->>>>>>> parent of bbf88cd (0.2.0.1.0.7)
+
                 else:
                     self.tree_search(child_clade, gene, opt=opt)
             return
@@ -1284,22 +1297,3 @@ class Tree_information:
             encoding="utf-8",
             xml_declaration=True,
         )
-
-    """
-    def remove_outgroup(collapse_dict, gene, outgroup):
-        outgroup_taxon = set()
-        for leaf in outgroup.iter_leaves():
-            outgroup_taxon.add(
-                (
-                    self.funinfo_dict[leaf.name].genus,
-                    self.funinfo_dict[leaf.name].bygene_species[gene],
-                )
-            )
-
-        for taxon in outgroup_taxon:
-
-            collapse_dict.pop(taxon, None)
-            print(f"Removed taxon {taxon}")
-
-        return collapse_dict
-    """

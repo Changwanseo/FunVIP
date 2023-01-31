@@ -1,0 +1,67 @@
+{% set name = "FunID" %}
+{% set version = "0.3.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/FunID-{{ version }}.tar.gz
+  sha256: b26be1c37199b816c98bd35d2456b87d70570539b83aed1f39d16a8de4269ccd
+
+build:
+  skip: true  # [py>=311 or py2k]
+  entry_points:
+    - FunID = funid.main:main
+  script: {{ PYTHON }} -m pip install . -vv
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+  host:
+    - python
+    - pip
+  run:
+    - python
+    - biopython ==1.78
+    - ete3 ==3.1.2
+    - cython
+    - dendropy
+    - genmine
+    - lxml
+    - matplotlib-base ==3.5.1
+    - numpy ==1.22.3
+    - openpyxl ==3.0.9
+    - pandas ==1.4.2
+    - plotly ==5.9.0
+    - pyqt >=5.9.2
+    - pyyaml
+    - sip >=4.19.4
+    - scikit-learn ==1.0.2
+    - tabulate
+    - unidecode ==1.2.0
+    - xlrd ==2.0.1
+    - xlsxwriter
+    - xmltodict ==0.12.0
+
+test:
+  imports:
+    - funid
+  commands:
+    - pip check
+    - FunID --help
+  requires:
+    - pip
+
+about:
+  home: https://github.com/Changwanseo/FunID-dev
+  summary: Fungal Identification Pipeline
+  license: GPL-3.0
+  license_file:
+    - funid/external/mmseqs_Windows/LICENSE.md
+    - funid/external/trimal.v1.2rev59/trimAl/LICENSE
+
+extra:
+  recipe-maintainers:
+    - Changwanseo

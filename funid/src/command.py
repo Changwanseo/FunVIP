@@ -102,11 +102,6 @@ class CommandParser:
             "--confident",
             help="Skip blast analysis among database sequences, use it when your database sequences contains large number of misidentified sequences, default : False",
         )
-        group_run.add_argument(
-            "--concatenate",
-            action="store_true",
-            help="Perform multigene analysis and build concatenated tree, default : True",
-        )
 
         # Method options
         group_method = self.parser.add_argument_group(
@@ -317,14 +312,14 @@ class CommandParser:
             help="Default format for search matrix files, [csv, xlsx, parquet, feather], default : csv",
         )
         group_save.add_argument(
-            "--savesearchmatrix",
+            "--nosearchmatrix",
             action="store_true",
-            help="Save blast/mmseqs search matrix, turn off when dataset gets too big and generates IO bottleneck, default : True",
+            help="Do not save blast/mmseqs search matrix, use when dataset gets too big and generates IO bottleneck",
         )
         group_save.add_argument(
-            "--savesearchresult",
+            "--nosearchresult",
             action="store_true",
-            help="Save blast/mmseqs search matrix, turn off when dataset gets too big and generates IO bottleneck, default : True",
+            help="Do not save blast/mmseqs search matrix, use when dataset gets too big and generates IO bottleneck",
         )
 
         # Preset

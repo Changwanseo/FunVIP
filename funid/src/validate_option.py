@@ -65,7 +65,7 @@ class Option:
         self.email = ""
         self.api = ""
         self.test = None
-        self.thread = 1
+        self.thread = "auto"
         self.outdir = None
         self.runname = None
         self.mode = "identification"
@@ -75,7 +75,6 @@ class Option:
         self.level = "genus"
         self.queryonly = True
         self.confident = True
-        self.concatenate = True
         self.verbose = 1
         self.maxoutgroup = 3
         self.collapsedistcutoff = 0.01
@@ -87,8 +86,8 @@ class Option:
         self.cachedb = True
         self.usecache = True
         self.matrixformat = "csv"
-        self.savesearchmatrix = True
-        self.savesearchresult = True
+        self.nosearchmatrix = False
+        self.nosearchresult = False
 
         # Method options
         self.method = self.Method_Option()
@@ -145,8 +144,6 @@ class Option:
                 self.level = parser_dict[key]
             elif key.lower() in ("queryonly"):
                 self.queryonly = parser_dict[key]
-            elif key.lower() in ("concatenate"):
-                self.concatenate = parser_dict[key]
             elif key.lower() in ("verbose"):
                 self.verbose = parser_dict[key]
             elif key.lower() in ("maxoutgroup"):
@@ -171,10 +168,10 @@ class Option:
                 self.usecache = parser_dict[key]
             elif key.lower() in ("matrixformat"):
                 self.matrixformat = parser_dict[key]
-            elif key.lower() in ("savesearchmatrix"):
-                self.savesearchmatrix = parser_dict[key]
-            elif key.lower() in ("savesearchresult"):
-                self.savesearchresult = parser_dict[key]
+            elif key.lower() in ("nosearchmatrix"):
+                self.nosearchmatrix = parser_dict[key]
+            elif key.lower() in ("nosearchresult"):
+                self.nosearchresult = parser_dict[key]
 
             # Method options
             elif key.lower() in ("search"):
@@ -322,12 +319,6 @@ class Option:
         try:
             if not parser.confident is None:
                 self.confident = parser.confident
-        except:
-            pass
-
-        try:
-            if not parser.concatenate is None:
-                self.concatenate = parser.concatenate
         except:
             pass
 
@@ -542,14 +533,14 @@ class Option:
             pass
 
         try:
-            if parser.savesearchmatrix is True:
-                self.savesearchmatrix = parser.savesearchmatrix
+            if parser.nosearchmatrix is True:
+                self.nosearchmatrix = parser.nosearchmatrix
         except:
             pass
 
         try:
-            if parser.savesearchresult is True:
-                self.savesearchresult = parser.savesearchresult
+            if parser.nosearchresult is True:
+                self.nosearchresult = parser.nosearchresult
         except:
             pass
 
@@ -656,9 +647,16 @@ class Option:
         # Check if thread is valid int
         # If thread is over system thread, 0, or negative, adjust it to maximum
         if not (type(self.thread) is int):
-            list_warning.append(
-                f"Type for thread should be int but {self.thread} was given. Using {os.cpu_count()} for default"
-            )
+            if not (type(self.thread) is str):
+                list_warning.append(
+                    f"Type for thread should be int but {self.thread} was given. Using {os.cpu_count()} for default"
+                )
+            else:
+                if not (self.thread.lower() == "auto"):
+                    list_warning.append(
+                        f"Type for thread should be int but {self.thread} was given. Using {os.cpu_count()} for default"
+                    )
+
             self.thread = os.cpu_count()
         elif self.thread <= 0:
             list_info.append(f"thread adjusted to {os.cpu_count()}")
@@ -830,25 +828,6 @@ class Option:
                 self.confident = False
         else:
             self.confident = False
-
-        # concatenate
-        # If concatenate is not None, give True, else, give False
-        if not (self.concatenate is None or self.concatenate is False):
-            self.concatenate = True
-        else:
-            self.concatenate = False
-
-        if self.gene:
-            if len(self.gene) <= 1:
-                list_warning.append(
-                    f"Less than 1 gene detected, changing concatenate to False"
-                )
-                self.concatenate = False
-        else:
-            list_warning.append(
-                f"Less than 1 gene detected, changing concatenate to False"
-            )
-            self.concatenate = False
 
         # search
         # Check if search method is one of default, blast, mmseqs
@@ -1391,19 +1370,19 @@ class Option:
                 "matrixformat should be one of csv, tsv, xlsx, parquet, ftr, or feather"
             )
 
-        # savesearchmatrix
-        # If savesearchmatrix is not None, give True, else, give False
-        if self.savesearchmatrix is False:
-            self.savesearchmatrix = False
+        # nosearchmatrix
+        # If nosearchmatrix is not None, give True, else, give False
+        if self.nosearchmatrix is True:
+            self.nosearchmatrix = True
         else:
-            self.savesearchmatrix = True
+            self.nosearchmatrix = False
 
-        # savesearchresult
-        # If savesearchresult is not None, give True, else, give False
-        if self.savesearchresult is False:
-            self.savesearchresult = False
+        # nosearchresult
+        # If nosearchresult is not None, give True, else, give False
+        if self.nosearchresult is True:
+            self.nosearchresult = True
         else:
-            self.savesearchresult = True
+            self.nosearchresult = False
 
         # Printing logs while parsing validate options
         # Written in print functions, because logging can be loaded after option parsing

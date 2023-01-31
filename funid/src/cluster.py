@@ -414,21 +414,18 @@ def outgroup_append_opt_generator(V, path, opt):
 
     # if concatenated analysis is true
     # concatenated
-    if opt.concatenate is True:
-        for group in V.list_group:
-            if V.exist_dataset(group, "concatenated") is True:
-                try:
-                    df = V.cSR
-                    df_group = df.groupby(df["query_group"])
-                    df_group_ = df_group.get_group(group)
-                    # Generating outgroup opt for multiprocessing
-                    V.opt_append_og.append(
-                        (V, df_group_, "concatenated", group, path, opt)
-                    )
-                except:
-                    logging.warning(
-                        f"{group} / concatenated dataset exists, but cannot append outgroup due to no corresponding search result"
-                    )
+    for group in V.list_group:
+        if V.exist_dataset(group, "concatenated") is True:
+            try:
+                df = V.cSR
+                df_group = df.groupby(df["query_group"])
+                df_group_ = df_group.get_group(group)
+                # Generating outgroup opt for multiprocessing
+                V.opt_append_og.append((V, df_group_, "concatenated", group, path, opt))
+            except:
+                logging.warning(
+                    f"{group} / concatenated dataset exists, but cannot append outgroup due to no corresponding search result"
+                )
 
     return V
 
@@ -468,8 +465,8 @@ def pipe_cluster(V, opt, path):
             V.rslt_cluster = [cluster(*o) for o in V.opt_cluster]
 
         # gather cluster result
-        for r in V.rslt_cluster:
-            FI = r[0]
+        for cluster_result in V.rslt_cluster:
+            FI = cluster_result[0]
             logging.debug((FI.id, FI.datatype, FI.group, FI.adjusted_group))
 
         # replace group assigning result
@@ -481,6 +478,9 @@ def pipe_cluster(V, opt, path):
         V.list_FI = [
             FI for FI in V.list_FI if not (FI.hash in replace_hash_FI)
         ] + replace_FI
+        # For syncyhronizing FI in dict_hash_FI to prevent error
+        for FI in replace_FI:
+            V.dict_hash_FI[FI.hash] = FI
 
         V.list_group = list(set([r[1] for r in V.rslt_cluster if (not (r[1] is None))]))
 
@@ -488,6 +488,10 @@ def pipe_cluster(V, opt, path):
             for FI in V.list_FI:
                 if FI.datatype == "db":
                     FI.adjusted_group = FI.group
+
+            # Update dict_hash_FI
+            for FI in V.list_FI:
+                V.dict_hash_FI[FI.hash] = FI
 
         for FI in V.list_FI:
             logging.debug((FI.id, FI.datatype, FI.group, FI.adjusted_group))
@@ -501,6 +505,10 @@ def pipe_cluster(V, opt, path):
         ## [WIP] Need to make validation process and warn if the input does not have
         for FI in V.list_FI:
             FI.adjusted_group = FI.group
+
+        # Update dict_hash_FI
+        for FI in V.list_FI:
+            V.dict_hash_FI[FI.hash] = FI
 
     return V, opt, path
 
