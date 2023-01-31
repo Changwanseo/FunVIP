@@ -107,10 +107,13 @@ def assign_gene(result_dict, V, cutoff=0.99):
             # if only 1 gene available, take it
             if gene_count == 1:
                 funinfo.update_seq(gene_list[0], seq)
+                logging.info(
+                    f" Query seq in {funinfo.id} has assigned to {gene_list[0]}."
+                )
             # if no gene matched, warn it
             elif gene_count == 0:
                 logging.warning(
-                    f" Query seq in {funinfo.id} cannot be assigned to gene. Check sequence. Skipping {funinfo.id}"
+                    f" Query seq in {funinfo.id} cannot be assigned to any gene. Check sequence. Skipping {funinfo.id}"
                 )
             elif gene_count >= 2:
                 logging.warning(
@@ -440,6 +443,7 @@ def outgroup_result_collector(V):
 
         # append outgroup lists
         V.dict_dataset[group][gene].list_og_FI = result_outgroup_list
+        print(f"{group} {gene} {result_outgroup_list}")
 
     return V
 
@@ -451,7 +455,7 @@ def pipe_cluster(V, opt, path):
 
         logging.info("group clustering")
 
-        # cluster 1opt generation for multiprocessing
+        # cluster opt generation for multiprocessing
         V = group_cluster_opt_generator(V, opt, path)
 
         # run multiprocessing start

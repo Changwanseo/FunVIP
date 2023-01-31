@@ -235,33 +235,8 @@ def main():
         step = "report"
         logging.info("REPORT")
 
-        writer = pd.ExcelWriter(
-            f"{path.root}/{opt.runname}_report.xlsx", engine="xlsxwriter"
-        )
-
-        # raw_result: (out, df, report_list)
-        # out: f"{opt.runname}_{group}_{gene}"
-        # df: db, query, others, total dataframe
-        # report_list: report: SingleReport - id, hash, group, gene, inputtaxon, identifiedtaxon
-
         # Reporting
         V.homogenize_dataset()
-        # R.statistics.update_statistics(V, opt)
-        # R.arrange(V, opt, f"{path.root}/{opt.runname}_Identification_result.xlsx")
-
-        # Testing
-        # R.initialize_group_report(V, opt)
-        # R.render(opt, out=f"{path.root}/{opt.runname}_report.html")
-
-        """
-        try:
-            R.initialize_group_report(V, opt)
-            R.render(opt, out=f"{path.root}/{opt.runname}_report.html")
-        except:
-            logging.error(
-                f"Data report is currently experimental feature. Failed in this analysis"
-            )
-        """
 
         R.update_report(V, path, opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=vars())

@@ -606,6 +606,8 @@ class Option:
                     except:
                         pass
 
+        # Change all db path into linux style
+
         # gene
         # Check if gene names are valid strings (comparing with db will be performed in parsing)
         if not (type(self.gene) is list):

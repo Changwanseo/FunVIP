@@ -1,3 +1,4 @@
+# Performing multiple tree interpretation
 from ete3 import Tree
 from funid.src import tree_interpretation
 from funid.src.tool import initialize_path, get_genus_species, mkdir
@@ -9,7 +10,8 @@ import shutil
 import logging
 import multiprocessing as mp
 
-# Single dataset
+### For single dataset
+# Input : out, group, gene, V, path, opt
 def pipe_module_tree_interpretation(
     out,
     group,
@@ -19,290 +21,289 @@ def pipe_module_tree_interpretation(
     opt,
 ):
 
-    # to reduce memory usage in multithreaded performance, copy necessary objects and then remove V
+    # To reduce memory usage in multithreaded performance, copy necessary objects and then remove V
     funinfo_dict = V.dict_hash_FI
     funinfo_list = V.list_FI
     hash_dict = V.dict_hash_name
-    db_list = V.dict_dataset[group][gene].list_db_FI
     query_list = V.dict_dataset[group][gene].list_qr_FI
     outgroup = V.dict_dataset[group][gene].list_og_FI
+    # for unexpectively included sequence during clustering
+    db_list = list(
+        set([FI for FI in V.list_FI if FI.datatype == "db"])
+        - set(outgroup)
+        - set(query_list)
+    )
     genus_list = V.tup_genus
 
     del V
 
-    # for get_genus_species
+    # For get_genus_species
     initialize_path(path)
 
     # Tree name selection for tree construction software
-    tree_name = f"{path.out_tree}/hash/hash_{out}.nwk"
-    print(tree_name)
+    tree_name = f"{path.out_tree}/hash/hash_{opt.runname}_{group}_{gene}.nwk"
+    logging.debug(tree_name)
 
     if os.path.isfile(tree_name):
         Tree(tree_name, format=2)
     else:
         logging.warning(f"Cannot find {tree_name}")
         raise Exception
-        return None
 
-    try:
-        # initialize before analysis
-        Tree_style = tree_interpretation.Tree_style()
+    # initialize before analysis
+    Tree_style = tree_interpretation.Tree_style()
 
-        # Read tree
-        tree_info = tree_interpretation.Tree_information(tree_name, Tree_style, opt)
+    # Read tree
+    tree_info = tree_interpretation.Tree_information(
+        tree_name, Tree_style, group, gene, opt
+    )
 
-        # give necessary variables parsed from dataset
-        tree_info.db_list = db_list
-        tree_info.query_list = query_list
-        tree_info.outgroup = outgroup
-        tree_info.funinfo_dict = funinfo_dict
+    # Give necessary variables parsed from dataset
+    tree_info.db_list = db_list
+    tree_info.query_list = query_list
+    tree_info.outgroup = outgroup
+    tree_info.funinfo_dict = funinfo_dict
 
-        # calculate zero with alignment
-        if gene != "concatenated":
-            tree_info.calculate_zero(
-                f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_{gene}.fasta"
-            )
-        else:
-            tree_info.calculate_zero(
-                f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_concatenated.fasta"
-            )
-
-        # Reroot outgroup and save original tree into image
-        tree_info.reroot_outgroup(f"{path.out_tree}/hash_{out}_original.svg")
-        tree_hash_dict = encode(funinfo_list, newick=True)
-        decode(
-            tree_hash_dict,
-            f"{path.out_tree}/hash_{out}_original.svg",
-            f"{path.out_tree}/{out}_original.svg",
-            newick=True,
+    # Main phase
+    # calculate zero distance with alignment
+    if gene != "concatenated":
+        tree_info.calculate_zero(
+            f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_{gene}.fasta"
+        )
+    else:
+        tree_info.calculate_zero(
+            f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_concatenated.fasta"
         )
 
-        if opt.mode == "validation":
-            tree_info.reserve_sp()
+    # Reroot outgroup and save original tree into image
+    tree_info.reroot_outgroup(
+        f"{path.out_tree}/hash_{opt.runname}_{group}_{gene}_original.svg"
+    )
+    # Decode hash of image
+    # Should work more on non-safe characters
+    tree_hash_dict = encode(funinfo_list, newick=True)
 
-        if tree_info.opt.solveflat is True:
-            tree_info.t = tree_info.reconstruct(tree_info.t.copy("newick"), gene, opt)
+    decode(
+        tree_hash_dict,
+        f"{path.out_tree}/hash_{opt.runname}_{group}_{gene}_original.svg",
+        f"{path.out_tree}/{opt.runname}_{group}_{gene}_original.svg",
+        newick=True,
+    )
 
-        tree_info.t.ladderize(direction=1)  # reorder tree
-        tree_info.tree_search(tree_info.t, gene, opt=opt)
-        # synchronize() # to use continuous sp numbers over trees
-        tree_info.collapse_tree()
-        tree_info.polish_image(f"{path.out_tree}/{out}.svg", genus_list)
+    # In validation mode, use original sp. number
+    if opt.mode == "validation":
+        tree_info.reserve_sp()
 
-        tmp_dict = {}
+    # Reconstruct flat branches if option given
+    if opt.solveflat is True:
+        tree_info.t = tree_info.reconstruct(tree_info.t.copy("newick"), gene, opt)
 
-        # sort taxon order
-        list_taxon_1 = [
-            taxon
-            for taxon in tree_info.collapse_dict.keys()
-            if not (taxon[1].startswith("sp."))
-        ]
-        list_taxon_2 = [
-            taxon
-            for taxon in tree_info.collapse_dict.keys()
-            if taxon[1].startswith("sp.")
-        ]
-        list_taxon_1.sort(key=lambda x: x[1])
-        list_taxon_2.sort(key=lambda x: x[1])
-        list_taxon = list_taxon_1 + list_taxon_2
+    # reorder tree for pretty look
+    tree_info.t.ladderize(direction=1)
 
-        report_list = []
-        for taxon in list_taxon:
-            # If only one taxon exists, enumerate does not work properly
-            if len(tree_info.collapse_dict[taxon]) <= 1:
-                collapse_info = tree_info.collapse_dict[taxon][0]
+    # Search tree and delimitate species
+    tree_info.tree_search(tree_info.t, gene)
 
-                # Get each of the leaf result to report
+    return tree_info
+
+
+### synchronize sp. numbers from multiple dataset
+# to use continuous sp numbers over trees
+# Seperated because this step cannot be done by multiprocessing
+def synchronize(V, path, tree_info_list):
+
+    # Get all available genus from tree_info
+    def get_possible_genus(tree_info):
+        return set([taxon[0] for taxon in tree_info.collapse_dict])
+
+    tree_info_dict = {}
+
+    # get available groups per genus
+    tree_info_dict = {}
+
+    for tree_info in tree_info_list:
+        possible_genus = get_possible_genus(tree_info)
+        for genus in possible_genus:
+            if not (genus) in tree_info_dict:
+                tree_info_dict[genus] = {tree_info.group: {tree_info.gene: tree_info}}
+            elif not (tree_info.group in tree_info_dict[genus]):
+                tree_info_dict[genus][tree_info.group] = {tree_info.gene: tree_info}
+            elif not (tree_info.gene in tree_info_dict[genus][tree_info.group]):
+                tree_info_dict[genus][tree_info.group][tree_info.gene] = tree_info
+            else:
+                logging.error("DEVELOPMENTAL ERROR, DUPLICATED TREE_INFO")
+                raise exception
+
+    for genus in tree_info_dict.keys():
+        # cnt number that should be added
+        cnt_sp_adder = 0
+        for group in sorted(list(tree_info_dict[genus].keys())):
+            if not ("concatenated" in tree_info_dict[genus][group]):
+                logging.error("DEVELOPMENTAL ERROR, NO CONCATENATED ANALYSIS")
+                raise exception
+            else:
+                # Start with concatenated
+                tree_info = tree_info_dict[genus][group]["concatenated"]
+
+                # Get all sp taxon list
+                taxon_set = set()
+                for taxon in tree_info.collapse_dict.keys():
+                    if "sp." in taxon[1]:
+                        taxon_set.add(taxon)
+
+                hash_dict = {}
+                # Make one hash - one sp dict pair
+                for taxon in taxon_set:
+                    for leaf in tree_info.collapse_dict[taxon][0].leaf_list:
+                        hash_dict[leaf[0]] = (
+                            taxon[0],
+                            f"sp. {str(int(taxon[1].split(' ')[1]) + cnt_sp_adder)}",
+                        )
+
+                ## Change it with cnt_sp_adder
+                for taxon in taxon_set:
+                    tree_info.collapse_dict[
+                        (
+                            taxon[0],
+                            f"tmp sp. {str(int(taxon[1].split(' ')[1]) + cnt_sp_adder)}",
+                        )
+                    ] = tree_info.collapse_dict.pop(taxon)
+
+                # Performing in two steps in order to tkae collapse_dict safe
+                for taxon in taxon_set:
+                    tree_info.collapse_dict[
+                        (
+                            taxon[0],
+                            f"sp. {str(int(taxon[1].split(' ')[1]) + cnt_sp_adder)}",
+                        )
+                    ] = tree_info.collapse_dict.pop(
+                        (
+                            taxon[0],
+                            f"tmp sp. {str(int(taxon[1].split(' ')[1]) + cnt_sp_adder)}",
+                        )
+                    )
+
+                # Now solve other genes
+                for gene in tree_info_dict[genus][group]:
+                    if gene != "concatenated":
+                        bygene_taxon_dict = {}
+
+                        tree_info = tree_info_dict[genus][group][gene]
+
+                        # Synchronize bygene taxon name to concatenated
+                        for taxon in tree_info.collapse_dict:
+
+                            # Do not change non- sp.
+                            if "sp." in taxon[1]:
+
+                                hash_list = [
+                                    leaf[0]
+                                    for leaf in tree_info.collapse_dict[taxon][
+                                        0
+                                    ].leaf_list
+                                ]
+
+                                available_set = set()
+                                for _hash in hash_list:
+                                    if _hash in hash_dict:
+                                        available_set.add(hash_dict[_hash][1])
+
+                                species_text = "/".join(sorted(list(available_set)))
+
+                                if not (".sp") in taxon[1]:
+                                    species_text = f"{taxon[1]}/{species_text}"
+
+                                bygene_taxon_dict[taxon] = species_text
+
+                        # Change taxon name
+                        tmp_taxon_list = [key for key in tree_info.collapse_dict]
+                        for taxon in tmp_taxon_list:
+                            if "sp." in taxon[1]:
+                                tree_info.collapse_dict[
+                                    (taxon[0], bygene_taxon_dict[taxon])
+                                ] = tree_info.collapse_dict.pop(taxon)
+                cnt_sp_adder += len(taxon_set)
+
+    # Return sp number fixed tree_info_list
+    return tree_info_list
+
+
+### Visualization after synchronization
+def pipe_module_tree_visualization(
+    tree_info,
+    group,
+    gene,
+    V,
+    path,
+    opt,
+):
+
+    genus_list = V.tup_genus
+
+    # Collapse tree branches for visualization
+    tree_info.collapse_tree()
+
+    # Polish tree image
+    tree_info.polish_image(
+        f"{path.out_tree}/{opt.runname}_{group}_{gene}.svg", genus_list
+    )
+
+    # sort taxon order
+    list_taxon_1 = [
+        taxon
+        for taxon in tree_info.collapse_dict.keys()
+        if not (taxon[1].startswith("sp."))
+    ]
+    list_taxon_2 = [
+        taxon for taxon in tree_info.collapse_dict.keys() if taxon[1].startswith("sp.")
+    ]
+    list_taxon_1.sort(key=lambda x: x[1])
+    list_taxon_2.sort(key=lambda x: x[1])
+    list_taxon = list_taxon_1 + list_taxon_2
+
+    # Declare report collection
+    report_list = []
+    for taxon in list_taxon:
+        # If only one taxon exists, enumerate does not work properly
+        if len(tree_info.collapse_dict[taxon]) <= 1:
+            collapse_info = tree_info.collapse_dict[taxon][0]
+            # Get each of the leaf result to report
+            for leaf in collapse_info.leaf_list:
+                report = Singlereport()
+                report.id = V.dict_hash_FI[leaf[0]].original_id
+                report.hash = V.dict_hash_FI[leaf[0]].hash
+                report.update_group(group)
+                report.update_gene(gene)
+                report.update_species_original(
+                    get_genus_species(leaf[2], genus_list=genus_list)
+                )
+                report.update_species_assigned(taxon)
+                report.ambiguous = collapse_info.clade_cnt
+                report.flat = collapse_info.flat
+
+                report_list.append(report)
+
+        else:
+            for n, collapse_info in enumerate(tree_info.collapse_dict[taxon]):
                 for leaf in collapse_info.leaf_list:
                     report = Singlereport()
-                    report.id = funinfo_dict[leaf[0]].original_id
-                    report.hash = funinfo_dict[leaf[0]].hash
+                    report.id = V.dict_hash_FI[leaf[0]].original_id
+                    report.hash = V.dict_hash_FI[leaf[0]].hash
                     report.update_group(group)
                     report.update_gene(gene)
                     report.update_species_original(
                         get_genus_species(leaf[2], genus_list=genus_list)
                     )
-                    report.update_species_assigned(taxon)
+                    report.update_species_assigned((" ".join(taxon), f"{n+1}"))
                     report.ambiguous = collapse_info.clade_cnt
                     report.flat = collapse_info.flat
 
                     report_list.append(report)
 
-                tmp_dict[" ".join(taxon)] = [
-                    collapse_info.n_db,
-                    collapse_info.n_query,
-                    collapse_info.n_others,
-                    collapse_info.n_db + collapse_info.n_query + collapse_info.n_others,
-                ]
-
-                # leaf structure:
-                for leaf in collapse_info.leaf_list:
-                    if 1:  # tree_info.option.highlight:
-                        report = Singlereport()
-                        report.id = funinfo_dict[leaf[0]].original_id
-                        report.hash = funinfo_dict[leaf[0]].hash
-                        report.update_genusgroup(out, gene)
-                        report.update_inputtaxon(
-                            get_genus_species(leaf[2], genus_list=genus_list)
-                        )
-                        report.taxon_cnt = collapse_info.clade_cnt
-                        report.update_identifiedtaxon(taxon)
-                        report_list.append(report)
-
-            else:
-                for n, collapse_info in enumerate(tree_info.collapse_dict[taxon]):
-                    tmp_dict[f'{" ".join(taxon)} {n+1}'] = [
-                        collapse_info.n_db,
-                        collapse_info.n_query,
-                        collapse_info.n_others,
-                        collapse_info.n_db
-                        + collapse_info.n_query
-                        + collapse_info.n_others,
-                    ]
-
-                    for leaf in collapse_info.leaf_list:
-                        report = Singlereport()
-                        report.id = funinfo_dict[leaf[0]].original_id
-                        report.hash = funinfo_dict[leaf[0]].hash
-                        report.update_genusgroup(out, gene)
-                        report.update_inputtaxon(
-                            get_genus_species(leaf[2], genus_list=genus_list)
-                        )
-                        report.update_species_assigned((" ".join(taxon), f"{n+1}"))
-                        report.ambiguous = collapse_info.clade_cnt
-                        report.flat = collapse_info.flat
-
-                        report.taxon_cnt = collapse_info.clade_cnt
-                        report.update_identifiedtaxon((" ".join(taxon), f"{n+1}"))
-                        report_list.append(report)
-
-        df = pd.DataFrame(tmp_dict, index=["db", "query", "others", "total"])
-        df = df.transpose()
-
-        return (out, df, report_list)
-
-    except:  # for debugging
-
-        if opt.verbose >= 3:
-            # if 1:
-            logging.error(f"Error occured on {tree_name}, running debugging mode")
-            # initialize before analysis
-            Tree_style = tree_interpretation.Tree_style()
-            tree_info = tree_interpretation.Tree_information(tree_name, Tree_style, opt)
-            tree_info.db_list = db_list
-            tree_info.query_list = query_list
-            tree_info.outgroup = outgroup
-            tree_info.funinfo_dict = funinfo_dict
-
-            # make zero with alignment
-            if gene != "concatenated":
-                tree_info.calculate_zero(
-                    f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_{gene}.fasta"
-                )
-            else:
-                tree_info.calculate_zero(
-                    f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_concatenated.fasta"
-                )
-
-            tree_info.reroot_outgroup(f"{path.out_tree}/hash_{out}_original.svg")
-            tree_hash_dict = encode(funinfo_list, newick=True)
-            decode(
-                tree_hash_dict,
-                f"{path.out_tree}/hash_{out}_original.svg",
-                f"{path.out_tree}/{out}_original.svg",
-                newick=True,
-            )
-
-            if opt.mode == "validation":
-                tree_info.reserve_sp()
-
-            if tree_info.opt.solveflat is True:
-                tree_info.t = tree_info.reconstruct(
-                    tree_info.t.copy("newick"), gene, opt
-                )
-
-            tree_info.t.ladderize(direction=1)  # reorder tree
-            tree_info.tree_search(tree_info.t, gene, opt=opt)
-            # synchronize() # to use continuous sp numbers over trees
-            tree_info.collapse_tree()
-            tree_info.polish_image(f"{path.out_tree}/{out}.svg", genus_list)
-
-            tmp_dict = {}
-
-            # sort taxon order
-            list_taxon_1 = [
-                taxon
-                for taxon in tree_info.collapse_dict.keys()
-                if not (taxon[1].startswith("sp."))
-            ]
-            list_taxon_2 = [
-                taxon
-                for taxon in tree_info.collapse_dict.keys()
-                if taxon[1].startswith("sp.")
-            ]
-            list_taxon_1.sort(key=lambda x: x[1])
-            list_taxon_2.sort(key=lambda x: x[1])
-            list_taxon = list_taxon_1 + list_taxon_2
-
-            report_list = []
-            for taxon in list_taxon:
-                if len(tree_info.collapse_dict[taxon]) <= 1:
-                    collapse_info = tree_info.collapse_dict[taxon][0]
-                    tmp_dict[" ".join(taxon)] = [
-                        collapse_info.n_db,
-                        collapse_info.n_query,
-                        collapse_info.n_others,
-                        collapse_info.n_db
-                        + collapse_info.n_query
-                        + collapse_info.n_others,
-                    ]
-
-                    # leaf structure:
-                    for leaf in collapse_info.leaf_list:
-                        if 1:  # tree_info.option.highlight:
-                            report = Singlereport()
-                            report.id = funinfo_dict[leaf[0]].original_id
-                            report.hash = funinfo_dict[leaf[0]].hash
-                            report.update_genusgroup(out, gene)
-                            report.update_inputtaxon(
-                                get_genus_species(leaf[2], genus_list=genus_list)
-                            )
-                            report.taxon_cnt = collapse_info.clade_cnt
-                            report.update_identifiedtaxon(taxon)
-                            report_list.append(report)
-
-                else:
-                    for n, collapse_info in enumerate(tree_info.collapse_dict[taxon]):
-                        tmp_dict[f'{" ".join(taxon)} {n+1}'] = [
-                            collapse_info.n_db,
-                            collapse_info.n_query,
-                            collapse_info.n_others,
-                            collapse_info.n_db
-                            + collapse_info.n_query
-                            + collapse_info.n_others,
-                        ]
-
-                        for leaf in collapse_info.leaf_list:
-                            report = Singlereport()
-                            report.id = funinfo_dict[leaf[0]].original_id
-                            report.hash = funinfo_dict[leaf[0]].hash
-                            report.update_genusgroup(out, gene)
-                            report.update_inputtaxon(
-                                get_genus_species(leaf[2], genus_list=genus_list)
-                            )
-                            report.taxon_cnt = collapse_info.clade_cnt
-                            report.update_identifiedtaxon((" ".join(taxon), f"{n+1}"))
-                            report_list.append(report)
-
-            df = pd.DataFrame(tmp_dict, index=["db", "query", "others", "total"])
-            df = df.transpose()
-
-            return (out, df, report_list)
-
-        logging.warning(f"Failed visualizing tree on {out}, passing")
+    return report_list
 
 
-# for all datasets, multiprocessing part
+### For all datasets, multiprocessing part
 def pipe_tree_interpretation(V, path, opt):
     tree_interpretation_opt = []
 
@@ -326,9 +327,10 @@ def pipe_tree_interpretation(V, path, opt):
                     )
                 )
 
+    # Tree interpretation - outgroup, reconstruction(solve_flat), collapsing
     if opt.verbose < 3:
         p = mp.Pool(opt.thread)
-        tree_interpretation_result = p.starmap(
+        tree_info_list = p.starmap(
             pipe_module_tree_interpretation, tree_interpretation_opt
         )
         p.close()
@@ -336,40 +338,39 @@ def pipe_tree_interpretation(V, path, opt):
 
     else:
         # non-multithreading mode for debugging
-        tree_interpretation_result = []
-        for option in tree_interpretation_opt:
-            tree_interpretation_result.append(pipe_module_tree_interpretation(*option))
+        tree_info_list = [
+            pipe_module_tree_interpretation(*option)
+            for option in tree_interpretation_opt
+        ]
 
-    # put identified result to V
-    for raw_result in tree_interpretation_result:
-        if raw_result is not (None):
-            change_FI = []
-            for result in raw_result[2]:
-                FI = V.dict_hash_FI[result.hash]
-                if result.gene == "concatenated":
-                    logging.debug("Updating final species")
-                    FI.final_species = result.species_assigned
-                    FI.species_identifier = result.ambiguous
-                    if result.flat is True:
-                        FI.flat.append("concatenated")
-                else:
-                    logging.debug("Not updating final species")
-                    FI.bygene_species[result.gene] = result.species_assigned
-                    if result.flat is True:
-                        FI.flat.append(result.gene)
-                    # print("Updating final species")
-                    FI.final_species = result.identifiedtaxon
-                    FI.species_identifier = result.taxon_cnt
+    # Synchronize sp. numbers
+    tree_info_list = synchronize(V, path, tree_info_list)
 
-                change_FI.append(FI)
+    # returns report_list
+    tree_visualization_result = []
+    for tree_info in tree_info_list:
+        tree_visualization_result.append(
+            pipe_module_tree_visualization(
+                tree_info, tree_info.group, tree_info.gene, V, path, opt
+            )
+        )
 
-            # update list_FI
-            change_FI_hash = [FI.hash for FI in change_FI]
-            print(sorted(change_FI_hash))
-            print(len(change_FI_hash))
-            print(len(set(change_FI_hash)))
-            V.list_FI = [
-                FI for FI in V.list_FI if not FI.hash in change_FI_hash
-            ] + change_FI
+    # Collect identifiation result to V
+    for report_list in tree_visualization_result:
+        for report in report_list:
+            FI = V.dict_hash_FI[report.hash]
+            # Concatenated
+            if report.gene == "concatenated":
+                # logging.debug("Updating final species")
+                FI.final_species = report.species_assigned
+                FI.species_identifier = report.ambiguous
+                if report.flat is True:
+                    FI.flat.append("concatenated")
+            # Non concatenated
+            else:
+                # logging.debug("Not updating final species")
+                FI.bygene_species[report.gene] = report.species_assigned
+                if report.flat is True:
+                    FI.flat.append(report.gene)
 
     return V, path, opt

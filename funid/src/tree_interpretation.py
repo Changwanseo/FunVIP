@@ -79,8 +79,12 @@ class Collapse_information:
         self.n_db = 0
         self.n_query = 0
         self.n_others = 0
+        self.flat = False
 
     def __str__(self):
+        return f"clade {self.taxon} with {len(self.leaf_list)} leaves"
+
+    def __repr__(self):
         return f"clade {self.taxon} with {len(self.leaf_list)} leaves"
 
 
@@ -164,7 +168,7 @@ class Tree_style:
 
 # Main tree information class
 class Tree_information:
-    def __init__(self, tree, Tree_style, opt):
+    def __init__(self, tree, Tree_style, group, gene, opt):
 
         self.tree_name = tree  # for debugging
         self.t = Tree(tree)
@@ -192,6 +196,8 @@ class Tree_information:
         self.reserved_sp = set()
 
         self.Tree_style = Tree_style
+        self.group = group
+        self.gene = gene
         self.opt = opt
 
         self.collapse_dict = {}  # { taxon name : collapse_info }
@@ -690,7 +696,8 @@ class Tree_information:
         else:
             self.collapse_dict[taxon].append(collapse_info)
 
-    # Species level delimitaion on tree
+    """
+    
     def tree_search(self, clade, gene, opt=None):
 
         ## start of tree_search
@@ -701,9 +708,11 @@ class Tree_information:
         # it is not sure why "other" exists - that might be outgroup
         collapse_info.leaf_lisvisualize.t.append((leaf.name, "#000000", leaf.name))
         collapse_info.n_ovisualize.thers += 1
+    """
 
+    # Species level delimitaion on tree
     def tree_search(self, clade, gene, opt=None):
-        def check_monophyletic(self, clade, gene):
+        def local_check_monophyletic(self, clade, gene):
             # if given clade is clade with db or only query
             def decide_clade(clade, gene):
                 taxon_dict = self.taxon_count(clade, gene)
@@ -724,7 +733,7 @@ class Tree_information:
                         if children.dist > self.opt.collapsedistcutoff:
                             return False
                         # or bootstrap is to distinctive
-                        elif children.support >= opt.collapsebscutoff:
+                        elif children.support >= self.opt.collapsebscutoff:
                             return False
 
                     return True
@@ -736,7 +745,7 @@ class Tree_information:
                         if self.find_majortaxon(children, gene)[1].startswith("sp."):
                             if children.dist > self.opt.collapsedistcutoff:
                                 return False
-                            elif children.support >= opt.collapsebscutoff:
+                            elif children.support >= self.opt.collapsebscutoff:
                                 return False
 
                     return True
@@ -801,16 +810,22 @@ class Tree_information:
             for child_clade in clade.children:
 
                 # Calculate root distance between two childs to check flat
-                flat = True if child_clade.dist <= opt.collapsedistcutoff else False
+                flat = (
+                    True if child_clade.dist <= self.opt.collapsedistcutoff else False
+                )
 
                 # Check if child clades are monophyletic
+                """
                 monophyletic = self.check_monophyletic(child_clade, gene)
                 if monophyletic is True:
                     self.generate_collapse_information(
                         child_clade, gene, opt=opt, flat=flat
                     )
+                """
 
-                datatype, monophyletic = check_monophyletic(self, child_clade, gene)
+                datatype, monophyletic = local_check_monophyletic(
+                    self, child_clade, gene
+                )
                 if monophyletic is True:
                     generate_collapse_information(self, child_clade, opt=opt)
 
@@ -1059,6 +1074,8 @@ class Tree_information:
 
     ### Collapse tree
     def collapse_tree(self):
+
+        print(self.collapse_dict)
         for collapse_taxon in self.collapse_dict:
             for collapse_info in self.collapse_dict[collapse_taxon]:
                 clade = collapse_info.clade
@@ -1087,18 +1104,6 @@ class Tree_information:
                     fgcolor=collapse_info.color,
                 )
 
-                # For testing tree to change into hash representation, should be removed after done
-                """
-                id_string = divide_by_max_len(
-                    ",tmpseperator, ".join(
-                        sorted(
-                            self.funinfo_dict[x[0]].original_id
-                            for x in collapse_info.leaf_list
-                        )
-                    ),
-                    self.opt.const_max_len,
-                )
-                """
                 # hash list for further analysis
                 string_hash_list = [x[0] for x in collapse_info.leaf_list]
 

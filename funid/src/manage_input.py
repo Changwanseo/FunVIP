@@ -52,7 +52,7 @@ class Funinfo:
         self.ori_genus = ""  # original genus
         self.genus = ""  # final genus
         self.ori_species = ""  # original species
-        self.bygene_species = {}  # species name designated by gene
+        self.bygene_species = {"concatenated": ""}  # species name designated by gene
         self.final_species = ""  # final species designated by concatenated analysis
         # species identifier if multiple branches with same species exists - ambiguous in result
         self.species_identifier = 0
@@ -560,7 +560,7 @@ def db_input(opt, path) -> list:
 
     # Get DB input
     logging.info(f"Input DB list: {opt.db}")
-    db_namelist = [db.split("/")[-1] for db in opt.db]
+    db_namelist = [str(os.path.basename(db)) for db in opt.db]
 
     funinfo_list, df_list = input_table(
         path=path, opt=opt, table_list=opt.db, datatype="db"
@@ -568,6 +568,7 @@ def db_input(opt, path) -> list:
 
     # do it after save_db option enabled
     for n, db in enumerate(db_namelist):
+        print(db)
         df_list[n].to_excel(
             f"{path.out_db}/Saved_{'.'.join(db.split('.')[:-1])}.xlsx", index=False
         )
