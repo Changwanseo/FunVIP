@@ -66,14 +66,9 @@ def pipe_module_tree_interpretation(
 
     # Main phase
     # calculate zero distance with alignment
-    if gene != "concatenated":
-        tree_info.calculate_zero(
-            f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_{gene}.fasta"
-        )
-    else:
-        tree_info.calculate_zero(
-            f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_concatenated.fasta"
-        )
+    tree_info.calculate_zero(
+        f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_{gene}.fasta"
+    )
 
     # Reroot outgroup and save original tree into image
     tree_info.reroot_outgroup(
@@ -132,15 +127,16 @@ def synchronize(V, path, tree_info_list):
                 tree_info_dict[genus][tree_info.group][tree_info.gene] = tree_info
             else:
                 logging.error("DEVELOPMENTAL ERROR, DUPLICATED TREE_INFO")
-                raise exception
+                raise Exception
 
     for genus in tree_info_dict.keys():
         # cnt number that should be added
         cnt_sp_adder = 0
         for group in sorted(list(tree_info_dict[genus].keys())):
             if not ("concatenated" in tree_info_dict[genus][group]):
+                # Now concatenated analysis gets mandatory
                 logging.error("DEVELOPMENTAL ERROR, NO CONCATENATED ANALYSIS")
-                raise exception
+                raise Exception
             else:
                 # Start with concatenated
                 tree_info = tree_info_dict[genus][group]["concatenated"]
@@ -152,6 +148,14 @@ def synchronize(V, path, tree_info_list):
                         taxon_set.add(taxon)
 
                 hash_dict = {}
+
+                """
+                for key in tree_info.collapse_dict:
+                    print(f"{key} {tree_info.collapse_dict[key]}")
+
+                print("--------------------------------------------")
+                """
+
                 # Make one hash - one sp dict pair
                 for taxon in taxon_set:
                     for leaf in tree_info.collapse_dict[taxon][0].leaf_list:
@@ -169,7 +173,7 @@ def synchronize(V, path, tree_info_list):
                         )
                     ] = tree_info.collapse_dict.pop(taxon)
 
-                # Performing in two steps in order to tkae collapse_dict safe
+                # Performing in two steps in order to take collapse_dict safe
                 for taxon in taxon_set:
                     tree_info.collapse_dict[
                         (
@@ -343,7 +347,6 @@ def pipe_tree_interpretation(V, path, opt):
             for option in tree_interpretation_opt
         ]
 
-    # Synchronize sp. numbers
     tree_info_list = synchronize(V, path, tree_info_list)
 
     # returns report_list

@@ -273,39 +273,6 @@ class FunID_var:
                     elif self.dict_hash_FI[h].adjusted_group == "":
                         self.dict_hash_FI[h].adjusted_group = FI.adjusted_group
                     else:
-                        print(FI)
-                        print(FI.original_id)
-                        print(FI.id)
-                        print(FI.hash)
-                        print(FI.description)
-                        print(FI.ori_genus)
-                        print(FI.bygene_species)
-                        print(FI.final_species)
-                        print(FI.species_identifier)
-                        print(FI.source)
-                        print(FI.datatype)
-                        print(FI.group)
-                        print(FI.adjusted_group)
-                        print(FI.seq)
-                        print(FI.unclassified_seq)
-                        print(FI.flat)
-
-                        print(self.dict_hash_FI[h])
-                        print(self.dict_hash_FI[h].original_id)
-                        print(self.dict_hash_FI[h].id)
-                        print(self.dict_hash_FI[h].hash)
-                        print(self.dict_hash_FI[h].description)
-                        print(self.dict_hash_FI[h].ori_genus)
-                        print(self.dict_hash_FI[h].bygene_species)
-                        print(self.dict_hash_FI[h].final_species)
-                        print(self.dict_hash_FI[h].species_identifier)
-                        print(self.dict_hash_FI[h].source)
-                        print(self.dict_hash_FI[h].datatype)
-                        print(self.dict_hash_FI[h].group)
-                        print(self.dict_hash_FI[h].adjusted_group)
-                        print(self.dict_hash_FI[h].seq)
-                        print(self.dict_hash_FI[h].unclassified_seq)
-                        print(self.dict_hash_FI[h].flat)
 
                         # print(FI.datatype)
                         logging.error(
@@ -372,7 +339,6 @@ class FunID_var:
 
     # save fasta for outgroup adjusted fasta
     def save_dataset(self, path, opt):
-        print(self.dict_dataset)
         for group in self.dict_dataset:
             for gene in self.dict_dataset[group]:
                 if not (gene == "concatenated"):

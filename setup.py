@@ -1,6 +1,7 @@
 # FunID/setup.py
 from setuptools import setup, find_packages
 from sys import platform
+import subprocess
 
 name = "FunID"
 __version__ = "0.3.0"
@@ -51,6 +52,12 @@ setup_options = dict(
 )
 
 
+def run_tests():
+    result = subprocess.run(["FunID", "-h"], capture_output=True, text=True)
+    print(result.stdout)
+    print(result.stderr)
+
+
 # Change setup options by platform
 if platform == "win32":
     setup_options["packages"].append("funid.external")
@@ -62,4 +69,4 @@ print(setup_options)
 
 
 # Run setup
-setup(**setup_options)
+setup(**setup_options, cmdclass={"test": run_tests})
