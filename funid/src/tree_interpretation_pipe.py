@@ -111,8 +111,6 @@ def synchronize(V, path, tree_info_list):
     def get_possible_genus(tree_info):
         return set([taxon[0] for taxon in tree_info.collapse_dict])
 
-    tree_info_dict = {}
-
     # get available groups per genus
     tree_info_dict = {}
 
@@ -135,8 +133,9 @@ def synchronize(V, path, tree_info_list):
         for group in sorted(list(tree_info_dict[genus].keys())):
             if not ("concatenated" in tree_info_dict[genus][group]):
                 # Now concatenated analysis gets mandatory
-                logging.error("DEVELOPMENTAL ERROR, NO CONCATENATED ANALYSIS")
-                raise Exception
+                logging.info(
+                    f"No concatenated dataset for {genus} {group}. Passing synchronizing"
+                )
             else:
                 # Start with concatenated
                 tree_info = tree_info_dict[genus][group]["concatenated"]
@@ -148,13 +147,6 @@ def synchronize(V, path, tree_info_list):
                         taxon_set.add(taxon)
 
                 hash_dict = {}
-
-                """
-                for key in tree_info.collapse_dict:
-                    print(f"{key} {tree_info.collapse_dict[key]}")
-
-                print("--------------------------------------------")
-                """
 
                 # Make one hash - one sp dict pair
                 for taxon in taxon_set:
@@ -245,11 +237,13 @@ def pipe_module_tree_visualization(
     genus_list = V.tup_genus
 
     # Collapse tree branches for visualization
-    tree_info.collapse_tree()
+    taxon_string_list = tree_info.collapse_tree()
 
     # Polish tree image
     tree_info.polish_image(
-        f"{path.out_tree}/{opt.runname}_{group}_{gene}.svg", genus_list
+        f"{path.out_tree}/{opt.runname}_{group}_{gene}.svg",
+        taxon_string_list,
+        genus_list,
     )
 
     # sort taxon order

@@ -443,8 +443,6 @@ def outgroup_result_collector(V):
 
         # append outgroup lists
         V.dict_dataset[group][gene].list_og_FI = result_outgroup_list
-        print(f"{group} {gene} {result_outgroup_list}")
-
     return V
 
 

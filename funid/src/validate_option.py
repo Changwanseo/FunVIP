@@ -8,6 +8,8 @@ import datetime
 import platform
 import re
 from funid.src.logics import isvalidcolor
+from funid.src.tool import check_avx
+
 
 # FunID Option class definition
 class Option:
@@ -1275,14 +1277,13 @@ class Option:
         # if auto, set gt
         if self.method.trim.lower() == "trimal":
             try:
-                self.trimal.algorithm = float(self.trimal.algorithm)
+                self.trimal.algorithm = str(self.trimal.algorithm)
                 if not (self.trimal.algorithm.lower() in ("auto", "gt")):
                     list_warning(
                         f"Invalid trimal algorithm {self.trimal.algorithm}. Chaniging to gt"
                     )
                     self.trimal.algorithm = "gt"
             except:
-
                 list_error.append(
                     f"Invalid trimal algorithm {self.trimal.algorithm}. Currently avilable algorithms are auto and gt"
                 )
@@ -1309,8 +1310,7 @@ class Option:
         # if used, set True
         # if avx is not available command, set True
         # Negative boolean and save as avx
-        if not "AVX" in platform.machine() and self.avx is True:
-            list_info.append(platform.machine())
+        if check_avx() is False and self.avx is True:
             list_warning.append(f"AVX is not available. Changing --noavx to True")
             self.avx = False
 

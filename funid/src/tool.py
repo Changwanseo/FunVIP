@@ -7,6 +7,7 @@ import logging
 from functools import lru_cache
 import sys, os
 import shutil
+import platform
 
 # Maybe we should move this to /funid/src/toolbox/ and split these to multiple files
 def initialize_path(path):
@@ -267,3 +268,7 @@ def index_step(step):
     except:
         logging.error(f"DEVELOPMENTAL ERROR, INVALID STEP {step} USED")
         raise Exception
+
+
+def check_avx():
+    return platform.machine() == "x86_64"

@@ -145,13 +145,9 @@ class FunID_var:
 
             # For query only option
             if opt.queryonly is True:
-
                 group_flag = 0  # whether to run this group
-
                 for gene in self.list_db_gene:
-
                     logging.info(f"Searching {gene}")
-
                     list_qr = [
                         FI
                         for FI in self.list_FI
@@ -235,7 +231,6 @@ class FunID_var:
                     self.add_dataset(group, gene, list_qr, list_db, [])
 
                 # for concatenated
-
                 list_qr = [
                     FI
                     for FI in self.list_FI

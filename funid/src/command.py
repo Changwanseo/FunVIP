@@ -80,8 +80,8 @@ class CommandParser:
         group_run.add_argument(
             "--continue",
             dest="continue_from_previous",
-            help="Continue from previous run, designate directory of previous run",
-            type=str,
+            action="store_true",
+            help="Continue from previous run",
         )
         group_run.add_argument(
             "--step",
