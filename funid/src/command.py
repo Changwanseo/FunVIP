@@ -50,7 +50,7 @@ class CommandParser:
         )
         group_test.add_argument(
             "--test",
-            help="Use test dataset, [Amanita, Penicillium, UNITE]",
+            help="Use test dataset, [Penicillium]",
             type=str,
         )
 
@@ -79,18 +79,18 @@ class CommandParser:
         )
         group_run.add_argument(
             "--continue",
-            dest="continue_from_previous",
+            dest="[WIP] continue_from_previous",
             action="store_true",
             help="Continue from previous run",
         )
         group_run.add_argument(
             "--step",
-            help="Steps to continue from previous run, will be ignored if invalid --continue option [setup, search, cluster, align, trim, concatenate, modeltest, tree, visualize, report]",
+            help="[WIP] Steps to continue from previous run, will be ignored if invalid --continue option [setup, search, cluster, align, trim, concatenate, modeltest, tree, visualize, report]",
             type=str,
         )
         group_run.add_argument(
             "--level",
-            help="Taxonomic level to be included in each phylogenetic tree. Should be one of [subseries, series, subsection, section, subtribe, tribe, subfamily, family, suborder, order, subclass, class, subphylum, phylum, subdivision, division, subkingdom, kingdom]",
+            help="Taxonomic level for each phylogenetic tree. Should be one of [subseries, series, subsection, section, subtribe, tribe, subfamily, family, suborder, order, subclass, class, subphylum, phylum, subdivision, division, subkingdom, kingdom]",
             type=str,
         )
         group_run.add_argument(
@@ -140,7 +140,7 @@ class CommandParser:
         )
         group_visualize.add_argument(
             "--bscutoff",
-            help="Bootstrap cutoff to be visualized, default : 70",
+            help="Bootstrap cutoff for visualize, default : 70",
             type=int,
         )
         group_visualize.add_argument(

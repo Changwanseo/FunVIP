@@ -14,24 +14,22 @@ def combine_alignment(V, opt, path):
     for group in V.dict_dataset:
         if "concatenated" in V.dict_dataset[group]:
             # get alignment length
-            len_dict = {}  # length of each of the alignments
+            # length of each of the alignments
+            len_dict = {}
             seq_dict = {}
             hash_set = set()
             gene_list = []
 
             for gene in V.dict_dataset[group]:
                 if not (gene == "concatenated"):
-
                     fasta_list = list(
                         SeqIO.parse(
                             f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
                             "fasta",
                         )
                     )
-
                     len_dict[gene] = len(fasta_list[0].seq)
                     seq_dict[gene] = {}
-
                     total_dataset = (
                         [
                             FI.hash
@@ -46,7 +44,6 @@ def combine_alignment(V, opt, path):
                             for FI in V.dict_dataset[group]["concatenated"].list_og_FI
                         ]
                     )
-
                     for seq in fasta_list:
                         if seq.description in total_dataset:  # if available hash
                             seq_dict[gene][seq.description] = seq
@@ -58,7 +55,6 @@ def combine_alignment(V, opt, path):
             ) as fw:
                 tot_len = 0
                 for gene in sorted(len_dict.keys()):
-
                     gene_list.append(gene)
                     fw.write(f"DNA, {gene}= {tot_len+1}-{tot_len+len_dict[gene]}\n")
                     tot_len += len_dict[gene]
@@ -71,7 +67,8 @@ def combine_alignment(V, opt, path):
                     if hash_id in seq_dict[gene]:
                         tmp_seq += str(seq_dict[gene][hash_id].seq)
                     else:
-                        tmp_seq += "-" * len_dict[gene]  # add gaps for ids without gene
+                        # add gaps for ids without gene
+                        tmp_seq += "-" * len_dict[gene]
 
                 concatenate_list.append(
                     SeqRecord(id=hash_id, description="", seq=Seq(tmp_seq))
@@ -102,10 +99,7 @@ def combine_alignment(V, opt, path):
 # for concatenating blast result to get single bitscore among results
 def concatenate_df(V, path, opt):
 
-    print("Working on concatenate_df")
-
     logging.info("Concatenating search results")
-
     df_list = [V.dict_gene_SR[gene] for gene in V.dict_gene_SR]
 
     if len(df_list) <= 0:
@@ -137,7 +131,6 @@ def concatenate_df(V, path, opt):
                     )
                     cnt += 1
                     break
-
             cnt += 1
 
         # generate concatenated search result
@@ -187,7 +180,6 @@ def concatenate_df(V, path, opt):
 
                     # concatenate subject group column
                     if "subject_group1" in V.cSR.columns:
-
                         V.cSR["subject_group1"].fillna(
                             V.cSR["subject_group2"], inplace=True
                         )
@@ -195,13 +187,13 @@ def concatenate_df(V, path, opt):
                         drop_list.append("subject_group2")
 
                     V.cSR.rename(columns=rename_dict, inplace=True)
-
                     V.cSR.drop(
                         columns=drop_list,
                         inplace=True,
                     )
 
-    V.cSR = V.cSR
+    # What is this?
+    # V.cSR = V.cSR
 
     # Save it
     if opt.nosearchresult is False:

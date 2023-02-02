@@ -27,7 +27,7 @@ class Option:
     class Visualize_Option:
         def __init__(self):
             self.bscutoff = 70
-            self.fullgenus = True
+            self.fullgenus = False
             self.highlight = "#aa0000"
             self.heightmultiplier = 6
             self.maxwordlength = 48
