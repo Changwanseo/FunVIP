@@ -19,7 +19,7 @@ def main():
     from funid.src import tree
     from funid.src import trim
     from funid.src.command import CommandParser
-    from funid.src.tool import initialize_path, index_step
+    from funid.src.tool import index_step
     from funid.src.opt_generator import opt_generator
     from time import time
     import pandas as pd
@@ -53,7 +53,7 @@ def main():
     opt, path, list_info, list_warning, list_error = initialize.initialize(
         path_run=os.getcwd(), parser=args
     )
-    initialize_path(path)
+    tool.initialize_path(path)
 
     # setup logging
     logging.basicConfig(
@@ -78,8 +78,6 @@ def main():
     V = dataset.FunID_var()
     # R includes all reporting objects such as warnings, errors, statistics
     R = reporter.Report()
-    ## Initialize logging process
-    # R.log.initialize_log(step)
 
     ##########################################################################
     #     End of initializing blocks should not be moved for function!!!     #
@@ -127,29 +125,24 @@ def main():
 
         V, opt, path = cluster.pipe_cluster(V, opt, path)
 
-        # Append query column to each of the df in df_dict as query assigned
+        # Append query column to each of the df, and concatenated_df in df_dict as query assigned
         V = cluster.append_query_group(V)
 
         # Append query column to concatenated_df as query assigned
-        V = cluster.append_concatenated_query_group(V)
+        # V = cluster.append_concatenated_query_group(V)
 
         # Both gene and group was assigned, dataset was confirmed
         V.generate_dataset(opt)
 
         # Appending outgroup
         logging.info("Appending outgroup")
-
         # For non-concatenated outgroup
         # ready for multiprocessing run
         # Pushing all v to multiprocessing requires too much memory
         V, path, opt = cluster.pipe_append_outgroup(V, path, opt)
 
-        # Wrap up outgroup appending results
-        # outgroup result : (gene, group, outgroup_list, group_list)
-        V = cluster.outgroup_result_collector(V)
-        # remove invalid dataset to be analyzed ()
+        # remove invalid dataset from downstream analysis
         V.remove_invalid_dataset()
-
         # Save dataset to outgroups
         V.save_dataset(path, opt)
 

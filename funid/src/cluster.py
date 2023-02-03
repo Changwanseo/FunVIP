@@ -38,19 +38,10 @@ def get_naive_group(V):
     )
 
 
-def append_concatenated_query_group(V):
-
-    group_dict = {}
-    for funinfo in V.list_FI:
-        group_dict[funinfo.hash] = funinfo.adjusted_group
-
-    V.cSR["query_group"] = V.cSR["qseqid"].apply(lambda x: group_dict.get(x))
-
-    return V
-
-
+# Append query_group information column to dict_gene_SR
 def append_query_group(V):
 
+    # For normal gene matrix
     group_dict = {}
     for FI in V.list_FI:
         group_dict[FI.hash] = FI.adjusted_group
@@ -59,6 +50,13 @@ def append_query_group(V):
         V.dict_gene_SR[gene]["query_group"] = V.dict_gene_SR[gene]["qseqid"].apply(
             lambda x: group_dict.get(x)
         )
+
+    # For concatenated gene matrix
+    group_dict = {}
+    for funinfo in V.list_FI:
+        group_dict[funinfo.hash] = funinfo.adjusted_group
+
+    V.cSR["query_group"] = V.cSR["qseqid"].apply(lambda x: group_dict.get(x))
 
     return V
 
@@ -195,15 +193,11 @@ def cluster(FI, df_search, V, path, opt):
 # Append outgroup to given group-gene dataset by search matrix
 def append_outgroup(V, df_search, gene, group, path, opt):
 
-    logging.info(f"Appending outgroup on group:{group}, Gene:{gene}")
-
-    # funinfo for designated groups
-    list_FI_return = [
-        funinfo for funinfo in V.list_FI if funinfo.adjusted_group == group
-    ]
+    logging.info(f"Appending outgroup on group: {group}, Gene: {gene}")
 
     list_FI = copy.deepcopy(V.list_FI)
 
+    # In multiprocessing, delete V for memory
     del V
 
     # ready for by sseqid hash, which group to append
@@ -278,7 +272,7 @@ def append_outgroup(V, df_search, gene, group, path, opt):
                     funinfo_dict[cutoff_df["sseqid"][n]]
                 )
 
-        # if enough outgroup sequences found
+        # if enough outgroup sequences found while running
         if len(outgroup_dict[subject_group]) >= opt.maxoutgroup:
             text_outgroup_list = "\n ".join(
                 [FI.id for FI in outgroup_dict[subject_group]]
@@ -287,11 +281,17 @@ def append_outgroup(V, df_search, gene, group, path, opt):
                 f"Outgroup [{subject_group}] selected to [{group}]\n {text_outgroup_list}"
             )
 
+            # Get database sequences in ambiguous position
+            ambiguous_group = []
+            for _group in outgroup_dict:
+                if _group != subject_group:
+                    ambiguous_group += outgroup_dict[_group]
+
             return (
-                gene,
                 group,
+                gene,
                 outgroup_dict[subject_group],
-                outgroup_dict[subject_group] + list_FI_return,
+                ambiguous_group,
             )
         else:
             if len(outgroup_dict[subject_group]) > max_cnt:
@@ -307,15 +307,16 @@ def append_outgroup(V, df_search, gene, group, path, opt):
             f"Final outgroup selection for group {group} : {outgroup_dict[max_group]}"
         )
 
-        return (
-            gene,
-            group,
-            outgroup_dict[max_group],
-            outgroup_dict[max_group] + list_FI_return,
-        )
+        # Get database sequences in ambiguous position
+        ambiguous_group = []
+        for _group in outgroup_dict:
+            if _group != subject_group:
+                ambiguous_group += outgroup_dict[_group]
+
+        return (group, gene, outgroup_dict[max_group], ambiguous_group)
     else:
         logging.warning(f"No outgroup sequence available for {group}")
-        return (gene, group, [], list_FI_return)
+        return (group, gene, [], [])
 
 
 def group_cluster_opt_generator(V, opt, path):
@@ -399,17 +400,19 @@ def group_cluster_opt_generator(V, opt, path):
 # opts ready for multithreading in outgroup append
 def outgroup_append_opt_generator(V, path, opt):
 
+    opt_append_outgroup = []
+
     # if concatenated analysis is false
     # Assign different outgroup for each dataset
-    for gene in opt.gene:
-        for group in V.list_group:
-            if V.exist_dataset(group, gene) is True:
+    for group in V.dict_dataset:
+        for gene in V.dict_dataset[group]:
+            if gene != "concatenated":
                 try:
                     df = V.dict_gene_SR[gene]
                     df_group = df.groupby(df["query_group"])
                     df_group_ = df_group.get_group(group)
                     # Generating outgroup opt for multiprocessing
-                    V.opt_append_og.append((V, df_group_, gene, group, path, opt))
+                    opt_append_outgroup.append((V, df_group_, gene, group, path, opt))
                 except:
                     logging.warning(
                         f"{group} / {gene} dataset exists, but cannot append outgroup due to no corresponding search result"
@@ -417,33 +420,22 @@ def outgroup_append_opt_generator(V, path, opt):
 
     # if concatenated analysis is true
     # concatenated
-    for group in V.list_group:
-        if V.exist_dataset(group, "concatenated") is True:
+    for group in V.dict_dataset:
+        if "concatenated" in V.dict_dataset[group]:
             try:
                 df = V.cSR
                 df_group = df.groupby(df["query_group"])
                 df_group_ = df_group.get_group(group)
                 # Generating outgroup opt for multiprocessing
-                V.opt_append_og.append((V, df_group_, "concatenated", group, path, opt))
+                opt_append_outgroup.append(
+                    (V, df_group_, "concatenated", group, path, opt)
+                )
             except:
                 logging.warning(
                     f"{group} / concatenated dataset exists, but cannot append outgroup due to no corresponding search result"
                 )
 
-    return V
-
-
-# multiprocessing run result collector for outgrouping
-def outgroup_result_collector(V):
-    for result in V.rslt_append_og:
-        gene = result[0]
-        group = result[1]
-        result_outgroup_list = result[2]
-        result_list_group = result[3]
-
-        # append outgroup lists
-        V.dict_dataset[group][gene].list_og_FI = result_outgroup_list
-    return V
+    return opt_append_outgroup
 
 
 ## Main cluster pipe
@@ -518,17 +510,30 @@ def pipe_cluster(V, opt, path):
 ## Main outgroup appending pipeline
 def pipe_append_outgroup(V, path, opt):
 
-    V = outgroup_append_opt_generator(V, path, opt)
+    opt_append_outgroup = outgroup_append_opt_generator(V, path, opt)
+
+    print(opt_append_outgroup)
 
     # run multiprocessing start
     if opt.verbose < 3:
         p = mp.Pool(opt.thread)
-        V.rslt_append_og = p.starmap(append_outgroup, V.opt_append_og)
+        result_append_outgroup = p.starmap(append_outgroup, opt_append_outgroup)
         p.close()
         p.join()
 
     else:
         # non-multithreading mode for debugging
-        V.rslt_append_og = [append_outgroup(*o) for o in V.opt_append_og]
+        result_append_outgroup = [append_outgroup(*o) for o in opt_append_outgroup]
+
+    # append outgroup by running result
+    # (group, gene, outgroup, ambiguous_group)
+    for result in result_append_outgroup:
+        group = result[0]
+        gene = result[1]
+        outgroup = result[2]
+        ambiguous_group = result[3]
+
+        V.dict_dataset[group][gene].list_og_FI = outgroup
+        V.dict_dataset[group][gene].list_db_FI += ambiguous_group
 
     return V, path, opt

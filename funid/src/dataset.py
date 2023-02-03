@@ -72,15 +72,13 @@ class FunID_var:
         self.dict_dataset = {}
 
         # Running options
-        # groupal clustering option
+        # group clustering option
         self.opt_cluster = []
-        self.opt_append_og = []
         self.opt_align = []
         self.opt_tree = []
 
         # Running result
         self.rslt_cluster = []
-        self.rslt_append_og = []
         self.rslt_align = []
         self.rslt_tree = []
 
@@ -127,12 +125,12 @@ class FunID_var:
                 del self.dict_dataset[group]
 
     def exist_dataset(self, group, gene):
-        if not (group) in self.dict_dataset:
-            return False
-        elif not (gene) in self.dict_dataset[group]:
-            return False
-        else:
+
+        try:
+            self.dict_dataset[group][gene]
             return True
+        except:
+            return False
 
     # generate dataset by group and gene
     def generate_dataset(self, opt):
@@ -143,11 +141,11 @@ class FunID_var:
             logging.info(f"Generating dataset for {group}")
             dict_funinfo[group] = {}
 
-            # For query only option
+            # For queryonly case
             if opt.queryonly is True:
-                group_flag = 0  # whether to run this group
+                group_flag = False  # whether to run this group
                 for gene in self.list_db_gene:
-                    logging.info(f"Searching {gene}")
+                    logging.debug(f"Searching {group} {gene} is good dataset")
                     list_qr = [
                         FI
                         for FI in self.list_FI
@@ -160,10 +158,10 @@ class FunID_var:
 
                     # do not manage db when query only mode and query does not exists
                     if len(list_qr) > 0:
-                        group_flag = 1
+                        group_flag = True
 
-                if group_flag == 1:  # if decided to run this group
-                    logging.info(f"group {group} passed dataset construction")
+                if group_flag:  # if decided to run this group
+                    logging.info(f"Decided to construct dataset on {group}")
                     for gene in self.list_db_gene:
                         list_qr = [
                             FI
@@ -207,7 +205,7 @@ class FunID_var:
                     ]
                     self.add_dataset(group, "concatenated", list_qr, list_db, [])
 
-            # For DB included opt
+            # For opt.queryonly is False -> run all dataset in database
             else:
                 for gene in self.list_db_gene:
                     list_qr = [
