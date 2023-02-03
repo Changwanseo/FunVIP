@@ -322,7 +322,6 @@ def append_outgroup(V, df_search, gene, group, path, opt):
 def group_cluster_opt_generator(V, opt, path):
 
     # cluster(FO, df_search, V, path, opt)
-
     if len(V.list_qr_gene) == 0:
         logging.error(
             "In group_cluster_option_generator, no possible query genes were selected"
@@ -349,6 +348,7 @@ def group_cluster_opt_generator(V, opt, path):
             )
 
         list_multigene_FI = []
+
         for FI in list_FI:
             # If only one gene
             if len(list(FI.seq.keys())) == 1:
@@ -457,7 +457,6 @@ def pipe_cluster(V, opt, path):
         else:
             # non-multithreading mode for debugging
             V.rslt_cluster = [cluster(*o) for o in V.opt_cluster]
-
         # gather cluster result
         for cluster_result in V.rslt_cluster:
             FI = cluster_result[0]
@@ -511,8 +510,6 @@ def pipe_cluster(V, opt, path):
 def pipe_append_outgroup(V, path, opt):
 
     opt_append_outgroup = outgroup_append_opt_generator(V, path, opt)
-
-    print(opt_append_outgroup)
 
     # run multiprocessing start
     if opt.verbose < 3:

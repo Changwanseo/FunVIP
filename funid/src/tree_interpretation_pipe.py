@@ -227,13 +227,13 @@ def synchronize(V, path, tree_info_list):
 ### Visualization after synchronization
 def pipe_module_tree_visualization(
     tree_info,
-    group,
-    gene,
     V,
     path,
     opt,
 ):
 
+    group = tree_info.group
+    gene = tree_info.gene
     genus_list = V.tup_genus
 
     # Collapse tree branches for visualization
@@ -303,8 +303,9 @@ def pipe_module_tree_visualization(
 
 ### For all datasets, multiprocessing part
 def pipe_tree_interpretation(V, path, opt):
-    tree_interpretation_opt = []
 
+    # Generate tree_interpretation opt to run
+    tree_interpretation_opt = []
     for group in V.dict_dataset:
         for gene in V.dict_dataset[group]:
             # draw tree only when query sequence exists
@@ -325,7 +326,7 @@ def pipe_tree_interpretation(V, path, opt):
                     )
                 )
 
-    # Tree interpretation - outgroup, reconstruction(solve_flat), collapsing
+    ## Tree interpretation - outgroup, reconstruction(solve_flat), collapsing
     if opt.verbose < 3:
         p = mp.Pool(opt.thread)
         tree_info_list = p.starmap(
@@ -343,14 +344,25 @@ def pipe_tree_interpretation(V, path, opt):
 
     tree_info_list = synchronize(V, path, tree_info_list)
 
-    # returns report_list
-    tree_visualization_result = []
+    # Generate visualization option to run
+    tree_visualization_opt = []
     for tree_info in tree_info_list:
-        tree_visualization_result.append(
-            pipe_module_tree_visualization(
-                tree_info, tree_info.group, tree_info.gene, V, path, opt
-            )
+        tree_visualization_opt.append((tree_info, V, path, opt))
+
+    ## Tree visualization
+    if opt.verbose < 3:
+        p = mp.Pool(opt.thread)
+        tree_visualization_result = p.starmap(
+            pipe_module_tree_visualization, tree_visualization_opt
         )
+        p.close()
+        p.join()
+
+    else:
+        # non-multithreading mode for debugging
+        tree_visualization_result = [
+            pipe_module_tree_visualization(*option) for option in tree_visualization_opt
+        ]
 
     # Collect identifiation result to V
     for report_list in tree_visualization_result:

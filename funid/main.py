@@ -134,6 +134,8 @@ def main():
         # Both gene and group was assigned, dataset was confirmed
         V.generate_dataset(opt)
 
+        print(V.dict_dataset)
+
         # Appending outgroup
         logging.info("Appending outgroup")
         # For non-concatenated outgroup

@@ -105,7 +105,7 @@ class FunID_var:
 
         # If gene is concatenated, update ori_species
         if gene == "concatenated":
-            for FI in list_qr + list_db:
+            for FI in list_qr + list_db + list_og:
                 FI.bygene_species[gene] = FI.ori_species
 
     def remove_dataset(self, group, gene):
@@ -138,6 +138,7 @@ class FunID_var:
         dict_funinfo = {}
 
         for group in self.list_group:
+
             logging.info(f"Generating dataset for {group}")
             dict_funinfo[group] = {}
 
@@ -266,8 +267,6 @@ class FunID_var:
                     elif self.dict_hash_FI[h].adjusted_group == "":
                         self.dict_hash_FI[h].adjusted_group = FI.adjusted_group
                     else:
-
-                        # print(FI.datatype)
                         logging.error(
                             f"DEVELOPMENTAL ERROR Both list_FI and dict_hash_FI have conflicting final group, {FI.adjusted_group} and {self.dict_hash_FI[h].adjusted_group}, {FI}"
                         )
@@ -323,7 +322,7 @@ class FunID_var:
                     < 4
                 ):
                     logging.warning(
-                        f"Removing {group} from downstream phylogenetic analysis because there are not enough sequences"
+                        f"Removing {group} {gene} from downstream phylogenetic analysis because there are not enough sequences"
                     )
                     list_remove.append((group, gene))
 

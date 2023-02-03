@@ -1388,15 +1388,17 @@ class Option:
 
         # Printing logs while parsing validate options
         # Written in print functions, because logging can be loaded after option parsing
-        print("[INFO]")
+        print("--INFO--")
         for info in list_info:
             print(f"[INFO] {info}")
 
-        print("[WARNING]")
+        print("\n")
+        print("--WARNING--")
         for warning in list_warning:
             print(f"[WARNING] {warning}")
 
-        print("[ERROR]")
+        print("\n")
+        print("--ERROR--")
         for error in list_error:
             print(f"[ERROR] {error}")
 

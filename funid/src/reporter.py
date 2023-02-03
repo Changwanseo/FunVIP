@@ -223,7 +223,8 @@ class Report:
                         self.result["STATUS"].append("misidentified")
             else:
                 # print(f"DEBUGGING {self.dataset['GROUP']} {FI.adjusted_group}")
-                logging.info(f"{FI} removed from report because not used in analysis")
+                # logging.info(f"{FI} removed from report because not used in analysis")
+                pass
 
         ## update query only result
         self.query_result = pd.DataFrame(self.result)
@@ -466,7 +467,11 @@ class Report:
                 f.write(f"[IDENTIFICATION]\n")
                 if opt.queryonly is True:
                     f.write(
-                        tabulate(self.query_result, headers=self.query_result.columns)
+                        tabulate(
+                            self.query_result,
+                            headers=self.query_result.columns,
+                            showindex=False,
+                        )
                     )
                 else:
                     f.write(tabulate(self.result, headers=self.result.keys()))

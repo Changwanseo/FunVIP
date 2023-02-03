@@ -240,72 +240,6 @@ class Tree_information:
             print("[ERROR] DEVELOPMENTAL ERROR, UNEXPECTED by for decide_type")
             raise Exception
 
-        """
-        elif by == "id":
-            db_list = [
-                self.funinfo_dict[x].id
-                for x in self.funinfo_dict
-                if self.funinfo_dict[x].datatype == "db"
-            ]
-            query_list = [
-                self.funinfo_dict[x].id
-                for x in self.funinfo_dict
-                if self.funinfo_dict[x].datatype == "query"
-            ]
-
-            if string in query_list:
-                return "query"
-            elif string in db_list:
-                return "db"
-            else:
-                return "none"
-
-        elif by == "original_id":
-            db_list = [
-                self.funinfo_dict[x].original_id
-                for x in self.funinfo_dict
-                if self.funinfo_dict[x].datatype == "db"
-            ]
-            query_list = [
-                self.funinfo_dict[x].original_id
-                for x in self.funinfo_dict
-                if self.funinfo_dict[x].datatype == "query"
-            ]
-
-            if string in query_list:
-                return "query"
-            elif string in db_list:
-                return "db"
-            else:
-                return "none"
-
-        # elif by == "regex": # legacy code, mabye used for standalone CAT_V
-        else:
-            for regex in self.query_list:
-                if re.search(regex, string):
-                    query = True
-
-            for regex in self.db_list:
-                if re.search(regex, string):
-                    db = True
-
-            if priority == "query":
-                if query == True:
-                    return "query"
-                elif db == True:
-                    return "db"
-                else:
-                    return "none"
-
-            elif priority == "db":
-                if db == True:
-                    return "db"
-                elif query == True:
-                    return "query"
-                else:
-                    return "none"
-        """
-
     # Calculate zero length branch length cutoff with given tree and alignment
     def calculate_zero(self, alignment_file):
 
@@ -671,33 +605,6 @@ class Tree_information:
         else:
             return False
 
-    # Generate collapse information of tree if clade is determined to be monophyletic
-    def generate_collapse_information(self, clade, gene, opt=None, flat=False):
-
-        collapse_info = Collapse_information()
-        collapse_info.query_list = self.query_list
-        collapse_info.db_list = self.db_list
-        collapse_info.outgroup = self.outgroup
-        collapse_info.flat = flat
-        taxon = self.find_majortaxon(clade, gene, opt)
-        self.collapse(collapse_info, clade, taxon)
-
-        # counting new species
-        if taxon[1].startswith("sp."):
-            while 1:
-                self.sp_cnt += 1
-                if str(self.sp_cnt) in self.reserved_sp:
-                    print(f"[INFO] Skipping {self.sp_cnt} to avoid overlap in database")
-                    continue
-                else:
-                    break
-
-        print(f"[INFO] Generating collapse information for taxon {taxon}")
-        if not (taxon in self.collapse_dict):
-            self.collapse_dict[taxon] = [collapse_info]
-        else:
-            self.collapse_dict[taxon].append(collapse_info)
-
     # Species level delimitaion on tree
     def tree_search(self, clade, gene, opt=None):
         def local_check_monophyletic(self, clade, gene):
@@ -769,7 +676,18 @@ class Tree_information:
                         continue
                     else:
                         break
-            print(f"[INFO] Generating collapse information for taxon {taxon}")
+            print(
+                f"[INFO] Generating collapse information on {self.group} {self.gene} for taxon {taxon}",
+                end="\r",
+            )
+
+            if self.gene == "concatenated":
+                if "Aspergillus" in taxon[0]:
+                    print(self.group)
+                    print(self.gene)
+                    print(taxon)
+                    raise Exception
+
             if not (taxon in self.collapse_dict):
                 self.collapse_dict[taxon] = [collapse_info]
             else:
@@ -833,7 +751,7 @@ class Tree_information:
                         query += 1
 
                 if db == 0 and query == 0:
-                    print(f"{c} {db} {query}")
+                    print(f"[ERROR] DEVELOPMENTAL ON CONSIST, {c} {db} {query}")
                     raise Exception
                 elif db == 0 and query != 0:
                     return "query"
@@ -1184,6 +1102,12 @@ class Tree_information:
             if text_type == "taxon":
                 genus = get_genus_species(text.text, genus_list=genus_list)[0]
                 species = get_genus_species(text.text, genus_list=genus_list)[1]
+
+                if "Aspergillus" in genus:
+                    print(text.text)
+                    print(species)
+                    raise Exception
+
                 rest = (
                     text.text.replace(genus, "").replace(species, "").replace(" ", "")
                 )
