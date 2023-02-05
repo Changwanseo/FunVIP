@@ -110,8 +110,10 @@ def main():
 
         # Generate BLAST or mmseqs matrices for further analysis
         V = search.search_df(V, path, opt)
+
         # Concatenate search matrix among genes
         V = multigene.concatenate_df(V, path, opt)
+
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
 

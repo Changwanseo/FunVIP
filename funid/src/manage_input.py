@@ -92,6 +92,8 @@ class Funinfo:
             self.seq[gene] = seq
 
         self.bygene_species[gene] = self.ori_species
+        # Update concatenated
+        self.bygene_species["concatenated"] = self.ori_species
 
     def update_description(self, description):
         self.description = description
@@ -568,7 +570,6 @@ def db_input(opt, path) -> list:
 
     # do it after save_db option enabled
     for n, db in enumerate(db_namelist):
-        print(db)
         df_list[n].to_excel(
             f"{path.out_db}/Saved_{'.'.join(db.split('.')[:-1])}.xlsx", index=False
         )

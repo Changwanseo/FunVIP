@@ -131,6 +131,16 @@ def Trimal(fasta, out, path, algorithm="gt", threshold=0.2):
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
 
+    # to remove unexpected hash
+    fasta_list = list(SeqIO.parse(out, "fasta"))
+
+    for seq in fasta_list:
+        # if " " in seq.description:
+        seq.id = seq.description.split(" ")[0]
+        seq.description = ""
+
+    SeqIO.write(fasta_list, out, "fasta")
+
 
 # Modeltest
 def Modeltest_ng(fasta, out, models, thread):

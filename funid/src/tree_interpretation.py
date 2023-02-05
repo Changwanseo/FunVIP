@@ -681,13 +681,6 @@ class Tree_information:
                 end="\r",
             )
 
-            if self.gene == "concatenated":
-                if "Aspergillus" in taxon[0]:
-                    print(self.group)
-                    print(self.gene)
-                    print(taxon)
-                    raise Exception
-
             if not (taxon in self.collapse_dict):
                 self.collapse_dict[taxon] = [collapse_info]
             else:
@@ -1103,11 +1096,6 @@ class Tree_information:
                 genus = get_genus_species(text.text, genus_list=genus_list)[0]
                 species = get_genus_species(text.text, genus_list=genus_list)[1]
 
-                if "Aspergillus" in genus:
-                    print(text.text)
-                    print(species)
-                    raise Exception
-
                 rest = (
                     text.text.replace(genus, "").replace(species, "").replace(" ", "")
                 )
@@ -1121,7 +1109,6 @@ class Tree_information:
                     genus = get_genus_species(text.text, genus_list=genus_list)[0]
 
                 # split genus, species, rest of parent into tspan
-                # parent.remove(text)
                 text.text = ""
                 tspan_list = []
                 if genus != "":

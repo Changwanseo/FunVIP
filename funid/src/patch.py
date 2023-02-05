@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 import ete3
+from copy import deepcopy
 
 # Patch for ete3 3.1.2 colliding with higher version PyQt5
 def save(scene, imgName, w=None, h=None, dpi=90, take_region=False, units="px"):
@@ -154,6 +155,7 @@ def save(scene, imgName, w=None, h=None, dpi=90, take_region=False, units="px"):
     if ext == "SVG":
         svg = QSvgGenerator()
         targetRect = QRectF(0, 0, w, h)
+        print(f"DEBUG {w} {h}")
         svg.setSize(QSize(int(w), int(h)))
         svg.setViewBox(targetRect)
         svg.setTitle("Generated with ETE http://etetoolkit.org")
@@ -205,7 +207,7 @@ def save(scene, imgName, w=None, h=None, dpi=90, take_region=False, units="px"):
         printer.setResolution(dpi)
         printer.setOutputFormat(format)
         printer.setPageSize(QPrinter.A4)
-        printer.setPaperSize(QSizeF(w, h), QPrinter.DevicePixel)
+        printer.setPaperSize(QSizeF(int(w), int(h)), QPrinter.DevicePixel)
         printer.setPageMargins(0, 0, 0, 0, QPrinter.DevicePixel)
 
         # pageTopLeft = printer.pageRect().topLeft()
@@ -255,4 +257,4 @@ def save(scene, imgName, w=None, h=None, dpi=90, take_region=False, units="px"):
 
 
 def patch():
-    ete3.treeview.main.save = save
+    ete3.treeview.main.save = deepcopy(save)
