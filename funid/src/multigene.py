@@ -102,6 +102,9 @@ def concatenate_df(V, path, opt):
     logging.info("Concatenating search results")
     df_list = [V.dict_gene_SR[gene] for gene in V.dict_gene_SR]
 
+    print(V.dict_gene_SR)
+    print(df_list)
+
     if len(df_list) <= 0:
         logging.warning(f"Stop concatenating because same or less than 0 gene exists")
         return V

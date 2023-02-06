@@ -1236,10 +1236,15 @@ class Option:
         if self.method.alignment == "mafft":
             try:
                 self.mafft.algorithm = str(self.mafft.algorithm)
-                if not (self.mafft.algorithm.lower() in ("auto", "l-ins-i", "linsi")):
+                if not (
+                    self.mafft.algorithm.lower()
+                    in ("auto", "l-ins-i", "linsi", "localpair")
+                ):
                     list_error.append(
                         f"Invalid mafft algorithm {self.mafft.algorithm}. Currently available algorithms are auto and l-ins-i"
                     )
+                elif self.mafft.algorithm.lower() in ("l-ins-i", "linsi", "localpair"):
+                    self.mafft.algorithm = "localpair"
 
             except:
                 list_error.append(

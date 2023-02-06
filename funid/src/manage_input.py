@@ -352,6 +352,7 @@ def input_table(path, opt, table_list, datatype):
 
         # Lower case column names
         df.columns = df.columns.str.lower()
+        df.columns = df.columns.str.strip()
         df_list.append(df)
 
         # Clean up columns
@@ -418,9 +419,18 @@ def input_table(path, opt, table_list, datatype):
 
             # find all NCBI accessions in seq
             for gene in opt.gene:
+                print(
+                    isuniquecolumn(
+                        list_column=df.columns,
+                        column=tuple((gene,)),
+                        table_name=table,
+                        check_none=False,
+                    )
+                )
+
                 if isuniquecolumn(
                     list_column=df.columns,
-                    column=gene,
+                    column=tuple((gene,)),
                     table_name=table,
                     check_none=False,
                 ):
@@ -445,7 +455,7 @@ def input_table(path, opt, table_list, datatype):
 
                 # Run GenMine
                 cmd = f"GenMine -c {path.GenMine}/Accessions.txt -o {path.GenMine} -e {opt.email}"
-                subprocess.call(cmd)
+                subprocess.call(cmd, shell=True)
 
                 GenMine_df_list = [
                     file
@@ -461,7 +471,7 @@ def input_table(path, opt, table_list, datatype):
                         download_dict[acc.strip()] = download_df["seq"][n]
 
                     # replace accession to sequence downloaded
-                    for n, _ in enumerate(df["accession"]):
+                    for n, _ in enumerate(df["id"]):
                         for gene in opt.gene:
                             if gene in df.columns:
                                 if not (pd.isna(df[gene][n])):
@@ -476,10 +486,20 @@ def input_table(path, opt, table_list, datatype):
                                     ):
                                         df[gene][n] = ""
 
-                else:
+                    # Remove GenMine results to prevent collision with next set
+                    for file in os.listdir(path.GenMine):
+                        if "transformed.xlsx" in file:
+                            os.remove(f"{path.GenMine}/{file}")
+
+                elif len(GenMine_df_list) == 0:
                     logging.warning(
                         f"None of the GenMine results were succesfully parsed"
                     )
+                else:
+                    logging.error(
+                        f"DEVELOPMENTAL ERROR: Multiple GenMine result colliding!"
+                    )
+                    raise Exception
 
         # Generate funinfo by each row
         for n, acc in enumerate(df["id"]):
@@ -487,7 +507,7 @@ def input_table(path, opt, table_list, datatype):
             # Check if each of the ids are unique
             # Remove non-unicode first
             new_acc = True
-            df["id"][n] = manage_unicode(str(df["id"][n]), column="accssion", row=n)
+            df["id"][n] = manage_unicode(str(df["id"][n]), column="accession", row=n)
             # Generate funinfo for each id
             if df["id"][n] in funinfo_dict:
                 newinfo = funinfo_dict[df["id"][n]]

@@ -135,6 +135,7 @@ def cluster(FI, df_search, V, path, opt):
 
     # If no evidence available, return it
     if df_search is None:
+        logging.warning(f"No adjusted_group assigned to {FI}")
         FI.adjusted_group = FI.group
         return FI, None
     # for db sequence with group, retain it
@@ -353,8 +354,16 @@ def group_cluster_opt_generator(V, opt, path):
             # If only one gene
             if len(list(FI.seq.keys())) == 1:
                 gene = list(FI.seq.keys())[0]
-                appropriate_df = df_group_dict[gene].get_group(FI.hash)
-                V.opt_cluster.append((FI, appropriate_df, V, path, opt))
+                print(gene)
+                print(FI)
+                print(FI.hash)
+                try:
+                    appropriate_df = df_group_dict[gene].get_group(FI.hash)
+                    V.opt_cluster.append((FI, appropriate_df, V, path, opt))
+                except:
+                    logging.warning(
+                        f"Cannot assign group to {FI} {gene}, removing from analysis"
+                    )
 
             # If no sequence available
             elif len(list(FI.seq.keys())) == 0:
