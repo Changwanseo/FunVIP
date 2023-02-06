@@ -155,7 +155,7 @@ def save(scene, imgName, w=None, h=None, dpi=90, take_region=False, units="px"):
     if ext == "SVG":
         svg = QSvgGenerator()
         targetRect = QRectF(0, 0, w, h)
-        print(f"DEBUG {w} {h}")
+        # print(f"DEBUG {w} {h}")
         svg.setSize(QSize(int(w), int(h)))
         svg.setViewBox(targetRect)
         svg.setTitle("Generated with ETE http://etetoolkit.org")

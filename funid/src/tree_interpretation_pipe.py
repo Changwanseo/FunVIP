@@ -184,14 +184,15 @@ def synchronize(V, path, tree_info_list):
                     if gene != "concatenated":
                         bygene_taxon_dict = {}
 
+                        # Grab the tree
                         tree_info = tree_info_dict[genus][group][gene]
 
                         # Synchronize bygene taxon name to concatenated
                         for taxon in tree_info.collapse_dict:
-
-                            # Do not change non- sp.
+                            # Do not change non-sp.
+                            species_text = ""
                             if "sp." in taxon[1]:
-
+                                # Get all hash of designated taxon leaf
                                 hash_list = [
                                     leaf[0]
                                     for leaf in tree_info.collapse_dict[taxon][
@@ -200,16 +201,16 @@ def synchronize(V, path, tree_info_list):
                                 ]
 
                                 available_set = set()
+                                available_set -= {""}
                                 for _hash in hash_list:
                                     if _hash in hash_dict:
                                         available_set.add(hash_dict[_hash][1])
 
                                 species_text = "/".join(sorted(list(available_set)))
+                            else:
+                                species_text = f"{taxon[1]}/{species_text}"
 
-                                if not (".sp") in taxon[1]:
-                                    species_text = f"{taxon[1]}/{species_text}"
-
-                                bygene_taxon_dict[taxon] = species_text
+                            bygene_taxon_dict[taxon] = species_text
 
                         # Change taxon name
                         tmp_taxon_list = [key for key in tree_info.collapse_dict]
@@ -218,6 +219,8 @@ def synchronize(V, path, tree_info_list):
                                 tree_info.collapse_dict[
                                     (taxon[0], bygene_taxon_dict[taxon])
                                 ] = tree_info.collapse_dict.pop(taxon)
+
+                        print(tree_info.collapse_dict)
                 cnt_sp_adder += len(taxon_set)
 
     # Return sp number fixed tree_info_list
@@ -262,6 +265,7 @@ def pipe_module_tree_visualization(
     # Declare report collection
     report_list = []
     for taxon in list_taxon:
+        print(f"taxon {taxon}")
         # If only one taxon exists, enumerate does not work properly
         if len(tree_info.collapse_dict[taxon]) <= 1:
             collapse_info = tree_info.collapse_dict[taxon][0]
@@ -275,12 +279,13 @@ def pipe_module_tree_visualization(
                 report.update_species_original(
                     get_genus_species(leaf[2], genus_list=genus_list)
                 )
-                report.update_species_assigned(taxon)
+                report.update_species_assigned(" ".join(taxon))
                 report.ambiguous = collapse_info.clade_cnt
                 report.flat = collapse_info.flat
 
                 report_list.append(report)
 
+        # If more than one taxon exists,
         else:
             for n, collapse_info in enumerate(tree_info.collapse_dict[taxon]):
                 for leaf in collapse_info.leaf_list:
@@ -292,7 +297,7 @@ def pipe_module_tree_visualization(
                     report.update_species_original(
                         get_genus_species(leaf[2], genus_list=genus_list)
                     )
-                    report.update_species_assigned((" ".join(taxon), f"{n+1}"))
+                    report.update_species_assigned((f"{taxon[0]} {taxon[1]} {n+1}"))
                     report.ambiguous = collapse_info.clade_cnt
                     report.flat = collapse_info.flat
 
@@ -343,7 +348,6 @@ def pipe_tree_interpretation(V, path, opt):
         ]
 
     tree_info_list = synchronize(V, path, tree_info_list)
-
     # Generate visualization option to run
     tree_visualization_opt = []
     for tree_info in tree_info_list:
@@ -370,14 +374,12 @@ def pipe_tree_interpretation(V, path, opt):
             FI = V.dict_hash_FI[report.hash]
             # Concatenated
             if report.gene == "concatenated":
-                # logging.debug("Updating final species")
                 FI.final_species = report.species_assigned
                 FI.species_identifier = report.ambiguous
                 if report.flat is True:
                     FI.flat.append("concatenated")
             # Non concatenated
             else:
-                # logging.debug("Not updating final species")
                 FI.bygene_species[report.gene] = report.species_assigned
                 if report.flat is True:
                     FI.flat.append(report.gene)

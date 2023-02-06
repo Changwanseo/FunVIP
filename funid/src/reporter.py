@@ -39,9 +39,9 @@ class Singlereport:
     def update_species_original(self, taxon):
         self.species_original = " ".join(list(taxon))
 
-    # Update assigned species string from (genus, species) tuple
-    def update_species_assigned(self, taxon):
-        self.species_assigned = " ".join(list(taxon))
+    # Update assigned species string
+    def update_species_assigned(self, taxon_str):
+        self.species_assigned = taxon_str
 
     def __repr__(self):
         return f"{self.hash} {self.gene}"
@@ -140,7 +140,6 @@ class Report:
         # Generate each gene identification report
         for gene in sorted(list(set_gene)):
             if gene != "concatenated":
-                # dict_tmp["original identification"] = []
                 self.result[f"{gene.upper()}_ASSIGNED"] = []
 
         # Concatenated analysis will be operated seperately
