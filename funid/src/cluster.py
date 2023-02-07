@@ -354,9 +354,6 @@ def group_cluster_opt_generator(V, opt, path):
             # If only one gene
             if len(list(FI.seq.keys())) == 1:
                 gene = list(FI.seq.keys())[0]
-                print(gene)
-                print(FI)
-                print(FI.hash)
                 try:
                     appropriate_df = df_group_dict[gene].get_group(FI.hash)
                     V.opt_cluster.append((FI, appropriate_df, V, path, opt))

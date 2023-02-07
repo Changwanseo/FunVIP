@@ -419,15 +419,6 @@ def input_table(path, opt, table_list, datatype):
 
             # find all NCBI accessions in seq
             for gene in opt.gene:
-                print(
-                    isuniquecolumn(
-                        list_column=df.columns,
-                        column=tuple((gene,)),
-                        table_name=table,
-                        check_none=False,
-                    )
-                )
-
                 if isuniquecolumn(
                     list_column=df.columns,
                     column=tuple((gene,)),

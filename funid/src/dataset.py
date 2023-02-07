@@ -398,9 +398,6 @@ class FunID_var:
                     ]
 
                     ## Multiply vectors
-                    print(
-                        f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta"
-                    )
                     vector_products = np.prod(np.vstack(vectors), axis=0)
 
                     ## If all value of vectors are zero, it means that all regions have at least one gap

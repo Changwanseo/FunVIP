@@ -240,9 +240,6 @@ def synchronize(V, path, tree_info_list):
                                         nonsp_list.append(_t)
                             nonsp_list = list(set(nonsp_list))
 
-                            print(f"sp_list: {sp_list}")
-                            print(f"nonsp_list: {nonsp_list}")
-
                             sp_string = "/".join(
                                 [
                                     "/".join(sorted(nonsp_list)),
