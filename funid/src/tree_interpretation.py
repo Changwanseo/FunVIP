@@ -677,7 +677,7 @@ class Tree_information:
                     else:
                         break
             print(
-                f"[INFO] Generating collapse information on {self.group} {self.gene} for taxon {taxon}",
+                f"[INFO] Generating collapse information on {self.group} {self.gene} for taxon {taxon}          ",
                 end="\r",
             )
 

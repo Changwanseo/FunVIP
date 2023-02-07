@@ -60,7 +60,7 @@ def main():
         format="%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%m/%d/%Y %I:%M:%S %p",
         encoding="utf-8",
-        level=logging.DEBUG,
+        level=tool.get_level(opt.verbose),
         handlers=[logging.FileHandler(path.log), logging.StreamHandler()],
     )
 
@@ -240,3 +240,4 @@ def main():
 
         end_time = time()
         logging.info(f"FunID ended in {end_time - start_time}")
+        print(f"FunID ended in {end_time - start_time}")

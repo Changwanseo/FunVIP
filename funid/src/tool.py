@@ -272,3 +272,18 @@ def index_step(step):
 
 def check_avx():
     return platform.machine() == "x86_64"
+
+
+# Return logging
+def get_level(level):
+    if level == 3:
+        return logging.DEBUG
+    elif level == 2:
+        return logging.INFO
+    elif level == 1:
+        return logging.WARNING
+    elif level == 0:
+        return logging.ERROR
+    else:
+        print(f"DEVELOPMENTAL ERROR ON MANAGING VERBOSE LEVEL {level}")
+        raise Exception

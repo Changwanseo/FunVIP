@@ -77,7 +77,7 @@ class Option:
         self.level = "genus"
         self.queryonly = True
         self.confident = True
-        self.verbose = 1
+        self.verbose = 2
         self.maxoutgroup = 3
         self.collapsedistcutoff = 0.01
         self.collapsebscutoff = 101
@@ -1105,11 +1105,11 @@ class Option:
             self.verbose = int(self.verbose)
             if not self.verbose in (0, 1, 2, 3):
                 list_error.append(
-                    f"verbose should be one of 0,1,2,3 - 0: quiet, 1: info, 2: warning, 3: debug"
+                    f"verbose should be one of 0,1,2,3 - 0: only error, 1: warning, 2: info, 3: debug"
                 )
         except:
             list_error.append(
-                f"verbose should be one of 0,1,2,3 - 0: quiet, 1: info, 2: warning, 3: debug"
+                f"verbose should be one of 0,1,2,3 - 0: only error, 1: warning, 2: info, 3: debug"
             )
 
         # maxoutgroup

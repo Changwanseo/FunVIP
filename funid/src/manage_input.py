@@ -539,7 +539,7 @@ def input_table(path, opt, table_list, datatype):
 
             # parse each of the genes
             # For each of the gene
-            logging.debug(f"Gene found in db input {opt.gene}")
+            # logging.debug(f"Gene found in db input {opt.gene}")
             for gene in opt.gene:
                 seq_error = 0
                 if gene in df.columns:

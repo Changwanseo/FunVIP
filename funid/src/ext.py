@@ -28,9 +28,9 @@ def mmseqs(query, db, out, tmp, path, opt):
     path_mmseqs = f"{path.sys_path}/external/mmseqs_Windows/mmseqs.bat"
 
     if platform == "win32":
-        CMD = f"{path_mmseqs} easy-search {query} {db} {out} {tmp} --threads {opt.thread} --search-type 3 -e {opt.cluster.evalue} -v 1"
+        CMD = f"{path_mmseqs} easy-search {query} {db} {out} {tmp} --threads {opt.thread} --search-type 3 -e {opt.cluster.evalue}"
     else:
-        CMD = f"mmseqs easy-search {query} {db} {out} {tmp} --threads {opt.thread} --search-type 3 -e {opt.cluster.evalue} -v 1"
+        CMD = f"mmseqs easy-search {query} {db} {out} {tmp} --threads {opt.thread} --search-type 3 -e {opt.cluster.evalue}"
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
@@ -58,10 +58,9 @@ def makemmseqsdb(fasta, db, path):
     path_makemmseqsdb = f"{path.sys_path}/external/mmseqs_Windows/mmseqs.bat"
 
     if platform == "win32":
-        CMD = f"{path_makemmseqsdb} createdb {fasta} {db}"
+        CMD = f"{path_makemmseqsdb} createdb {fasta} {db} --createdb-mode 0 --dbtype 2"
     else:
-        CMD = f"mmseqs createdb {fasta} {db}"
-    print(CMD)
+        CMD = f"mmseqs createdb {fasta} {db} --createdb-mode 0 --dbtype 2"
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
 

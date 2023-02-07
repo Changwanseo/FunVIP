@@ -122,12 +122,12 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
 
     # Working on saved database
     # find key for which db to use
+    # get hash number of the given db to compare
+    _hash = hashlib.md5(open(db_fasta, "rb").read()).hexdigest()
+
     if opt.cachedb is True or opt.usecache is True:
 
-        # get hash number of the given db to compare
-        hash_ = hashlib.md5(open(db_fasta, "rb").read()).hexdigest()
-
-        if hash_ is None:
+        if _hash is None:
             logging.error(f"Database file {db_fasta} missing")
             raise Exception
 
@@ -136,11 +136,11 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
 
             # When succesfully parsed DB
             if (
-                os.path.isdir(f"{path.in_db}/{opt.method.search.lower()}/{hash_}")
+                os.path.isdir(f"{path.in_db}/{opt.method.search.lower()}/{_hash}")
                 is True
             ):
                 logging.info("[INFO] Found existing database! Skipping database build")
-                db = f"{path.in_db}/{opt.method.search.lower()}/{hash_}/{hash_}"
+                db = f"{path.in_db}/{opt.method.search.lower()}/{_hash}/{_hash}"
 
             # When parsing existing DB failed
             else:
@@ -154,8 +154,8 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
                     )
 
                     # Create DB saving directory
-                    os.mkdir(f"{path.in_db}/{opt.method.search.lower()}/{hash_}")
-                    db = f"{path.in_db}/{opt.method.search.lower()}/{hash_}/{hash_}"
+                    os.mkdir(f"{path.in_db}/{opt.method.search.lower()}/{_hash}")
+                    db = f"{path.in_db}/{opt.method.search.lower()}/{_hash}/{_hash}"
 
                     # DB saving starts
                     logging.info("The database is in first run, caching database")
@@ -168,13 +168,15 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
                     logging.info(
                         "--cachedb not selected, saving database will be passed"
                     )
-                    db = f"{path.tmp}/{opt.runname}"
+                    os.mkdir(f"{path.tmp}/{opt.runname}/{_hash}")
+                    db = f"{path.tmp}/{opt.runname}/{_hash}/{_hash}"
 
                     # Create search database
                     create_search_db(opt, db_fasta, db, path)
 
     else:
-        db = f"{path.tmp}/{opt.runname}"
+        os.mkdir(f"{path.tmp}/{opt.runname}/{_hash}")
+        db = f"{path.tmp}/{opt.runname}/{_hash}/{_hash}"
         # Create search database
         create_search_db(opt, db_fasta, db, path)
 
@@ -189,8 +191,10 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
             opt=opt,
         )
         # remove db when saving not enabled
-        if opt.cachedb is False:
-            cleanblastdb(db)
+        # Temporarily disabled to remove bug
+        # if opt.cachedb is False:
+        #    cleanblastdb(db)
+
     # mmseqs
     elif opt.method.search.lower() in ("mmseqs", "mmseq", "mmseq2", "mmseqs2"):
         mmseqs(
@@ -202,8 +206,9 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
             opt=opt,
         )
         # remove db when saving not enabled
-        if opt.cachedb is False:
-            cleanmmseqsdb(db)
+        # Temporarily disabled to remove bug
+        # if opt.cachedb is False:
+        #    cleanmmseqsdb(db)
         # remove temporary file
         # shutil.rmtree(f"{path.tmp}/{opt.runname}")
     else:
@@ -230,8 +235,6 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
             "bitscore",
         ],
     )
-
-    print(df)
 
     # Remove temporary files
     os.remove(f"{path.tmp}/{opt.runname}.m8")
@@ -401,6 +404,7 @@ def search_df(V, path, opt):
         os.remove(f"{path.tmp}/{opt.runname}_Query_unclassified.fasta")
 
     # remove temporary files
+    """
     for gene in opt.gene:
         try:
             os.remove(f"{path.tmp}/{opt.runname}_Query_{gene}.fasta")
@@ -410,5 +414,6 @@ def search_df(V, path, opt):
             os.remove(f"{path.tmp}/{opt.runname}_DB_{gene}.fasta")
         except:
             pass
+    """
 
     return V

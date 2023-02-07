@@ -177,7 +177,7 @@ class Report:
                         )
 
                     # Collect identification result for each gene analysis
-                    possible_taxon = set()
+                    inconsistent_flag = 0
                     for gene in set_gene:
                         # Check if data analysis had performed for specific FI, group, gene combination
                         if (
@@ -187,20 +187,28 @@ class Report:
                             self.result[f"{gene.upper()}_ASSIGNED"].append(
                                 FI.bygene_species[gene]
                             )
-                            possible_taxon.add(FI.bygene_species[gene])
+                            if not (
+                                any(
+                                    _sp in FI.final_species
+                                    for _sp in FI.bygene_species[gene].split("/")
+                                )
+                            ):
+                                inconsistent_flag = 1
                         else:
                             self.result[f"{gene.upper()}_ASSIGNED"].append("-")
 
                     # Add final identification result
                     if FI.final_species != "":
                         self.result["SPECIES_ASSIGNED"].append(f"{FI.final_species}")
-                        possible_taxon.add(FI.final_species)
                     else:
                         self.result["SPECIES_ASSIGNED"].append("UNDETERMINED")
 
-                    # Add abnormalities
+                    ## Add abnormalities
+                    # Flat
                     self.result["FLAT_BRANCH"].append("/".join(FI.flat))
-                    if len(possible_taxon) > 1:
+                    # Inconsistency
+
+                    if inconsistent_flag == 1:
                         self.result["INCONSISTENT"].append("inconsistent")
                     else:
                         self.result["INCONSISTENT"].append("-")
