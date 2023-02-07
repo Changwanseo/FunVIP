@@ -19,7 +19,7 @@ def main():
     from funid.src import tree
     from funid.src import trim
     from funid.src.command import CommandParser
-    from funid.src.tool import initialize_path, index_step
+    from funid.src.tool import index_step
     from funid.src.opt_generator import opt_generator
     from time import time
     import pandas as pd
@@ -53,14 +53,14 @@ def main():
     opt, path, list_info, list_warning, list_error = initialize.initialize(
         path_run=os.getcwd(), parser=args
     )
-    initialize_path(path)
+    tool.initialize_path(path)
 
     # setup logging
     logging.basicConfig(
         format="%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%m/%d/%Y %I:%M:%S %p",
         encoding="utf-8",
-        level=logging.DEBUG,
+        level=tool.get_level(opt.verbose),
         handlers=[logging.FileHandler(path.log), logging.StreamHandler()],
     )
 
@@ -78,8 +78,6 @@ def main():
     V = dataset.FunID_var()
     # R includes all reporting objects such as warnings, errors, statistics
     R = reporter.Report()
-    ## Initialize logging process
-    # R.log.initialize_log(step)
 
     ##########################################################################
     #     End of initializing blocks should not be moved for function!!!     #
@@ -112,8 +110,10 @@ def main():
 
         # Generate BLAST or mmseqs matrices for further analysis
         V = search.search_df(V, path, opt)
+
         # Concatenate search matrix among genes
         V = multigene.concatenate_df(V, path, opt)
+
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
 
@@ -127,30 +127,24 @@ def main():
 
         V, opt, path = cluster.pipe_cluster(V, opt, path)
 
-        # Append query column to each of the df in df_dict as query assigned
+        # Append query column to each of the df, and concatenated_df in df_dict as query assigned
         V = cluster.append_query_group(V)
 
         # Append query column to concatenated_df as query assigned
-        if opt.concatenate is True:
-            V = cluster.append_concatenated_query_group(V)
+        # V = cluster.append_concatenated_query_group(V)
 
         # Both gene and group was assigned, dataset was confirmed
         V.generate_dataset(opt)
 
         # Appending outgroup
         logging.info("Appending outgroup")
-
         # For non-concatenated outgroup
         # ready for multiprocessing run
         # Pushing all v to multiprocessing requires too much memory
         V, path, opt = cluster.pipe_append_outgroup(V, path, opt)
 
-        # Wrap up outgroup appending results
-        # outgroup result : (gene, group, outgroup_list, group_list)
-        V = cluster.outgroup_result_collector(V)
-        # remove invalid dataset to be analyzed ()
+        # remove invalid dataset from downstream analysis
         V.remove_invalid_dataset()
-
         # Save dataset to outgroups
         V.save_dataset(path, opt)
 
@@ -179,14 +173,12 @@ def main():
     if opt.continue_from_previous is False or index_step(opt.step) <= 5:
         step = "concatenate"
         logging.info("CONCATENATING MULTIGENE ALIGNMENTS")
-        if opt.concatenate is True:
-            # Multigene
-            V = multigene.combine_alignment(V, opt, path)
 
-            R.update_report(V=V, path=path, opt=opt, step=step)
-            save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
-        else:
-            logging.info("Passing concatenated tree")
+        # Multigene
+        V = multigene.combine_alignment(V, opt, path)
+
+        R.update_report(V=V, path=path, opt=opt, step=step)
+        save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
 
     # Alignment validations - whether some of the sequences does not have overlapping regions
     V.validate_alignments(path, opt)
@@ -238,36 +230,12 @@ def main():
         step = "report"
         logging.info("REPORT")
 
-        writer = pd.ExcelWriter(
-            f"{path.root}/{opt.runname}_report.xlsx", engine="xlsxwriter"
-        )
-
-        # raw_result: (out, df, report_list)
-        # out: f"{opt.runname}_{group}_{gene}"
-        # df: db, query, others, total dataframe
-        # report_list: report: SingleReport - id, hash, group, gene, inputtaxon, identifiedtaxon
-
         # Reporting
         V.homogenize_dataset()
-        # R.statistics.update_statistics(V, opt)
-        # R.arrange(V, opt, f"{path.root}/{opt.runname}_Identification_result.xlsx")
-
-        # Testing
-        # R.initialize_group_report(V, opt)
-        # R.render(opt, out=f"{path.root}/{opt.runname}_report.html")
-
-        """
-        try:
-            R.initialize_group_report(V, opt)
-            R.render(opt, out=f"{path.root}/{opt.runname}_report.html")
-        except:
-            logging.error(
-                f"Data report is currently experimental feature. Failed in this analysis"
-            )
-        """
 
         R.update_report(V, path, opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
 
         end_time = time()
         logging.info(f"FunID ended in {end_time - start_time}")
+        print(f"FunID ended in {end_time - start_time}")

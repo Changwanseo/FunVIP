@@ -9,43 +9,39 @@ from funid.src.tool import index_step
 from funid.src.save import save_df
 
 # For version reporting
-__version__ = "0.2.0.1.0.4"
+__version__ = "0.3.2"
 
 ### Temporary report for tree_interpretation_pipe
-### To collect result from multiprocessing on tree_interpretation
+# To collect result from multiprocessing on tree_interpretation
+# All abnormalities should be listed here
 class Singlereport:
     def __init__(self):
         self.id = ""
         self.hash = ""
         self.group = ""
         self.gene = ""
-<<<<<<< HEAD
         self.species_original = ""
         self.species_assigned = ""
 
         # abnormalities
         # for if ambiguous clade exists e.g. Amanita subglobosa "1", Amanita subglobosa "2"
-=======
-        self.inputtaxon = ""
-        self.identifiedtaxon = ""
-        # for if ambiguous clade exists e.g. Amanita subglobosa 1, Amanita subglobosa 2
->>>>>>> parent of bbf88cd (0.2.0.1.0.7)
         # 0 if none of them exists
-        self.taxon_cnt = ""
+        self.ambiguous = ""
+        self.flat = False
 
-    def update_genusgroup(self, string, gene):
+    def update_group(self, group):
+        self.group = group
 
-        if "concatenated" in string:
-            self.group = "_".join(string.split("_")[1:])
-        else:
-            self.group = string.split("_")[-2]
+    def update_gene(self, gene):
         self.gene = gene
 
-    def update_inputtaxon(self, taxon):
-        self.inputtaxon = " ".join(list(taxon))
+    # Update original species string from (genus, species) tuple
+    def update_species_original(self, taxon):
+        self.species_original = " ".join(list(taxon))
 
-    def update_identifiedtaxon(self, taxon):
-        self.identifiedtaxon = " ".join(list(taxon))
+    # Update assigned species string
+    def update_species_assigned(self, taxon_str):
+        self.species_assigned = taxon_str
 
     def __repr__(self):
         return f"{self.hash} {self.gene}"
@@ -104,12 +100,14 @@ class Report:
             "STATUS": [],
         }
 
+        self.query_result = None
+
     def update_dataset(self, V, opt):
+
         for gene in V.list_qr_gene:
             self.dataset[gene.upper()] = []
 
-        if opt.concatenate is True:
-            self.dataset["CONCATENATE"] = []
+        self.dataset["CONCATENATE"] = []
 
         for group in V.list_group:
             self.dataset["GROUP"].append(group)
@@ -122,26 +120,26 @@ class Report:
                     else:
                         self.dataset[gene.upper()].append("-")
 
-                if opt.concatenate is True:
-                    if "concatenate" in V.dict_dataset[group]:
-                        self.dataset["CONCATENATE"].append("O")
-                    else:
-                        self.dataset["CONCATENATE"].append("-")
+                if "concatenated" in V.dict_dataset[group]:
+                    self.dataset["CONCATENATE"].append("O")
+                else:
+                    self.dataset["CONCATENATE"].append("-")
 
             else:
                 # If group does not exists
                 for gene in V.list_qr_gene:
                     self.dataset[gene.upper()].append("-")
 
+                self.dataset["CONCATENATE"].append("-")
+
     # Combining result into dictionary form
     def update_result(self, V, opt):
-        # get all gene list -> check if V.list_qr_gene is enough for query_only : False analysis
+        # get all gene list -> check if V.list_qr_gene is enough for queryonly : False analysis
         set_gene = set(V.list_db_gene + V.list_qr_gene)
 
         # Generate each gene identification report
         for gene in sorted(list(set_gene)):
             if gene != "concatenated":
-                # dict_tmp["original identification"] = []
                 self.result[f"{gene.upper()}_ASSIGNED"] = []
 
         # Concatenated analysis will be operated seperately
@@ -151,117 +149,105 @@ class Report:
         for _hash in V.dict_hash_FI:
 
             FI = V.dict_hash_FI[_hash]
-            if opt.queryonly is False or FI.datatype == "query":
 
-                # Default results
-                self.result["ID"].append(FI.id)
-                self.result["HASH"].append(FI.hash)
-                self.result["DATATYPE"].append(FI.datatype)
-
-<<<<<<< HEAD
-            if str(FI.group).strip() == "":
-                self.result["GROUP_ORIGINAL"].append("-")
-            else:
-                self.result["GROUP_ORIGINAL"].append(FI.group)
-
-            self.result["GROUP_ASSIGNED"].append(FI.adjusted_group)
-
-            if f"{FI.ori_genus} {FI.ori_species}".strip() == "":
-                self.result["SPECIES_ORIGINAL"].append("-")
-            else:
-                self.result["SPECIES_ORIGINAL"].append(
-                    f"{FI.ori_genus} {FI.ori_species}"
-                )
-
-            # Collect identification result for each gene analysis
-            possible_taxon = set()
-            for gene in set_gene:
-                if gene in FI.bygene_species:
-                    self.result[f"{gene.upper()}_ASSIGNED"].append(
-                        FI.bygene_species[gene]
-                    )
-                    possible_taxon.add(FI.bygene_species[gene])
-=======
-                if str(FI.group).strip() == "":
-                    self.result["GROUP_ORIGINAL"].append("-")
->>>>>>> parent of bbf88cd (0.2.0.1.0.7)
-                else:
-                    self.result["GROUP_ORIGINAL"].append(FI.group)
-
-<<<<<<< HEAD
-            # Add final identification result
-            if FI.final_species != "":
-                self.result["SPECIES_ASSIGNED"].append(f"{FI.final_species}")
-                possible_taxon.add(FI.final_species)
-            else:
-                self.result["SPECIES_ASSIGNED"].append("UNDETERMINED")
-
-            # Add abnormalities
-            self.result["FLAT_BRANCH"].append("/".join(FI.flat))
-            if len(possible_taxon) > 1:
-                self.result["INCONSISTENT"].append("inconsistent")
-            else:
-                self.result["INCONSISTENT"].append("-")
-
-            self.result["AMBIGUOUS"].append(FI.species_identifier)
-=======
-                self.result["GROUP_ASSIGNED"].append(FI.adjusted_group)
-
-                if f"{FI.ori_genus} {FI.ori_species}".strip() == "":
-                    self.result["SPECIES_ORIGINAL"].append("-")
-                else:
-                    self.result["SPECIES_ORIGINAL"].append(
-                        f"{FI.ori_genus} {FI.ori_species}"
-                    )
->>>>>>> parent of bbf88cd (0.2.0.1.0.7)
-
-                # Collect identification result for each gene analysis
-                for gene in set_gene:
-                    if gene in FI.bygene_species:
-                        self.result[f"{gene.upper()}_ASSIGNED"].append(
-                            FI.bygene_species[gene]
-                        )
-                    else:
-                        self.result[f"{gene.upper()}_ASSIGNED"].append("-")
-
-                # Add final identification result
-                if FI.final_species != "":
-                    self.result["SPECIES_ASSIGNED"].append(f"{FI.final_species}")
-                else:
-                    self.result["SPECIES_ASSIGNED"].append("UNDETERMINED")
-
-                # Add abnormalities
-                self.result["FLAT_BRANCH"].append("")
-                self.result["INCONSISTENT"].append("")
-                self.result["AMBIGUOUS"].append("")
-
-                if FI.final_species.strip() == "":
-                    self.result["STATUS"].append("ERROR")
-                elif (
-                    f"{FI.ori_genus} {FI.ori_species}".strip() == ""
-                    and "sp." in FI.final_species.strip()
+            # Collect result from only used sequences
+            if FI.adjusted_group in V.dict_dataset:
+                # If any of appropriate gene used
+                if any(
+                    key in V.dict_dataset[FI.adjusted_group] for key in FI.seq.keys()
                 ):
-                    self.result["STATUS"].append("new species candidate")
-                elif f"{FI.ori_genus} {FI.ori_species}".strip() == "":
-                    self.result["STATUS"].append("undetermined")
-                elif FI.final_species == f"{FI.ori_genus} {FI.ori_species}":
-                    self.result["STATUS"].append("correctly identified")
-                else:
-                    self.result["STATUS"].append("misidentified")
 
-        # Update statistics by result
-        # Change format to dataframe
-        df_result = pd.DataFrame(self.result)
+                    # Default results
+                    self.result["ID"].append(FI.id)
+                    self.result["HASH"].append(FI.hash)
+                    self.result["DATATYPE"].append(FI.datatype)
 
-        # Filter query if opt.query_only is True
-        if opt.query_only is True:
-            df_result = df_result[df_result["DATATYPE"] == "query"]
+                    if str(FI.group).strip() == "":
+                        self.result["GROUP_ORIGINAL"].append("-")
+                    else:
+                        self.result["GROUP_ORIGINAL"].append(FI.group)
+
+                    self.result["GROUP_ASSIGNED"].append(FI.adjusted_group)
+
+                    if f"{FI.ori_genus} {FI.ori_species}".strip() == "":
+                        self.result["SPECIES_ORIGINAL"].append("-")
+                    else:
+                        self.result["SPECIES_ORIGINAL"].append(
+                            f"{FI.ori_genus} {FI.ori_species}"
+                        )
+
+                    # Collect identification result for each gene analysis
+                    inconsistent_flag = 0
+                    for gene in set_gene:
+                        # Check if data analysis had performed for specific FI, group, gene combination
+                        if (
+                            gene in FI.bygene_species
+                            and gene in V.dict_dataset[FI.adjusted_group]
+                        ):
+                            self.result[f"{gene.upper()}_ASSIGNED"].append(
+                                FI.bygene_species[gene]
+                            )
+                            if not (
+                                any(
+                                    _sp in FI.final_species
+                                    for _sp in FI.bygene_species[gene].split("/")
+                                )
+                            ):
+                                inconsistent_flag = 1
+                        else:
+                            self.result[f"{gene.upper()}_ASSIGNED"].append("-")
+
+                    # Add final identification result
+                    if FI.final_species != "":
+                        self.result["SPECIES_ASSIGNED"].append(f"{FI.final_species}")
+                    else:
+                        self.result["SPECIES_ASSIGNED"].append("UNDETERMINED")
+
+                    ## Add abnormalities
+                    # Flat
+                    self.result["FLAT_BRANCH"].append("/".join(FI.flat))
+                    # Inconsistency
+
+                    if inconsistent_flag == 1:
+                        self.result["INCONSISTENT"].append("inconsistent")
+                    else:
+                        self.result["INCONSISTENT"].append("-")
+
+                    self.result["AMBIGUOUS"].append(FI.species_identifier)
+
+                    if FI.final_species.strip() == "":
+                        self.result["STATUS"].append("ERROR")
+                    elif (
+                        f"{FI.ori_genus} {FI.ori_species}".strip() == ""
+                        and "sp." in FI.final_species.strip()
+                    ):
+                        self.result["STATUS"].append("new species candidate")
+                    elif f"{FI.ori_genus} {FI.ori_species}".strip() == "":
+                        self.result["STATUS"].append("undetermined")
+                    elif FI.final_species == f"{FI.ori_genus} {FI.ori_species}":
+                        self.result["STATUS"].append("correctly identified")
+                    else:
+                        self.result["STATUS"].append("misidentified")
+            else:
+                # print(f"DEBUGGING {self.dataset['GROUP']} {FI.adjusted_group}")
+                # logging.info(f"{FI} removed from report because not used in analysis")
+                pass
+
+        ## update query only result
+        self.query_result = pd.DataFrame(self.result)
+        # Filter if queryonly is True
+        if opt.queryonly is True:
+            self.query_result = self.query_result[
+                self.query_result["DATATYPE"] == "query"
+            ]
+
+        ### Update statistics by result
 
         # Groupby group
-        df_result_group = df_result.groupby(["GROUP_ASSIGNED"])
+        df_result_group = self.query_result.groupby(["GROUP_ASSIGNED"])
 
         # Count groups
-        for group in sorted(list(set(df_result["GROUP_ASSIGNED"]))):
+        for group in sorted(list(set(self.query_result["GROUP_ASSIGNED"]))):
             df_group = df_result_group.get_group(group)
 
             # Collect statistics
@@ -321,6 +307,8 @@ class Report:
         elif step == "align":
             self.report_text(V, path, opt, step)
         elif step == "trim":
+            self.report_text(V, path, opt, step)
+        elif step == "concatenate":
             self.report_text(V, path, opt, step)
         elif step == "modeltest":
             self.report_text(V, path, opt, step)
@@ -402,7 +390,6 @@ class Report:
                 f.write(f"LEVEL:                  {opt.level}\n")
                 f.write(f"QUERYONLY:              {opt.queryonly}\n")
                 f.write(f"CONFIDENT:              {opt.confident}\n")
-                f.write(f"CONCATENATE:            {opt.concatenate}\n")
                 f.write(f"VERBOSE:                {opt.verbose}\n")
                 f.write(f"MAXOUTGROUP:            {opt.maxoutgroup}\n")
                 f.write(f"COLLAPSEDISTCUTOFF:     {opt.collapsedistcutoff}\n")
@@ -414,8 +401,8 @@ class Report:
                 f.write(f"CACHEDB:                {opt.cachedb}\n")
                 f.write(f"USECACHE:               {opt.usecache}\n")
                 f.write(f"MATRIXFORMAT:           {opt.matrixformat}\n")
-                f.write(f"SAVESEARCHMATRIX:       {opt.savesearchmatrix}\n")
-                f.write(f"SAVESEARCHRESULT:       {opt.savesearchresult}\n")
+                f.write(f"NOSEARCHMATRIX:         {opt.nosearchmatrix}\n")
+                f.write(f"NOSEARCHRESULT:         {opt.nosearchresult}\n")
                 f.write(f"METHOD:                 \n")
                 f.write(f" - SEARCH:              {opt.method.search}\n")
                 f.write(f" - ALIGNMENT:           {opt.method.alignment}\n")
@@ -452,75 +439,70 @@ class Report:
                 f.write(f"[DATASET]\n")
                 f.write(tabulate(self.dataset, headers=self.dataset.keys()))
                 f.write("\n\n")
-                f.write(" * O : Group - Gene dataset analysis done\n")
+                f.write("O : Group - Gene dataset analysis done\n")
                 f.write(
-                    " * - : Group - Gene dataset analysis cannot be performed (absence of query sequence, no appropriate outgroup etc..)\n"
+                    "- : Group - Gene dataset analysis cannot be performed (absence of query sequence, no appropriate outgroup etc..)\n"
                 )
                 f.write("\n\n")
 
             ## Write identification statistics
             # Should be written after tree_interpretation
-            if index_step(step) >= 8:
+            if index_step(step) >= 9:
                 f.write(f"[STATISTICS]\n")
                 f.write(tabulate(self.statistics, headers=self.statistics.keys()))
                 f.write("\n\n")
                 f.write(
-                    " IDENTIFIED : Number of well-identified strains without any concerns. \n"
+                    "IDENTIFIED : Number of well-identified strains without any concerns. \n"
                 )
                 f.write(
-<<<<<<< HEAD
                     "AMBIGUOUS : Multiple clades with same taxon name. Your database may contain misidentified sequences. \n"
-=======
-                    " AMBIGUOUS : Strains that show different identification result across genes. Please check sequences were contaminated or misused\n"
                 )
                 f.write(
-                    " NEW SPECIES CANDIDATE : New species candidate strains found by topology, phylogenetic distance and bootstrap criteria\n"
->>>>>>> parent of bbf88cd (0.2.0.1.0.7)
+                    "NEW SPECIES CANDIDATE : New species candidate strains found by topology, phylogenetic distance and bootstrap criteria\n"
                 )
                 f.write(
-                    " MISIDENTIFIED : Strains that shows different identification result from original annotation\n"
+                    "MISIDENTIFIED : Strains that shows different identification result from original annotation\n"
                 )
                 f.write(
-                    " ERROR : Strains that cannot be analyzed. Please check if appropriate database sequence / outgroup sequences are given\n"
+                    "ERROR : Strains that cannot be analyzed. Please check if appropriate database sequence / outgroup sequences are given\n"
                 )
                 f.write("\n\n")
 
             ## Write identification result
             # Should be written after tree_interpretation
-            if index_step(step) >= 8:
+            if index_step(step) >= 9:
                 f.write(f"[IDENTIFICATION]\n")
-                f.write(tabulate(self.result, headers=self.result.keys()))
+                if opt.queryonly is True:
+                    f.write(
+                        tabulate(
+                            self.query_result,
+                            headers=self.query_result.columns,
+                            showindex=False,
+                        )
+                    )
+                else:
+                    f.write(tabulate(self.result, headers=self.result.keys()))
                 f.write("\n\n")
-                f.write(" ID : Name of the strain\n")
+                f.write("ID : Name of the strain\n")
                 f.write(
-                    " HASH : Temporary name of the strain to prevent unexpected error during run. Use this when manually edit intermediate step data and run from middle, or debugging unexpectively terminated run\n"
+                    "HASH : Temporary name of the strain to prevent unexpected error during run. Use this when manually edit intermediate step data and run from middle, or debugging unexpectively terminated run\n"
                 )
-                f.write(" DATATYPE : query or database\n")
-                f.write(" GROUP_ORIGINAL : group name given by user\n")
-                f.write(" GROUP_ASSIGNED : group assigned by FunID clustering\n")
-                f.write(" SPECIES_ORIGINAL : species name given by user\n")
+                f.write("DATATYPE : query or database\n")
+                f.write("GROUP_ORIGINAL : group name given by user\n")
+                f.write("GROUP_ASSIGNED : group assigned by FunID clustering\n")
+                f.write("SPECIES_ORIGINAL : species name given by user\n")
                 f.write(
-                    " SPECIES_ASSIGNED : final species name (usually result from concatenated analysis) assigned by FunID tree_interpretation\n"
-                )
-                f.write(
-                    " FLAT_BRANCH : Strains with flat_branch in phylogenetic analysis. If checked, please check your barcode region have enough taxonomic resolution\n"
+                    "SPECIES_ASSIGNED : final species name (usually result from concatenated analysis) assigned by FunID tree_interpretation\n"
                 )
                 f.write(
-                    " AMBIGUITY : Strains that show different identification result across genes. Please check sequences were contaminated or misused\n"
+                    "FLAT_BRANCH : Strains with flat_branch in phylogenetic analysis. If checked, please check your barcode region have enough taxonomic resolution\n"
                 )
-
-                self.result = {
-                    "ID": [],
-                    "HASH": [],
-                    "DATATYPE": [],
-                    "GROUP_ORIGINAL": [],
-                    "GROUP_ASSIGNED": [],
-                    "SPECIES_ORIGINAL": [],
-                    "SPECIES_ASSIGNED": [],
-                    "FLAT_BRANCH": [],
-                    "AMBIGUITY": [],
-                    "STATUS": [],
-                }
+                f.write(
+                    "INCONSISTENT : Strains that show different identification result across genes. Please check sequences were contaminated or misused. \n"
+                )
+                f.write(
+                    "AMBIGUOUS : Multiple clades with same taxon name. Your database may contain misidentified sequences. \n"
+                )
 
                 f.write("\n\n")
 
@@ -555,7 +537,7 @@ class Report:
                 f.write(
                     "* Most of the warnings in this step are usually typo problems "
                     "(blanks, tabs, foreign languages that cannot be used in certain programs - like german umlauts) "
-                    "and can be automatically fixed by FunID. So you don't have to consider about it that much if you are not going to publish data.\n"
+                    "and can be automatically fixed by FunID. So you don't have to consider about it that much if you are not going to directly publish.\n"
                 )
                 f.write("\n")
 
@@ -608,7 +590,7 @@ class Report:
                 f.write("- Multiple sequence alignment -\n")
                 f.write(
                     f"Multiple sequence alignment to each datasets were performed with {opt.method.alignment}. "
-                    f"{opt.mafft.algorithm} algorithm was selected with --op {opt.mafft.op} and --ep {opt.mafft} options. "
+                    f"{opt.mafft.algorithm} algorithm was selected with --op {opt.mafft.op} and --ep {opt.mafft.ep} options. "
                     # f"During alignment, {cnt_warning} warnings and {cnt_error} errors occured"
                 )
                 f.write("\n")
@@ -621,11 +603,15 @@ class Report:
                 f.write("\n")
 
                 f.write("- Alignment trimming -\n")
-                f.write(
-                    f"Trimming to each datasets were performed with {opt.method.trim}. "
-                    # f"{somewhat} options were used"
-                    # f"During trimming, {cnt_warning} warnings and {cnt_error} errors occured"
-                )
+
+                if not opt.method.trim == "none":
+                    f.write(
+                        f"Trimming to each datasets were performed with {opt.method.trim}. "
+                        # f"{somewhat} options were used"
+                        # f"During trimming, {cnt_warning} warnings and {cnt_error} errors occured"
+                    )
+                else:
+                    f.write(f"No trimming performed on sequence alignments. ")
                 f.write("\n")
                 """
                 for warning in trim_warning:
@@ -654,8 +640,17 @@ class Report:
                 f.write(
                     f"Tree interpretation were performed to each datasets for species delimitation and tree visualization. "
                     f"Trees were rerooted by outgroup clades. "
-                    f"Leaves in ambiguous tree topology, with over {opt.collapsedistcutoff} tree distance or {opt.collapsebscutoff} support in common ancestor diverge were considered as distinct species. "
-                    # f"During tree interpretation, {cnt_warning} warnings and {cnt_error} errors occured"
+                    f"Leaves in ambiguous tree topology, with over {opt.collapsedistcutoff} tree distance "
+                )
+
+                if opt.collapsebscutoff < 100:
+                    f.write(
+                        f"or over {opt.collapsebscutoff} support"
+                        # f"During tree interpretation, {cnt_warning} warnings and {cnt_error} errors occured"
+                    )
+
+                f.write(
+                    f"in common ancestor diverge were considered as distinct species. "
                 )
 
                 f.write("\n")
@@ -689,24 +684,55 @@ class Report:
             )
             f.write("\n")
 
-            ### Version for each software notation
-            f.write(f"[VERSIONS]\n")
+            # Generate software list by options
             software_list = ["FunID"]
+            if index_step(step) >= 1:
+                if opt.method.search == "blast":
+                    software_list.append("BLASTn")
+                elif opt.method.search == "mmseqs":
+                    software_list.append("MMseqs2")
+
+            if index_step(step) >= 3:
+                if opt.method.alignment == "mafft":
+                    software_list.append("MAFFT")
+
+            if index_step(step) >= 4:
+                if opt.method.trim == "gblocks":
+                    software_list.append("Gblocks")
+                elif opt.method.trim == "trimal":
+                    software_list.append("TrimAl")
+
+            if index_step(step) >= 6:
+                if opt.method.modeltest == "modeltest-ng":
+                    software_list.append("Modeltest-NG")
+                elif opt.method.modeltest == "iqtree":
+                    software_list.append("Partitionfinder")
+
+            if index_step(step) >= 7:
+                if opt.method.tree == "fasttree":
+                    software_list.append("FastTree")
+                elif opt.method.tree == "iqtree":
+                    software_list.append("IQTREE2")
+                elif opt.method.tree == "raxml":
+                    software_list.append("RAxML")
 
             # append software list by step
             dict_version = {
                 "FunID": f"{__version__}",
-                "BLASTn": "",
-                "MMseqs2": "",
-                "MAFFT": "",
+                "BLASTn": "2.13.0",
+                "MMseqs2": "14.7e284",
+                "MAFFT": "7.453",
                 "Gblocks": "0.91b",
-                "TrimAl": "",
-                "Modeltest-NG": "",
-                "Partitionfinder": "",
-                "FastTree": "",
-                "IQTREE2": "",
-                "RAxML": "",
+                "TrimAl": "1.4",
+                "Modeltest-NG": "0.1.7",
+                "Partitionfinder": "2.2.0.3",
+                "FastTree": "2.1.11",
+                "IQTREE2": "2.2.0.3",
+                "RAxML": "8.2.12",
             }
+
+            ### Version for each software notation
+            f.write(f"[VERSIONS]\n")
 
             for n, software in enumerate(software_list):
                 f.write(f"{'{:<15}'.format(software)} : {dict_version[software]}\n")
@@ -731,7 +757,7 @@ class Report:
 
             for n, software in enumerate(software_list):
                 f.write(
-                    f"[{n+1}] {'{:<15}'.format(software)} : {dict_citation[software]}"
+                    f"[{n+1}] {'{:<15}'.format(software)} : {dict_citation[software]}\n"
                 )
 
     def report_table(self, V, path, opt, step):
@@ -741,12 +767,8 @@ class Report:
 
         if index_step(step) >= 2:
             list_table.append("dataset")
-<<<<<<< HEAD
 
         if index_step(step) >= 9:
-=======
-        elif index_step(step) >= 8:
->>>>>>> parent of bbf88cd (0.2.0.1.0.7)
             list_table.append("identification")
             list_table.append("statistics")
 

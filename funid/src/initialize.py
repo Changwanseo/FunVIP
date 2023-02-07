@@ -23,24 +23,6 @@ INF = 99999999
 # make directory if directory does not exists
 
 
-"""
-def gettype(string):
-    if string == "str":
-        return str
-    elif string == "int":
-        return int
-    elif string == "float":
-        return float
-    elif string == "list":
-        return list
-    elif string == "bool":
-        return bool
-    else:
-        print(string)
-        raise TypeError
-"""
-
-
 # checking input option
 # value should be list of small letter cases (for developmentors)
 def check(

@@ -52,7 +52,7 @@ class Funinfo:
         self.ori_genus = ""  # original genus
         self.genus = ""  # final genus
         self.ori_species = ""  # original species
-        self.bygene_species = {}  # species name designated by gene
+        self.bygene_species = {"concatenated": ""}  # species name designated by gene
         self.final_species = ""  # final species designated by concatenated analysis
         # species identifier if multiple branches with same species exists - ambiguous in result
         self.species_identifier = 0
@@ -92,6 +92,8 @@ class Funinfo:
             self.seq[gene] = seq
 
         self.bygene_species[gene] = self.ori_species
+        # Update concatenated
+        self.bygene_species["concatenated"] = self.ori_species
 
     def update_description(self, description):
         self.description = description
@@ -101,7 +103,9 @@ class Funinfo:
         # Try to solve illegal unicode characters
         if pd.isnull(genus):
             genus = ""
-        genus = genus.strip()
+
+        # Genus with space causes error while mafft
+        genus = genus.strip().replace(" ", "_")
         genus = manage_unicode(genus)
 
         # Check ambiguity
@@ -146,7 +150,9 @@ class Funinfo:
         # Try to solve illegal unicode characters
         if pd.isnull(group):
             group = ""
-        group = group.strip()
+
+        # Group with space causes error while mafft
+        group = group.strip().replace(" ", "_")
         group = manage_unicode(group)
 
         # Check ambiguity
@@ -346,6 +352,7 @@ def input_table(path, opt, table_list, datatype):
 
         # Lower case column names
         df.columns = df.columns.str.lower()
+        df.columns = df.columns.str.strip()
         df_list.append(df)
 
         # Clean up columns
@@ -414,7 +421,7 @@ def input_table(path, opt, table_list, datatype):
             for gene in opt.gene:
                 if isuniquecolumn(
                     list_column=df.columns,
-                    column=gene,
+                    column=tuple((gene,)),
                     table_name=table,
                     check_none=False,
                 ):
@@ -439,7 +446,7 @@ def input_table(path, opt, table_list, datatype):
 
                 # Run GenMine
                 cmd = f"GenMine -c {path.GenMine}/Accessions.txt -o {path.GenMine} -e {opt.email}"
-                subprocess.call(cmd)
+                subprocess.call(cmd, shell=True)
 
                 GenMine_df_list = [
                     file
@@ -455,7 +462,7 @@ def input_table(path, opt, table_list, datatype):
                         download_dict[acc.strip()] = download_df["seq"][n]
 
                     # replace accession to sequence downloaded
-                    for n, _ in enumerate(df["accession"]):
+                    for n, _ in enumerate(df["id"]):
                         for gene in opt.gene:
                             if gene in df.columns:
                                 if not (pd.isna(df[gene][n])):
@@ -470,10 +477,20 @@ def input_table(path, opt, table_list, datatype):
                                     ):
                                         df[gene][n] = ""
 
-                else:
+                    # Remove GenMine results to prevent collision with next set
+                    for file in os.listdir(path.GenMine):
+                        if "transformed.xlsx" in file:
+                            os.remove(f"{path.GenMine}/{file}")
+
+                elif len(GenMine_df_list) == 0:
                     logging.warning(
                         f"None of the GenMine results were succesfully parsed"
                     )
+                else:
+                    logging.error(
+                        f"DEVELOPMENTAL ERROR: Multiple GenMine result colliding!"
+                    )
+                    raise Exception
 
         # Generate funinfo by each row
         for n, acc in enumerate(df["id"]):
@@ -481,7 +498,7 @@ def input_table(path, opt, table_list, datatype):
             # Check if each of the ids are unique
             # Remove non-unicode first
             new_acc = True
-            df["id"][n] = manage_unicode(str(df["id"][n]), column="accssion", row=n)
+            df["id"][n] = manage_unicode(str(df["id"][n]), column="accession", row=n)
             # Generate funinfo for each id
             if df["id"][n] in funinfo_dict:
                 newinfo = funinfo_dict[df["id"][n]]
@@ -513,7 +530,7 @@ def input_table(path, opt, table_list, datatype):
 
             # parse each of the genes
             # For each of the gene
-            logging.debug(f"Gene found in db input {opt.gene}")
+            # logging.debug(f"Gene found in db input {opt.gene}")
             for gene in opt.gene:
                 seq_error = 0
                 if gene in df.columns:
@@ -556,7 +573,7 @@ def db_input(opt, path) -> list:
 
     # Get DB input
     logging.info(f"Input DB list: {opt.db}")
-    db_namelist = [db.split("/")[-1] for db in opt.db]
+    db_namelist = [str(os.path.basename(db)) for db in opt.db]
 
     funinfo_list, df_list = input_table(
         path=path, opt=opt, table_list=opt.db, datatype="db"
@@ -638,6 +655,7 @@ def data_input(V, R, opt, path):
     return V, R, opt
 
 
+"""
 def save_fasta(list_funinfo, gene, filename, by="id"):
 
     list_funinfo = list(set(list_funinfo))  # remove ambiguous seqs
@@ -666,12 +684,16 @@ def save_fasta(list_funinfo, gene, filename, by="id"):
 
     # returns 1 if meaningful sequence exists
     return flag
+"""
 
 
+# Try removing this, revive if error occurs
+"""
 def save_originalfasta(list_info, path, filename):
     with open(f"{path}/{filename}", "w") as fp:
         for info in list_info:
             fp.write(f">{info.description}\n{info.seq}\n")
+"""
 
 
 def save_fastabygroup(list_funinfo, path, option, add="Reference", outgroup=False):

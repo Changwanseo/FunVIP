@@ -8,6 +8,8 @@ import datetime
 import platform
 import re
 from funid.src.logics import isvalidcolor
+from funid.src.tool import check_avx
+
 
 # FunID Option class definition
 class Option:
@@ -25,7 +27,7 @@ class Option:
     class Visualize_Option:
         def __init__(self):
             self.bscutoff = 70
-            self.fullgenus = True
+            self.fullgenus = False
             self.highlight = "#aa0000"
             self.heightmultiplier = 6
             self.maxwordlength = 48
@@ -65,7 +67,7 @@ class Option:
         self.email = ""
         self.api = ""
         self.test = None
-        self.thread = 1
+        self.thread = "auto"
         self.outdir = None
         self.runname = None
         self.mode = "identification"
@@ -75,8 +77,7 @@ class Option:
         self.level = "genus"
         self.queryonly = True
         self.confident = True
-        self.concatenate = True
-        self.verbose = 1
+        self.verbose = 2
         self.maxoutgroup = 3
         self.collapsedistcutoff = 0.01
         self.collapsebscutoff = 101
@@ -87,8 +88,8 @@ class Option:
         self.cachedb = True
         self.usecache = True
         self.matrixformat = "csv"
-        self.savesearchmatrix = True
-        self.savesearchresult = True
+        self.nosearchmatrix = False
+        self.nosearchresult = False
 
         # Method options
         self.method = self.Method_Option()
@@ -145,8 +146,6 @@ class Option:
                 self.level = parser_dict[key]
             elif key.lower() in ("queryonly"):
                 self.queryonly = parser_dict[key]
-            elif key.lower() in ("concatenate"):
-                self.concatenate = parser_dict[key]
             elif key.lower() in ("verbose"):
                 self.verbose = parser_dict[key]
             elif key.lower() in ("maxoutgroup"):
@@ -171,10 +170,10 @@ class Option:
                 self.usecache = parser_dict[key]
             elif key.lower() in ("matrixformat"):
                 self.matrixformat = parser_dict[key]
-            elif key.lower() in ("savesearchmatrix"):
-                self.savesearchmatrix = parser_dict[key]
-            elif key.lower() in ("savesearchresult"):
-                self.savesearchresult = parser_dict[key]
+            elif key.lower() in ("nosearchmatrix"):
+                self.nosearchmatrix = parser_dict[key]
+            elif key.lower() in ("nosearchresult"):
+                self.nosearchresult = parser_dict[key]
 
             # Method options
             elif key.lower() in ("search"):
@@ -322,12 +321,6 @@ class Option:
         try:
             if not parser.confident is None:
                 self.confident = parser.confident
-        except:
-            pass
-
-        try:
-            if not parser.concatenate is None:
-                self.concatenate = parser.concatenate
         except:
             pass
 
@@ -542,14 +535,14 @@ class Option:
             pass
 
         try:
-            if parser.savesearchmatrix is True:
-                self.savesearchmatrix = parser.savesearchmatrix
+            if parser.nosearchmatrix is True:
+                self.nosearchmatrix = parser.nosearchmatrix
         except:
             pass
 
         try:
-            if parser.savesearchresult is True:
-                self.savesearchresult = parser.savesearchresult
+            if parser.nosearchresult is True:
+                self.nosearchresult = parser.nosearchresult
         except:
             pass
 
@@ -615,6 +608,8 @@ class Option:
                     except:
                         pass
 
+        # Change all db path into linux style
+
         # gene
         # Check if gene names are valid strings (comparing with db will be performed in parsing)
         if not (type(self.gene) is list):
@@ -656,9 +651,16 @@ class Option:
         # Check if thread is valid int
         # If thread is over system thread, 0, or negative, adjust it to maximum
         if not (type(self.thread) is int):
-            list_warning.append(
-                f"Type for thread should be int but {self.thread} was given. Using {os.cpu_count()} for default"
-            )
+            if not (type(self.thread) is str):
+                list_warning.append(
+                    f"Type for thread should be int but {self.thread} was given. Using {os.cpu_count()} for default"
+                )
+            else:
+                if not (self.thread.lower() == "auto"):
+                    list_warning.append(
+                        f"Type for thread should be int but {self.thread} was given. Using {os.cpu_count()} for default"
+                    )
+
             self.thread = os.cpu_count()
         elif self.thread <= 0:
             list_info.append(f"thread adjusted to {os.cpu_count()}")
@@ -830,25 +832,6 @@ class Option:
                 self.confident = False
         else:
             self.confident = False
-
-        # concatenate
-        # If concatenate is not None, give True, else, give False
-        if not (self.concatenate is None or self.concatenate is False):
-            self.concatenate = True
-        else:
-            self.concatenate = False
-
-        if self.gene:
-            if len(self.gene) <= 1:
-                list_warning.append(
-                    f"Less than 1 gene detected, changing concatenate to False"
-                )
-                self.concatenate = False
-        else:
-            list_warning.append(
-                f"Less than 1 gene detected, changing concatenate to False"
-            )
-            self.concatenate = False
 
         # search
         # Check if search method is one of default, blast, mmseqs
@@ -1122,11 +1105,11 @@ class Option:
             self.verbose = int(self.verbose)
             if not self.verbose in (0, 1, 2, 3):
                 list_error.append(
-                    f"verbose should be one of 0,1,2,3 - 0: quiet, 1: info, 2: warning, 3: debug"
+                    f"verbose should be one of 0,1,2,3 - 0: only error, 1: warning, 2: info, 3: debug"
                 )
         except:
             list_error.append(
-                f"verbose should be one of 0,1,2,3 - 0: quiet, 1: info, 2: warning, 3: debug"
+                f"verbose should be one of 0,1,2,3 - 0: only error, 1: warning, 2: info, 3: debug"
             )
 
         # maxoutgroup
@@ -1253,10 +1236,15 @@ class Option:
         if self.method.alignment == "mafft":
             try:
                 self.mafft.algorithm = str(self.mafft.algorithm)
-                if not (self.mafft.algorithm.lower() in ("auto", "l-ins-i", "linsi")):
+                if not (
+                    self.mafft.algorithm.lower()
+                    in ("auto", "l-ins-i", "linsi", "localpair")
+                ):
                     list_error.append(
                         f"Invalid mafft algorithm {self.mafft.algorithm}. Currently available algorithms are auto and l-ins-i"
                     )
+                elif self.mafft.algorithm.lower() in ("l-ins-i", "linsi", "localpair"):
+                    self.mafft.algorithm = "localpair"
 
             except:
                 list_error.append(
@@ -1294,14 +1282,13 @@ class Option:
         # if auto, set gt
         if self.method.trim.lower() == "trimal":
             try:
-                self.trimal.algorithm = float(self.trimal.algorithm)
+                self.trimal.algorithm = str(self.trimal.algorithm)
                 if not (self.trimal.algorithm.lower() in ("auto", "gt")):
                     list_warning(
                         f"Invalid trimal algorithm {self.trimal.algorithm}. Chaniging to gt"
                     )
                     self.trimal.algorithm = "gt"
             except:
-
                 list_error.append(
                     f"Invalid trimal algorithm {self.trimal.algorithm}. Currently avilable algorithms are auto and gt"
                 )
@@ -1328,8 +1315,7 @@ class Option:
         # if used, set True
         # if avx is not available command, set True
         # Negative boolean and save as avx
-        if not "AVX" in platform.machine() and self.avx is True:
-            list_info.append(platform.machine())
+        if check_avx() is False and self.avx is True:
             list_warning.append(f"AVX is not available. Changing --noavx to True")
             self.avx = False
 
@@ -1391,31 +1377,33 @@ class Option:
                 "matrixformat should be one of csv, tsv, xlsx, parquet, ftr, or feather"
             )
 
-        # savesearchmatrix
-        # If savesearchmatrix is not None, give True, else, give False
-        if self.savesearchmatrix is False:
-            self.savesearchmatrix = False
+        # nosearchmatrix
+        # If nosearchmatrix is not None, give True, else, give False
+        if self.nosearchmatrix is True:
+            self.nosearchmatrix = True
         else:
-            self.savesearchmatrix = True
+            self.nosearchmatrix = False
 
-        # savesearchresult
-        # If savesearchresult is not None, give True, else, give False
-        if self.savesearchresult is False:
-            self.savesearchresult = False
+        # nosearchresult
+        # If nosearchresult is not None, give True, else, give False
+        if self.nosearchresult is True:
+            self.nosearchresult = True
         else:
-            self.savesearchresult = True
+            self.nosearchresult = False
 
         # Printing logs while parsing validate options
         # Written in print functions, because logging can be loaded after option parsing
-        print("[INFO]")
+        print("--INFO--")
         for info in list_info:
             print(f"[INFO] {info}")
 
-        print("[WARNING]")
+        print("\n")
+        print("--WARNING--")
         for warning in list_warning:
             print(f"[WARNING] {warning}")
 
-        print("[ERROR]")
+        print("\n")
+        print("--ERROR--")
         for error in list_error:
             print(f"[ERROR] {error}")
 

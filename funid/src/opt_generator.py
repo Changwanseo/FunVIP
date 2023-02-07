@@ -1,6 +1,4 @@
 # Option generator for multiprocessing starmap
-
-# from .logger import Mes
 import logging
 import os
 

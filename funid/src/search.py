@@ -1,4 +1,4 @@
-from funid.src import cluster, tool, hasher, manage_input
+from funid.src import cluster, tool, hasher, manage_input, save
 from funid.src.ext import blast, makeblastdb, mmseqs, makemmseqsdb
 from funid.src.manage_input import save_df
 import copy
@@ -122,12 +122,12 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
 
     # Working on saved database
     # find key for which db to use
+    # get hash number of the given db to compare
+    _hash = hashlib.md5(open(db_fasta, "rb").read()).hexdigest()
+
     if opt.cachedb is True or opt.usecache is True:
 
-        # get hash number of the given db to compare
-        hash_ = hashlib.md5(open(db_fasta, "rb").read()).hexdigest()
-
-        if hash_ is None:
+        if _hash is None:
             logging.error(f"Database file {db_fasta} missing")
             raise Exception
 
@@ -136,11 +136,11 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
 
             # When succesfully parsed DB
             if (
-                os.path.isdir(f"{path.in_db}/{opt.method.search.lower()}/{hash_}")
+                os.path.isdir(f"{path.in_db}/{opt.method.search.lower()}/{_hash}")
                 is True
             ):
                 logging.info("[INFO] Found existing database! Skipping database build")
-                db = f"{path.in_db}/{opt.method.search.lower()}/{hash_}/{hash_}"
+                db = f"{path.in_db}/{opt.method.search.lower()}/{_hash}/{_hash}"
 
             # When parsing existing DB failed
             else:
@@ -154,8 +154,8 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
                     )
 
                     # Create DB saving directory
-                    os.mkdir(f"{path.in_db}/{opt.method.search.lower()}/{hash_}")
-                    db = f"{path.in_db}/{opt.method.search.lower()}/{hash_}/{hash_}"
+                    os.mkdir(f"{path.in_db}/{opt.method.search.lower()}/{_hash}")
+                    db = f"{path.in_db}/{opt.method.search.lower()}/{_hash}/{_hash}"
 
                     # DB saving starts
                     logging.info("The database is in first run, caching database")
@@ -168,13 +168,15 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
                     logging.info(
                         "--cachedb not selected, saving database will be passed"
                     )
-                    db = f"{path.tmp}/{opt.runname}"
+                    os.mkdir(f"{path.tmp}/{opt.runname}/{_hash}")
+                    db = f"{path.tmp}/{opt.runname}/{_hash}/{_hash}"
 
                     # Create search database
                     create_search_db(opt, db_fasta, db, path)
 
     else:
-        db = f"{path.tmp}/{opt.runname}"
+        os.mkdir(f"{path.tmp}/{opt.runname}/{_hash}")
+        db = f"{path.tmp}/{opt.runname}/{_hash}/{_hash}"
         # Create search database
         create_search_db(opt, db_fasta, db, path)
 
@@ -189,8 +191,10 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
             opt=opt,
         )
         # remove db when saving not enabled
-        if opt.cachedb is False:
-            cleanblastdb(db)
+        # Temporarily disabled to remove bug
+        # if opt.cachedb is False:
+        #    cleanblastdb(db)
+
     # mmseqs
     elif opt.method.search.lower() in ("mmseqs", "mmseq", "mmseq2", "mmseqs2"):
         mmseqs(
@@ -202,8 +206,9 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
             opt=opt,
         )
         # remove db when saving not enabled
-        if opt.cachedb is False:
-            cleanmmseqsdb(db)
+        # Temporarily disabled to remove bug
+        # if opt.cachedb is False:
+        #    cleanmmseqsdb(db)
         # remove temporary file
         # shutil.rmtree(f"{path.tmp}/{opt.runname}")
     else:
@@ -231,8 +236,6 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
         ],
     )
 
-    print(df)
-
     # Remove temporary files
     os.remove(f"{path.tmp}/{opt.runname}.m8")
 
@@ -242,7 +245,7 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
     return df
 
 
-# Main search: Get blast or mmseqss dataframe results from given dataset
+# 3# Main search: Get blast or mmseqs dataframe results from given dataset
 def search_df(V, path, opt):
 
     # Initialize variable for search result
@@ -264,8 +267,11 @@ def search_df(V, path, opt):
     # Make database by genes
     for gene in opt.gene:
 
-        db_state = manage_input.save_fasta(
-            list_db_FI, gene, f"{path.tmp}/{opt.runname}_DB_{gene}.fasta", by="hash"
+        db_state = save.save_fasta(
+            list_funinfo=list_db_FI,
+            gene=gene,
+            filename=f"{path.tmp}/{opt.runname}_DB_{gene}.fasta",
+            by="hash",
         )
 
         if db_state == 0:
@@ -301,7 +307,7 @@ def search_df(V, path, opt):
             V.dict_gene_SR[gene] = df_search
 
             # Save dataframe
-            if opt.savesearchresult is True:
+            if opt.nosearchresult is False:
                 save_df(
                     hasher.decode_df(V.dict_id_hash, df_search),
                     f"{path.out_matrix}/{opt.runname}_BLAST_result_{gene}.{opt.matrixformat}",
@@ -310,7 +316,7 @@ def search_df(V, path, opt):
 
     # if query sequence exists
     else:
-        query_state = manage_input.save_fasta(
+        query_state = save.save_fasta(
             list_qr_FI,
             "unclassified",
             f"{path.tmp}/{opt.runname}_Query_unclassified.fasta",
@@ -341,7 +347,7 @@ def search_df(V, path, opt):
         for gene in opt.gene:
             # if database is very confident, so no more validation is required
             if opt.confident is True:
-                query_state = manage_input.save_fasta(
+                query_state = save.save_fasta(
                     [FI for FI in V.list_FI if FI.datatype == "query"],
                     gene,
                     f"{path.tmp}/{opt.runname}_Query_{gene}.fasta",
@@ -350,7 +356,7 @@ def search_df(V, path, opt):
 
             # for most of the cases
             else:
-                query_state = manage_input.save_fasta(
+                query_state = save.save_fasta(
                     V.list_FI,
                     gene,
                     f"{path.tmp}/{opt.runname}_Query_{gene}.fasta",
@@ -387,7 +393,7 @@ def search_df(V, path, opt):
             V.dict_gene_SR[gene] = df_search
 
             # Save dataframe
-            if opt.savesearchresult is True:
+            if opt.nosearchresult is False:
                 save_df(
                     hasher.decode_df(V.dict_id_hash, df_search),
                     f"{path.out_matrix}/{opt.runname}_BLAST_result_{gene}.{opt.matrixformat}",
@@ -398,6 +404,7 @@ def search_df(V, path, opt):
         os.remove(f"{path.tmp}/{opt.runname}_Query_unclassified.fasta")
 
     # remove temporary files
+    """
     for gene in opt.gene:
         try:
             os.remove(f"{path.tmp}/{opt.runname}_Query_{gene}.fasta")
@@ -407,5 +414,6 @@ def search_df(V, path, opt):
             os.remove(f"{path.tmp}/{opt.runname}_DB_{gene}.fasta")
         except:
             pass
+    """
 
     return V

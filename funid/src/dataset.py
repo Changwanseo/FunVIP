@@ -1,4 +1,4 @@
-from funid.src import manage_input
+from funid.src import save
 from Bio import SeqIO
 import os
 import sys
@@ -72,15 +72,13 @@ class FunID_var:
         self.dict_dataset = {}
 
         # Running options
-        # groupal clustering option
+        # group clustering option
         self.opt_cluster = []
-        self.opt_append_og = []
         self.opt_align = []
         self.opt_tree = []
 
         # Running result
         self.rslt_cluster = []
-        self.rslt_append_og = []
         self.rslt_align = []
         self.rslt_tree = []
 
@@ -107,7 +105,7 @@ class FunID_var:
 
         # If gene is concatenated, update ori_species
         if gene == "concatenated":
-            for FI in list_qr + list_db:
+            for FI in list_qr + list_db + list_og:
                 FI.bygene_species[gene] = FI.ori_species
 
     def remove_dataset(self, group, gene):
@@ -127,12 +125,12 @@ class FunID_var:
                 del self.dict_dataset[group]
 
     def exist_dataset(self, group, gene):
-        if not (group) in self.dict_dataset:
-            return False
-        elif not (gene) in self.dict_dataset[group]:
-            return False
-        else:
+
+        try:
+            self.dict_dataset[group][gene]
             return True
+        except:
+            return False
 
     # generate dataset by group and gene
     def generate_dataset(self, opt):
@@ -140,18 +138,15 @@ class FunID_var:
         dict_funinfo = {}
 
         for group in self.list_group:
+
             logging.info(f"Generating dataset for {group}")
             dict_funinfo[group] = {}
 
-            # For query only option
+            # For queryonly case
             if opt.queryonly is True:
-
-                group_flag = 0  # whether to run this group
-
+                group_flag = False  # whether to run this group
                 for gene in self.list_db_gene:
-
-                    logging.info(f"Searching {gene}")
-
+                    logging.debug(f"Searching {group} {gene} is good dataset")
                     list_qr = [
                         FI
                         for FI in self.list_FI
@@ -164,10 +159,10 @@ class FunID_var:
 
                     # do not manage db when query only mode and query does not exists
                     if len(list_qr) > 0:
-                        group_flag = 1
+                        group_flag = True
 
-                if group_flag == 1:  # if decided to run this group
-                    logging.info(f"group {group} passed dataset construction")
+                if group_flag:  # if decided to run this group
+                    logging.info(f"Decided to construct dataset on {group}")
                     for gene in self.list_db_gene:
                         list_qr = [
                             FI
@@ -196,23 +191,22 @@ class FunID_var:
                     )
 
                 # for concatenated
-                if opt.concatenate is True:
-                    list_qr = [
+                list_qr = [
+                    FI
+                    for FI in self.list_FI
+                    if (FI.datatype == "query" and FI.adjusted_group == group)
+                ]
+
+                # do not manage db when query only mode and query does not exists
+                if len(list_qr) > 0:
+                    list_db = [
                         FI
                         for FI in self.list_FI
-                        if (FI.datatype == "query" and FI.adjusted_group == group)
+                        if (FI.datatype == "db" and FI.adjusted_group == group)
                     ]
+                    self.add_dataset(group, "concatenated", list_qr, list_db, [])
 
-                    # do not manage db when query only mode and query does not exists
-                    if len(list_qr) > 0:
-                        list_db = [
-                            FI
-                            for FI in self.list_FI
-                            if (FI.datatype == "db" and FI.adjusted_group == group)
-                        ]
-                        self.add_dataset(group, "concatenated", list_qr, list_db, [])
-
-            # For DB included opt
+            # For opt.queryonly is False -> run all dataset in database
             else:
                 for gene in self.list_db_gene:
                     list_qr = [
@@ -236,19 +230,17 @@ class FunID_var:
                     self.add_dataset(group, gene, list_qr, list_db, [])
 
                 # for concatenated
-                if opt.concatenate is True:
-
-                    list_qr = [
-                        FI
-                        for FI in self.list_FI
-                        if (FI.datatype == "query" and FI.adjusted_group == group)
-                    ]
-                    list_db = [
-                        FI
-                        for FI in self.list_FI
-                        if (FI.datatype == "db" and FI.adjusted_group == group)
-                    ]
-                    self.add_dataset(group, "concatenated", list_qr, list_db, [])
+                list_qr = [
+                    FI
+                    for FI in self.list_FI
+                    if (FI.datatype == "query" and FI.adjusted_group == group)
+                ]
+                list_db = [
+                    FI
+                    for FI in self.list_FI
+                    if (FI.datatype == "db" and FI.adjusted_group == group)
+                ]
+                self.add_dataset(group, "concatenated", list_qr, list_db, [])
 
     # homogenize list_dataset and dicts from multiple results
     def homogenize_dataset(self):
@@ -264,7 +256,7 @@ class FunID_var:
                         self.dict_hash_FI[h].final_species = FI.final_species
                     else:
                         logging.error(
-                            f"DEVELOPMNETAL ERROR Both list_FI and dict_FI have conflicting final species, {FI.final_species} and {self.dict_hash_FI[h].final_species}"
+                            f"DEVELOPMNETAL ERROR Both list_FI and dict_hash_FI have conflicting final species, {FI.final_species} and {self.dict_hash_FI[h].final_species}"
                         )
                         raise Exception
 
@@ -276,7 +268,7 @@ class FunID_var:
                         self.dict_hash_FI[h].adjusted_group = FI.adjusted_group
                     else:
                         logging.error(
-                            f"DEVELOPMENTAL ERROR Both list_FI and dict_FI have conflicting final species, {FI.adjusted_group} and {self.dict_hash_FI[h].adjusted_group}, {FI}"
+                            f"DEVELOPMENTAL ERROR Both list_FI and dict_hash_FI have conflicting final group, {FI.adjusted_group} and {self.dict_hash_FI[h].adjusted_group}, {FI}"
                         )
                         raise Exception
 
@@ -307,7 +299,7 @@ class FunID_var:
                         self.dict_hash_FI[h].bygene_species = FI.bygene_species
                     else:
                         logging.error(
-                            f"DEVELOPMENTAL ERROR Both list_FI and dict_FI have conflicting gene identification results, {FI.bygene_species} and {self.dict_hash_FI[h].bygene}"
+                            f"DEVELOPMENTAL ERROR Both list_FI and dict_hash_FI have conflicting gene identification results, {FI.bygene_species} and {self.dict_hash_FI[h].bygene}"
                         )
                         raise Exception
 
@@ -330,7 +322,7 @@ class FunID_var:
                     < 4
                 ):
                     logging.warning(
-                        f"Removing {group} from downstream phylogenetic analysis because there are not enough sequences"
+                        f"Removing {group} {gene} from downstream phylogenetic analysis because there are not enough sequences"
                     )
                     list_remove.append((group, gene))
 
@@ -339,14 +331,10 @@ class FunID_var:
 
     # save fasta for outgroup adjusted fasta
     def save_dataset(self, path, opt):
-        print(self.dict_dataset)
         for group in self.dict_dataset:
             for gene in self.dict_dataset[group]:
                 if not (gene == "concatenated"):
-                    if (
-                        opt.concatenate is True
-                        and "concatenated" in self.dict_dataset[group]
-                    ):
+                    if "concatenated" in self.dict_dataset[group]:
                         fasta_list = list(
                             set(
                                 self.dict_dataset[group][gene].list_db_FI
@@ -362,7 +350,7 @@ class FunID_var:
                             + self.dict_dataset[group][gene].list_og_FI
                         )
 
-                    manage_input.save_fasta(
+                    save.save_fasta(
                         fasta_list,
                         gene,
                         f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta",

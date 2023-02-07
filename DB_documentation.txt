@@ -1,9 +1,0 @@
-Mandatory
-id (old accession) - unique ids for each strains
-genus
-species
-*at least one sequence column
-
-Optional
-Other ranks : subseries, series, subsection, section, subtribe, tribe, subfamily, family, suborder, order, subclass, class, subphylum, phylum / subdivision, division, subkingdom, kingdom [IAPT taxons]
-color

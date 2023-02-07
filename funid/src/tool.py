@@ -7,6 +7,7 @@ import logging
 from functools import lru_cache
 import sys, os
 import shutil
+import platform
 
 # Maybe we should move this to /funid/src/toolbox/ and split these to multiple files
 def initialize_path(path):
@@ -266,4 +267,23 @@ def index_step(step):
         return step_list.index(step.lower().strip())
     except:
         logging.error(f"DEVELOPMENTAL ERROR, INVALID STEP {step} USED")
+        raise Exception
+
+
+def check_avx():
+    return platform.machine() == "x86_64"
+
+
+# Return logging
+def get_level(level):
+    if level == 3:
+        return logging.DEBUG
+    elif level == 2:
+        return logging.INFO
+    elif level == 1:
+        return logging.WARNING
+    elif level == 0:
+        return logging.ERROR
+    else:
+        print(f"DEVELOPMENTAL ERROR ON MANAGING VERBOSE LEVEL {level}")
         raise Exception

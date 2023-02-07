@@ -50,7 +50,7 @@ class CommandParser:
         )
         group_test.add_argument(
             "--test",
-            help="Use test dataset, [Amanita, Penicillium, UNITE]",
+            help="Use test dataset, [Penicillium]",
             type=str,
         )
 
@@ -79,18 +79,18 @@ class CommandParser:
         )
         group_run.add_argument(
             "--continue",
-            dest="continue_from_previous",
-            help="Continue from previous run, designate directory of previous run",
-            type=str,
+            dest="[WIP] continue_from_previous",
+            action="store_true",
+            help="Continue from previous run",
         )
         group_run.add_argument(
             "--step",
-            help="Steps to continue from previous run, will be ignored if invalid --continue option [setup, search, cluster, align, trim, concatenate, modeltest, tree, visualize, report]",
+            help="[WIP] Steps to continue from previous run, will be ignored if invalid --continue option [setup, search, cluster, align, trim, concatenate, modeltest, tree, visualize, report]",
             type=str,
         )
         group_run.add_argument(
             "--level",
-            help="Taxonomic level to be included in each phylogenetic tree. Should be one of [subseries, series, subsection, section, subtribe, tribe, subfamily, family, suborder, order, subclass, class, subphylum, phylum, subdivision, division, subkingdom, kingdom]",
+            help="Taxonomic level for each phylogenetic tree. Should be one of [subseries, series, subsection, section, subtribe, tribe, subfamily, family, suborder, order, subclass, class, subphylum, phylum, subdivision, division, subkingdom, kingdom]",
             type=str,
         )
         group_run.add_argument(
@@ -101,11 +101,6 @@ class CommandParser:
         group_run.add_argument(
             "--confident",
             help="Skip blast analysis among database sequences, use it when your database sequences contains large number of misidentified sequences, default : False",
-        )
-        group_run.add_argument(
-            "--concatenate",
-            action="store_true",
-            help="Perform multigene analysis and build concatenated tree, default : True",
         )
 
         # Method options
@@ -145,7 +140,7 @@ class CommandParser:
         )
         group_visualize.add_argument(
             "--bscutoff",
-            help="Bootstrap cutoff to be visualized, default : 70",
+            help="Bootstrap cutoff for visualize, default : 70",
             type=int,
         )
         group_visualize.add_argument(
@@ -317,14 +312,14 @@ class CommandParser:
             help="Default format for search matrix files, [csv, xlsx, parquet, feather], default : csv",
         )
         group_save.add_argument(
-            "--savesearchmatrix",
+            "--nosearchmatrix",
             action="store_true",
-            help="Save blast/mmseqs search matrix, turn off when dataset gets too big and generates IO bottleneck, default : True",
+            help="Do not save blast/mmseqs search matrix, use when dataset gets too big and generates IO bottleneck",
         )
         group_save.add_argument(
-            "--savesearchresult",
+            "--nosearchresult",
             action="store_true",
-            help="Save blast/mmseqs search matrix, turn off when dataset gets too big and generates IO bottleneck, default : True",
+            help="Do not save blast/mmseqs search matrix, use when dataset gets too big and generates IO bottleneck",
         )
 
         # Preset

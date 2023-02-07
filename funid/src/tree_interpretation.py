@@ -22,14 +22,11 @@ import re
 import sys
 import json
 
-<<<<<<< HEAD
+
 # Default zero length branch for concatenation
 CONCAT_ZERO = 0  # for better binding
 
-# Get maximum tree distance among all leaf pairs in given tree
-=======
-# Get maximum tree distance in given tree
->>>>>>> parent of bbf88cd (0.2.0.1.0.7)
+## Get maximum tree distance among all leaf pairs in given tree
 def get_max_distance(tree):
 
     max_distance = 0
@@ -40,8 +37,8 @@ def get_max_distance(tree):
     return max_distance
 
 
-# divide string by new line character to prevent long string from being cut
-# by the maximum length of the string
+## divide string by new line character to prevent long string from being cut
+## by the maximum length of the string
 def divide_by_max_len(string, max_len, sep=" "):
 
     final_string = ""
@@ -80,35 +77,35 @@ class Collapse_information:
         self.n_db = 0
         self.n_query = 0
         self.n_others = 0
+        self.flat = False
 
     def __str__(self):
         return f"clade {self.taxon} with {len(self.leaf_list)} leaves"
 
+    def __repr__(self):
+        return f"clade {self.taxon} with {len(self.leaf_list)} leaves"
 
-# Zero length branch for concatenation
-concat_zero = 0  # for better binding
 
-
+## concat two given clade object and return
 def concat_clade(
     clade1,
     clade2,
-    dist1=concat_zero,
-    dist2=concat_zero,
+    dist1=CONCAT_ZERO,
+    dist2=CONCAT_ZERO,
     support1=1,
     support2=1,
-    root_dist=concat_zero,
+    root_dist=CONCAT_ZERO,
 ):
 
     tmp = Tree()
     tmp.dist = root_dist
     tmp.support = 1
-    # tmp = Tree.add_child(name="tmp1", dist=option.zero)
     tmp.add_child(clade1, dist=dist1, support=support1)
     tmp.add_child(clade2, dist=dist2, support=support2)
     return tmp
 
 
-# concat all branches for concatenation
+## concat all branches for concatenation
 def concat_all(clade_tuple, root_dist):
 
     if len(clade_tuple) == 0:
@@ -145,6 +142,7 @@ def concat_all(clade_tuple, root_dist):
     return return_clade
 
 
+# Default tree style
 class Tree_style:
     def __init__(self):
         self.ts = TreeStyle()
@@ -165,7 +163,7 @@ class Tree_style:
 
 # Main tree information class
 class Tree_information:
-    def __init__(self, tree, Tree_style, opt):
+    def __init__(self, tree, Tree_style, group, gene, opt):
 
         self.tree_name = tree  # for debugging
         self.t = Tree(tree)
@@ -193,6 +191,8 @@ class Tree_information:
         self.reserved_sp = set()
 
         self.Tree_style = Tree_style
+        self.group = group
+        self.gene = gene
         self.opt = opt
 
         self.collapse_dict = {}  # { taxon name : collapse_info }
@@ -236,69 +236,9 @@ class Tree_information:
             else:
                 return "none"
 
-        elif by == "id":
-            db_list = [
-                self.funinfo_dict[x].id
-                for x in self.funinfo_dict
-                if self.funinfo_dict[x].datatype == "db"
-            ]
-            query_list = [
-                self.funinfo_dict[x].id
-                for x in self.funinfo_dict
-                if self.funinfo_dict[x].datatype == "query"
-            ]
-
-            if string in query_list:
-                return "query"
-            elif string in db_list:
-                return "db"
-            else:
-                return "none"
-
-        elif by == "original_id":
-            db_list = [
-                self.funinfo_dict[x].original_id
-                for x in self.funinfo_dict
-                if self.funinfo_dict[x].datatype == "db"
-            ]
-            query_list = [
-                self.funinfo_dict[x].original_id
-                for x in self.funinfo_dict
-                if self.funinfo_dict[x].datatype == "query"
-            ]
-
-            if string in query_list:
-                return "query"
-            elif string in db_list:
-                return "db"
-            else:
-                return "none"
-
-        # elif by == "regex": # legacy code, mabye used for standalone CAT_V
         else:
-            for regex in self.query_list:
-                if re.search(regex, string):
-                    query = True
-
-            for regex in self.db_list:
-                if re.search(regex, string):
-                    db = True
-
-            if priority == "query":
-                if query == True:
-                    return "query"
-                elif db == True:
-                    return "db"
-                else:
-                    return "none"
-
-            elif priority == "db":
-                if db == True:
-                    return "db"
-                elif query == True:
-                    return "query"
-                else:
-                    return "none"
+            print("[ERROR] DEVELOPMENTAL ERROR, UNEXPECTED by for decide_type")
+            raise Exception
 
     # Calculate zero length branch length cutoff with given tree and alignment
     def calculate_zero(self, alignment_file):
@@ -327,9 +267,30 @@ class Tree_information:
                     or (seq1.id, seq2.id) in pairs
                     or (seq2.id, seq1.id) in pairs
                 ):
-                    seq1_clean = str(seq1.seq).replace("-", "")
-                    seq2_clean = str(seq2.seq).replace("-", "")
-                    if seq1_clean in seq2_clean or seq2_clean in seq1_clean:
+
+                    # Chenge unusable chars into gap
+                    seq1_str = str(seq1.seq).lower()
+                    seq2_str = str(seq2.seq).lower()
+
+                    for char in set(seq1_str) - {"a", "t", "g", "c", "-"}:
+                        seq1_str = seq1_str.replace(char, "-")
+
+                    for char in set(seq2_str) - {"a", "t", "g", "c", "-"}:
+                        seq2_str = seq2_str.replace(char, "-")
+
+                    identical_flag = True
+                    # To prevent distance among different region detected as zero in concatenated analysis
+                    overlapping_cnt = 0
+
+                    # for valid part
+                    for n, i in enumerate(seq1_str):
+                        if seq1_str[n] != "-" and seq2_str[n] != "-":
+                            if seq1_str[n] != seq2_str[n]:
+                                identical_flag = False
+                                overlapping_cnt += 1
+                                break
+
+                    if identical_flag is True and overlapping_cnt > 0:
                         pairs.append(
                             tuple(sorted([str(seq1.id).strip(), str(seq2.id).strip()]))
                         )
@@ -374,16 +335,16 @@ class Tree_information:
                 self.t.ladderize(direction=1)
                 self.outgroup_clade = outgroup_leaves[0]
             else:
-                print(f"[Warning] no outgroup selected in {self.tree_name}")
+                print(f"[ERROR] no outgroup selected in {self.tree_name}")
                 raise Exception
 
             if len(outgroup_leaves) != len(self.outgroup_clade):
                 print(
-                    f"[Warning] outgroup does not seems to be monophyletic in {self.tree_name}"
+                    f"[WARNING] outgroup does not seems to be monophyletic in {self.tree_name}"
                 )
 
         except:
-            print(f"[Warning] no outgroup selected in {self.tree_name}")
+            print(f"[WARNING] no outgroup selected in {self.tree_name}")
 
             outgroup_flag = False
             # if outgroup_clade is on the root side, reroot with other leaf temporarily and reroot again
@@ -395,7 +356,7 @@ class Tree_information:
                         self.outgroup_clade = self.t.get_common_ancestor(
                             outgroup_leaves
                         )
-                        print(f"Ancestor: {self.outgroup_clade}")
+                        # print(f"Ancestor: {self.outgroup_clade}")
                         self.t.set_outgroup(self.outgroup_clade)
                         outgroup_flag = True
                         break
@@ -404,10 +365,10 @@ class Tree_information:
 
             if outgroup_flag is False:
                 # never erase this for debugging
-                print(f"Outgroup not selected in {self.tree_name}")
-                print(f"Outgroup leaves: {outgroup_leaves}")
-                print(f"Outgroup : {self.outgroup}")
-                print(f"Outgroup clade : {self.outgroup_clade}")
+                print(f"[ERROR] Outgroup not selected in {self.tree_name}")
+                print(f"[ERROR] Outgroup leaves: {outgroup_leaves}")
+                print(f"[ERROR] Outgroup : {self.outgroup}")
+                print(f"[ERROR] Outgroup clade : {self.outgroup_clade}")
                 raise Exception
 
         self.Tree_style.ts.show_leaf_name = True
@@ -416,8 +377,6 @@ class Tree_information:
 
         self.t.render(f"{out}", tree_style=self.Tree_style.ts)
         self.Tree_style.ts.show_leaf_name = False
-
-    # String manipulation operations
 
     # count number of taxons in the clade
     @lru_cache(maxsize=10000)
@@ -577,7 +536,6 @@ class Tree_information:
                 )
                 collapse_info.n_query += 1
             else:
-<<<<<<< HEAD
                 print(
                     f"[ERROR] DEVELOPMENTAL ERROR : UNEXPECTED LEAF TYPE FOR {leaf.name}"
                 )
@@ -647,49 +605,10 @@ class Tree_information:
         else:
             return False
 
-    # Generate collapse information of tree if clade is determined to be monophyletic
-    def generate_collapse_information(self, clade, gene, opt=None, flat=False):
-
-        collapse_info = Collapse_information()
-        collapse_info.query_list = self.query_list
-        collapse_info.db_list = self.db_list
-        collapse_info.outgroup = self.outgroup
-        collapse_info.flat = flat
-        taxon = self.find_majortaxon(clade, gene, opt)
-        self.collapse(collapse_info, clade, taxon)
-
-        # counting new species
-        if taxon[1].startswith("sp."):
-            while 1:
-                self.sp_cnt += 1
-                if str(self.sp_cnt) in self.reserved_sp:
-                    print(f"[INFO] Skipping {self.sp_cnt} to avoid overlap in database")
-                    continue
-                else:
-                    break
-        print(f"[INFO] Generating collapse information for taxon {taxon}")
-        if not (taxon in self.collapse_dict):
-            self.collapse_dict[taxon] = [collapse_info]
-        else:
-            self.collapse_dict[taxon].append(collapse_info)
-
     # Species level delimitaion on tree
     def tree_search(self, clade, gene, opt=None):
-
-        ## start of tree_search
-        # At the final leaf tip
-=======
-                # if some errornous count occurs, that maybe because of this part
-                # however, the last part of tuple is essential for CAT_V pipe to collect data
-                # it is not sure why "other" exists - that might be outgroup
-                collapse_info.leaf_lisvisualize.t.append(
-                    (leaf.name, "#000000", leaf.name)
-                )
-                collapse_info.n_ovisualize.thers += 1
-
-    def tree_search(self, clade, gene, opt=None):
-        def check_monophyletic(self, clade, gene):
-            # if given clade is clade with db or only query
+        def local_check_monophyletic(self, clade, gene):
+            # decide if given clade is clade with db or only query
             def decide_clade(clade, gene):
                 taxon_dict = self.taxon_count(clade, gene)
                 if len(taxon_dict.keys()) == 0:
@@ -703,34 +622,29 @@ class Tree_information:
                 taxon_dict = self.taxon_count(clade, gene)
 
                 # if taxon dict.keys() have 0 species: all query
+                # if any of the branch length was too long or bootstrap is to distinctive : False
                 if len(taxon_dict.keys()) == 0:
                     for children in clade.children:
-                        # if any of the branch length was too long for single clade
                         if children.dist > self.opt.collapsedistcutoff:
                             return False
-                        # or bootstrap is to distinctive
-                        elif children.support >= opt.collapsebscutoff:
+                        elif children.support >= self.opt.collapsebscutoff:
                             return False
-
                     return True
-                elif len(taxon_dict.keys()) == 1:
 
-                    # if taxon dict.keys() have only 1 species: group assigned
+                # if taxon dict.keys() have only 1 species: group assigned
+                elif len(taxon_dict.keys()) == 1:
                     for children in clade.children:
-                        # check query branch
                         if self.find_majortaxon(children, gene)[1].startswith("sp."):
                             if children.dist > self.opt.collapsedistcutoff:
                                 return False
-                            elif children.support >= opt.collapsebscutoff:
+                            elif children.support >= self.opt.collapsebscutoff:
                                 return False
-
                     return True
                 else:  # more than 2 species : not monophyletic
                     return False
 
-            datatype = decide_clade(
-                clade, gene
-            )  # if clade only has query species or not
+            # if clade only has query species or not
+            datatype = decide_clade(clade, gene)
 
             # if only one clade, it is firmly monophyletic
             if len(clade.children) == 1:
@@ -739,18 +653,12 @@ class Tree_information:
             # if additional_clustering option is on, check if basal group includes query seqs
             taxon = self.find_majortaxon(clade, gene)
 
-            if self.additional_clustering == False:
-                self.opt.collapsedistcutoff = 0
-
             if is_monophyletic(self, clade, gene, taxon):
                 return datatype, True
             else:
                 return datatype, False
 
-            print("Test termination")
-            raise Exception
-
-        def generate_collapse_information(self, clade, opt=None):
+        def local_generate_collapse_information(self, clade, opt=None):
 
             collapse_info = Collapse_information()
             collapse_info.query_list = self.query_list
@@ -768,7 +676,11 @@ class Tree_information:
                         continue
                     else:
                         break
-            print(f"Generating collapse information for taxon {taxon}")
+            print(
+                f"[INFO] Generating collapse information on {self.group} {self.gene} for taxon {taxon}          ",
+                end="\r",
+            )
+
             if not (taxon in self.collapse_dict):
                 self.collapse_dict[taxon] = [collapse_info]
             else:
@@ -776,67 +688,63 @@ class Tree_information:
 
         # start of tree_search
         # at the last leaf
->>>>>>> parent of bbf88cd (0.2.0.1.0.7)
         if len(clade.children) == 1:
-            generate_collapse_information(clade, opt=opt)
+            local_generate_collapse_information(clade, opt=opt)
             return
 
         # In bifurcated clades
         elif len(clade.children) == 2:
 
             for child_clade in clade.children:
-<<<<<<< HEAD
 
                 # Calculate root distance between two childs to check flat
-                flat = True if child_clade.dist <= opt.collapsedistcutoff else False
+                flat = (
+                    True if child_clade.dist <= self.opt.collapsedistcutoff else False
+                )
 
                 # Check if child clades are monophyletic
-                monophyletic = self.check_monophyletic(child_clade, gene)
+                datatype, monophyletic = local_check_monophyletic(
+                    self, child_clade, gene
+                )
                 if monophyletic is True:
-                    self.generate_collapse_information(
-                        child_clade, gene, opt=opt, flat=flat
-                    )
-=======
-                datatype, monophyletic = check_monophyletic(self, child_clade, gene)
-                if monophyletic is True:
-                    generate_collapse_information(self, child_clade, opt=opt)
->>>>>>> parent of bbf88cd (0.2.0.1.0.7)
+                    local_generate_collapse_information(self, child_clade, opt=opt)
+
                 else:
                     self.tree_search(child_clade, gene, opt=opt)
             return
 
         # if error (more than two branches or no branches)
         else:
-            print(f"DEVELOPMENTAL ERROR : FAILED TREE SEARCH ON LEAF {clade.children}")
+            print(
+                f"[ERROR] DEVELOPMENTAL ERROR : FAILED TREE SEARCH ON LEAF {clade.children}"
+            )
             raise Exception
-
         # end of tree_search
 
     # Reconstruct tree tree to solve flat branches
     def reconstruct(self, clade, gene, opt):
 
-        sys.stdout.flush()
+        sys.stdout.flush()  # for logging
 
         @lru_cache(maxsize=10000)
         def solve_flat(clade):
+            # If clade is consists of query db or both
             def consist(c):
 
+                db, query = 0, 0
+                """
                 db = 0
                 query = 0
+                """
 
                 for leaf in c:
-                    if (
-                        self.decide_type(leaf.name) == "db"
-                        or self.decide_type(leaf.name) == "outgroup"
-                    ):
+                    if self.decide_type(leaf.name) in ("db", "outgroup"):
                         db += 1
                     else:
                         query += 1
 
                 if db == 0 and query == 0:
-                    print(c)
-                    print(db)
-                    print(query)
+                    print(f"[ERROR] DEVELOPMENTAL ON CONSIST, {c} {db} {query}")
                     raise Exception
                 elif db == 0 and query != 0:
                     return "query"
@@ -847,17 +755,14 @@ class Tree_information:
 
             def get_taxon(c, gene, mode="db"):
 
-                taxon_dict = {}
-
-                # edited
+                # get taxon
                 def t(leaf):
-
                     return (
                         self.funinfo_dict[leaf.name].genus,
                         self.funinfo_dict[leaf.name].bygene_species[gene],
                     )
 
-                # if error occurs, change t to this again
+                taxon_dict = {}
 
                 if mode == "db":
                     for leaf in c:
@@ -867,17 +772,14 @@ class Tree_information:
                             taxon_dict[t(leaf)] += 1
 
                     if len(taxon_dict) == 0:
-                        print(taxon_dict)
-                        print(c)
+                        print(f"{taxon_dict}\n {c}")
                         raise Exception
-
                     elif len(taxon_dict) == 1:
                         return list(taxon_dict.keys())[0]
                     else:
                         return False
 
                 elif mode == "query":
-
                     for leaf in c:
                         if not (t in taxon_dict):
                             taxon_dict[t(leaf)] = 1
@@ -885,24 +787,19 @@ class Tree_information:
                             taxon_dict[t(leaf)] += 1
 
                     if len(taxon_dict) == 0:
-                        print(taxon_dict)
-                        print(c)
+                        print(f"{taxon_dict}\n {c}")
                         raise Exception
-
                     elif len(taxon_dict) == 1:
                         return list(taxon_dict.keys())[0]
-
                     else:
                         max_taxon = ""
                         maximum = 0
                         for taxon in taxon_dict:
                             if taxon_dict[taxon] > maximum:
-                                maximum = taxon_dict[taxon]
-                                max_taxon = taxon
+                                maximum, max_taxon = taxon_dict[taxon], taxon
                         return max_taxon
 
                 elif mode == "both":
-
                     for leaf in c:
                         if (
                             self.decide_type(leaf.name, priority="query") == "db"
@@ -915,13 +812,10 @@ class Tree_information:
                                 taxon_dict[t(leaf)] += 1
 
                     if len(taxon_dict) == 0:
-                        print(taxon_dict)
-                        print(clade)
+                        print(f"{taxon_dict}\n {c}")
                         raise Exception
-
                     elif len(taxon_dict) == 1:
                         return list(taxon_dict.keys())[0]
-
                     else:
                         return False
 
@@ -954,7 +848,7 @@ class Tree_information:
 
                 return clade_list
 
-            # Start of function
+            ## Start of function solve flat
             root_dist = clade.dist
             clade_list = seperate_clade(clade, gene, [])
             cnt = 0
@@ -1001,16 +895,13 @@ class Tree_information:
                 final = concat_all(tuple(final_clade), root_dist)
 
                 return final.copy("newick")
-            # end of solve flat
+            ## end of solve flat
 
+        ## Start of reconstruct
         if len(clade.children) in (0, 1):
             return clade.copy("newick")
 
         elif len(clade.children) == 2:
-
-            solitum_flag = 0
-            discolor_flag = 0
-
             clade1 = clade.children[0]
             clade2 = clade.children[1]
 
@@ -1034,10 +925,9 @@ class Tree_information:
             return concatanated_clade
 
         else:
-            print(clade)
-            print(clade.children)
-            print(len(clade.children))
+            print(f"[ERROR] {clade} {clade.children} {len(clade.children)}")
             raise Exception
+        ## end of reconstruct
 
     def get_bgcolor(self):
         return self.opt.visualize.backgroundcolor[
@@ -1046,6 +936,8 @@ class Tree_information:
 
     ### Collapse tree
     def collapse_tree(self):
+        # collect taxon string to decide in polishing
+        taxon_string_list = []
         for collapse_taxon in self.collapse_dict:
             for collapse_info in self.collapse_dict[collapse_taxon]:
                 clade = collapse_info.clade
@@ -1059,6 +951,7 @@ class Tree_information:
                     taxon_string = (
                         f'{" ".join(collapse_info.taxon)} {collapse_info.clade_cnt}'
                     )
+                taxon_string_list.append(taxon_string)
 
                 taxon_text = TextFace(
                     taxon_string,
@@ -1074,18 +967,6 @@ class Tree_information:
                     fgcolor=collapse_info.color,
                 )
 
-                # For testing tree to change into hash representation, should be removed after done
-                """
-                id_string = divide_by_max_len(
-                    ",tmpseperator, ".join(
-                        sorted(
-                            self.funinfo_dict[x[0]].original_id
-                            for x in collapse_info.leaf_list
-                        )
-                    ),
-                    self.opt.const_max_len,
-                )
-                """
                 # hash list for further analysis
                 string_hash_list = [x[0] for x in collapse_info.leaf_list]
 
@@ -1144,7 +1025,7 @@ class Tree_information:
             # change this part when debugging flat trees
             node.img_style["size"] = 0  # removing circles whien size is 0
 
-            if node.support > self.opt.collapsebscutoff:
+            if node.support > self.opt.visualize.bscutoff:
                 # node.add_face without generating extra line
                 # add_face_to_node
                 node.add_face(
@@ -1157,10 +1038,12 @@ class Tree_information:
                     position="float",
                 )
 
-    # end of collapse tree
+        return taxon_string_list
+
+    ### end of collapse tree
 
     ### edit svg image from initial output from ete3
-    def polish_image(self, out, genus_list):
+    def polish_image(self, out, taxon_string_list, genus_list):
 
         # make it to tmp svg file and parse
         self.t.render(f"{out}", tree_style=self.Tree_style.ts)
@@ -1191,7 +1074,7 @@ class Tree_information:
         for text in text_list:
 
             # Decide if string of the tree is bootstrap, scale, taxon or id
-            taxon_list = [" ".join(x) for x in self.collapse_dict.keys()]
+            # taxon_list = [" ".join(x) for x in self.collapse_dict.keys()]
 
             try:
                 int(text.text)
@@ -1199,7 +1082,9 @@ class Tree_information:
             except:
                 if text.text == "0.05":
                     text_type = "scale"
-                elif any(taxon.strip() == text.text.strip() for taxon in taxon_list):
+                elif any(
+                    taxon.strip() == text.text.strip() for taxon in taxon_string_list
+                ):
                     text_type = "taxon"
                 else:
                     text_type = "hash"
@@ -1210,6 +1095,7 @@ class Tree_information:
             if text_type == "taxon":
                 genus = get_genus_species(text.text, genus_list=genus_list)[0]
                 species = get_genus_species(text.text, genus_list=genus_list)[1]
+
                 rest = (
                     text.text.replace(genus, "").replace(species, "").replace(" ", "")
                 )
@@ -1223,7 +1109,6 @@ class Tree_information:
                     genus = get_genus_species(text.text, genus_list=genus_list)[0]
 
                 # split genus, species, rest of parent into tspan
-                # parent.remove(text)
                 text.text = ""
                 tspan_list = []
                 if genus != "":
@@ -1263,7 +1148,7 @@ class Tree_information:
                             try:
                                 tspan.set("fill", self.funinfo_dict[word.strip()].color)
                             except:
-                                print("Failed coloring while development")
+                                print("DEVELOPMENTAL ERROR: Failed coloring tree")
                                 raise Exception
 
                         elif self.decide_type(word, by="hash") == "query":
@@ -1277,29 +1162,9 @@ class Tree_information:
         # svg.set("width", "100%")
         # svg.set("height", "100%")
 
-        # write to file
-
+        # write to svg file
         tree_xml.write(
             out,
             encoding="utf-8",
             xml_declaration=True,
         )
-
-    """
-    def remove_outgroup(collapse_dict, gene, outgroup):
-        outgroup_taxon = set()
-        for leaf in outgroup.iter_leaves():
-            outgroup_taxon.add(
-                (
-                    self.funinfo_dict[leaf.name].genus,
-                    self.funinfo_dict[leaf.name].bygene_species[gene],
-                )
-            )
-
-        for taxon in outgroup_taxon:
-
-            collapse_dict.pop(taxon, None)
-            print(f"Removed taxon {taxon}")
-
-        return collapse_dict
-    """
