@@ -31,6 +31,7 @@ grayskull pypi FunID
 anaconda login
 conda config --set anaconda_upload no
 conda config --add channels cwseo
+conda install python=3.9 // I don't know why, but python version changes during installation sometimes
 conda-build ./funid -c conda-forge
 conda install anaconda-project
 anaconda upload {Build file location} // tar.bz2 in conda-build log
