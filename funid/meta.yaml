@@ -1,5 +1,5 @@
 {% set name = "FunID" %}
-{% set version = "0.3.0" %}
+{% set version = "0.3.1" %}
 
 package:
   name: {{ name|lower }}
@@ -7,7 +7,7 @@ package:
 
 source:
   url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/FunID-{{ version }}.tar.gz
-  sha256: b26be1c37199b816c98bd35d2456b87d70570539b83aed1f39d16a8de4269ccd
+  sha256: 52d0e9163b50495f8a98e64e10635a3b14f2d183d39fbf4926a4e0798bae6ea2
 
 build:
   skip: true  # [py>=311 or py2k]
@@ -55,10 +55,11 @@ test:
     - pip
 
 about:
-  home: https://github.com/Changwanseo/FunID-dev
+  home: https://github.com/Changwanseo/FunID
   summary: Fungal Identification Pipeline
   license: GPL-3.0
   license_file:
+    - LICENSE
     - funid/external/mmseqs_Windows/LICENSE.md
     - funid/external/trimal.v1.2rev59/trimAl/LICENSE
 

@@ -11,7 +11,6 @@ from Bio.Blast import NCBIXML
 from Bio import SeqIO
 
 import logging
-from funid.src.visualize import plot_pca, plot_heatmap
 from funid.src.ext import mmseqs
 
 
