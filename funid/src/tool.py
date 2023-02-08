@@ -8,6 +8,7 @@ from functools import lru_cache
 import sys, os
 import shutil
 import platform
+from unidecode import unidecode
 
 # Maybe we should move this to /funid/src/toolbox/ and split these to multiple files
 def initialize_path(path):

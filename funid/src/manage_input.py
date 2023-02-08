@@ -531,6 +531,7 @@ def input_table(path, opt, table_list, datatype):
             # parse each of the genes
             # For each of the gene
             # logging.debug(f"Gene found in db input {opt.gene}")
+
             for gene in opt.gene:
                 seq_error = 0
                 if gene in df.columns:
@@ -563,6 +564,7 @@ def input_table(path, opt, table_list, datatype):
                             newinfo.update_seq(
                                 gene, seq_string.replace("-", "").replace(".", "")
                             )
+
     # make it to list at last
     list_funinfo = [funinfo_dict[x] for x in funinfo_dict]
 
@@ -617,18 +619,25 @@ def query_input(opt, path):
         for file in opt.query
         if any(file.endswith(x) for x in (".fa", ".fna", ".fas", ".fasta", ".txt"))
     ]
-    query_excel = [file for file in opt.query if (file.endswith(".xlsx"))]
+    query_table = [
+        file
+        for file in opt.query
+        if any(
+            file.endswith(x)
+            for x in (".csv", ".tsv", ".xlsx", ".ftr", ".feather", ".parquet")
+        )
+    ]
 
     query_list = []
     query_list += input_fasta(path, opt, query_fasta, "query")
     query_list += input_table(
-        path=path, opt=opt, table_list=query_excel, datatype="query"
+        path=path, opt=opt, table_list=query_table, datatype="query"
     )[0]
 
     for file in query_fasta:
         shutil.copy(f"{file}", f"{path.out_query}/{file}")
 
-    logging.info(f"Total {len(query_list)} sequences parsed")
+    logging.info(f"Total {len(query_list)} sequences parsed from query")
 
     return query_list, opt
 
