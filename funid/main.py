@@ -93,6 +93,7 @@ def main():
         logging.info("SETUP")
 
         # save metadata input to report
+        # R.initialize_metadata(opt)
         # get input data
         V, R, opt = manage_input.data_input(V, R, opt, path)
 

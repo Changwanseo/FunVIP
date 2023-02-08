@@ -334,7 +334,6 @@ class FunID_var:
         for group in self.dict_dataset:
             for gene in self.dict_dataset[group]:
                 if not (gene == "concatenated"):
-                    """
                     if "concatenated" in self.dict_dataset[group]:
                         fasta_list = list(
                             set(
@@ -344,8 +343,7 @@ class FunID_var:
                                 + self.dict_dataset[group]["concatenated"].list_og_FI
                             )
                         )
-                    """
-                    if 1:
+                    else:
                         fasta_list = (
                             self.dict_dataset[group][gene].list_db_FI
                             + self.dict_dataset[group][gene].list_qr_FI

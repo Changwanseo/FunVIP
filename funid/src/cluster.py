@@ -4,7 +4,6 @@ import numpy as np
 import shutil
 import os, sys, subprocess
 import copy
-import gc
 from functools import lru_cache
 from time import sleep
 
@@ -132,7 +131,6 @@ def cluster(FI, df_search, V, path, opt):
 
     # delete V to reduce memory assumption
     del V
-    gc.collect()
 
     # If no evidence available, return it
     if df_search is None:
@@ -154,8 +152,6 @@ def cluster(FI, df_search, V, path, opt):
         cutoff_df = df_search[
             df_search["bitscore"] > df_search["bitscore"][0] * opt.cluster.cutoff
         ]
-        del df_search
-        gc.collect()
 
         group_count = len(set(cutoff_df["subject_group"]))
         list_group = list(set(cutoff_df["subject_group"]))
@@ -190,6 +186,7 @@ def cluster(FI, df_search, V, path, opt):
                     logging.warning(f" Clustering result colliding in {FI.id}")
 
         # return funinfo object with adjusted group, and selected group
+
         return FI, list_group[0]
 
 
@@ -202,7 +199,6 @@ def append_outgroup(V, df_search, gene, group, path, opt):
 
     # In multiprocessing, delete V for memory
     del V
-    gc.collect()
 
     # ready for by sseqid hash, which group to append
     # this time, append adjusted group
@@ -227,17 +223,19 @@ def append_outgroup(V, df_search, gene, group, path, opt):
         cutoff_df = cutoff_df[cutoff_df["bitscore"] > 0]
         # split that same group to include all to alignment, and left other groups for outgroup selection
         cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
-        cutoff_df_count = cutoff_df.groupby(["subject_group"]).count()
 
         # If no or fewer than designated number of outgroup matches to condition, use flexible criteria
-        if cutoff_df_count.empty:
+        if cutoff_df.groupby(["subject_group"]).count().empty:
             logging.warning(
                 f"Not enough outgroup sequences matched for group {group} | gene {gene}. There might be outlier sequence that does not matches to group. Trying flexible cutoff"
             )
             cutoff_df = df_search[df_search["bitscore"] > 0]
             cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
 
-        elif cutoff_df_count["sseqid"].max() < opt.maxoutgroup:
+        elif (
+            cutoff_df.groupby(["subject_group"]).count()["sseqid"].max()
+            < opt.maxoutgroup
+        ):
             logging.warning(
                 f"Not enough outgroup sequences matched for group {group} | gene {gene}. There might be outlier sequence that does not matches to group. Trying flexible cutoff"
             )
