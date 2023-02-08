@@ -22,7 +22,7 @@ setup_options = dict(
         "ete3==3.1.2",
         "Cython",
         "dendropy",
-        "GenMine",
+        "GenMine>=1.0.7.1",
         "lxml",
         "matplotlib==3.5.1",
         "numpy==1.22.3",

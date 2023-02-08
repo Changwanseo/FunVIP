@@ -405,92 +405,90 @@ def input_table(path, opt, table_list, datatype):
         )
 
         # Sequence column operations, download sequences with GenMine
-        if 1:  # If download on/off option added, change this part
-            download_dict = {}  # for downloaded sequences
-            download_set = set()
-            # 1 letter + 5 digit regex should be last, because they overlap with 2 letter + 6 digit ids
-            regex_genbank = r"(([A-Z]{1}[0-9]{5})(\.[0-9]{1}){0,1})|(([A-Z]{2}[\_]{0,1}[0-9]{6}){1}([\.][0-9]){0,1})"
+        download_dict = {}  # for downloaded sequences
+        download_set = set()
+        # 1 letter + 5 digit regex should be last, because they overlap with 2 letter + 6 digit ids
+        regex_genbank = r"(([A-Z]{1}[0-9]{5})(\.[0-9]{1}){0,1})|(([A-Z]{2}[\_]{0,1}[0-9]{6}){1}([\.][0-9]){0,1})"
 
-            # if gene name were not designated by user, use seq
-            opt.gene = list(set([gene.lower().strip() for gene in opt.gene]))
+        # if gene name were not designated by user, use seq
+        opt.gene = list(set([gene.lower().strip() for gene in opt.gene]))
 
-            # should be imported after initialize to prevent error
-            from .tool import mkdir
+        # should be imported after initialize to prevent error
+        from .tool import mkdir
 
-            # find all NCBI accessions in seq
-            for gene in opt.gene:
-                if isuniquecolumn(
-                    list_column=df.columns,
-                    column=tuple((gene,)),
-                    table_name=table,
-                    check_none=False,
-                ):
-                    for n, _ in enumerate(df[gene]):
-                        if not (pd.isna(df[gene][n])):
-                            if re.search(regex_genbank, df[gene][n]):
-                                # remove unexpected indents with strip
-                                download_set.add(df[gene][n].strip())
+        # find all NCBI accessions in seq
+        for gene in opt.gene:
+            if isuniquecolumn(
+                list_column=df.columns,
+                column=tuple((gene,)),
+                table_name=table,
+                check_none=False,
+            ):
+                for n, _ in enumerate(df[gene]):
+                    if not (pd.isna(df[gene][n])):
+                        if re.search(regex_genbank, df[gene][n]):
+                            # remove unexpected indents with strip
+                            download_set.add(df[gene][n].strip())
 
-            # if NCBI accessions detected in sequence part, download it
-            if len(download_set) > 0:
+        # if NCBI accessions detected in sequence part, download it
+        if len(download_set) > 0:
 
-                logging.info(
-                    f"Running GenMine to download {len(download_set)} sequences from GenBank"
+            logging.info(
+                f"Running GenMine to download {len(download_set)} sequences from GenBank"
+            )
+            logging.info(download_set)
+
+            # Write GenMine input file
+            with open(f"{path.GenMine}/Accessions.txt", "w") as fg:
+                for acc in download_set:
+                    fg.write(f"{acc.strip()}\n")
+
+            # Run GenMine
+            # Should be moved to ext.py
+            cmd = f"GenMine -c {path.GenMine}/Accessions.txt -o {path.GenMine} -e {opt.email}"
+            subprocess.call(cmd, shell=True)
+
+            GenMine_df_list = [
+                file
+                for file in os.listdir(path.GenMine)
+                if file.endswith("_transformed.xlsx")
+            ]
+
+            if len(GenMine_df_list) == 1:
+                download_df = pd.read_excel(f"{path.GenMine}/{GenMine_df_list[0]}")
+
+                # Generate download_dict (I think this can be done with pandas operation, but a bit tricky. Will be done later)
+                for n, acc in enumerate(download_df["acc"]):
+                    download_dict[acc.strip()] = download_df["seq"][n]
+
+                # replace accession to sequence downloaded
+                for n, _ in enumerate(df["id"]):
+                    for gene in opt.gene:
+                        if gene in df.columns:
+                            if not (pd.isna(df[gene][n])):
+                                if df[gene][n].strip() in download_dict:
+                                    df[gene][n] = download_dict[
+                                        df[gene][n].strip().split(".")[0]
+                                    ]
+                                # Removed download fails
+                                elif (
+                                    not (df[gene][n].strip() in download_dict)
+                                    and df[gene][n].strip() in download_set
+                                ):
+                                    df[gene][n] = ""
+
+                # Remove GenMine results to prevent collision with next set
+                for file in os.listdir(path.GenMine):
+                    if "transformed.xlsx" in file:
+                        os.remove(f"{path.GenMine}/{file}")
+
+            elif len(GenMine_df_list) == 0:
+                logging.warning(f"None of the GenMine results were succesfully parsed")
+            else:
+                logging.error(
+                    f"DEVELOPMENTAL ERROR: Multiple GenMine result colliding!"
                 )
-                logging.info(download_set)
-
-                # Write GenMine input file
-                with open(f"{path.GenMine}/Accessions.txt", "w") as fg:
-                    for acc in download_set:
-                        fg.write(f"{acc.strip()}\n")
-
-                # Run GenMine
-                cmd = f"GenMine -c {path.GenMine}/Accessions.txt -o {path.GenMine} -e {opt.email}"
-                subprocess.call(cmd, shell=True)
-
-                GenMine_df_list = [
-                    file
-                    for file in os.listdir(path.GenMine)
-                    if file.endswith("_transformed.xlsx")
-                ]
-
-                if len(GenMine_df_list) == 1:
-                    download_df = pd.read_excel(f"{path.GenMine}/{GenMine_df_list[0]}")
-
-                    # Generate download_dict (I think this can be done with pandas operation, but a bit tricky. Will be done later)
-                    for n, acc in enumerate(download_df["acc"]):
-                        download_dict[acc.strip()] = download_df["seq"][n]
-
-                    # replace accession to sequence downloaded
-                    for n, _ in enumerate(df["id"]):
-                        for gene in opt.gene:
-                            if gene in df.columns:
-                                if not (pd.isna(df[gene][n])):
-                                    if df[gene][n].strip() in download_dict:
-                                        df[gene][n] = download_dict[
-                                            df[gene][n].strip().split(".")[0]
-                                        ]
-                                    # Removed download fails
-                                    elif (
-                                        not (df[gene][n].strip() in download_dict)
-                                        and df[gene][n].strip() in download_set
-                                    ):
-                                        df[gene][n] = ""
-
-                    # Remove GenMine results to prevent collision with next set
-                    for file in os.listdir(path.GenMine):
-                        if "transformed.xlsx" in file:
-                            os.remove(f"{path.GenMine}/{file}")
-
-                elif len(GenMine_df_list) == 0:
-                    logging.warning(
-                        f"None of the GenMine results were succesfully parsed"
-                    )
-                else:
-                    logging.error(
-                        f"DEVELOPMENTAL ERROR: Multiple GenMine result colliding!"
-                    )
-                    raise Exception
+                raise Exception
 
         # Generate funinfo by each row
         for n, acc in enumerate(df["id"]):
@@ -535,8 +533,9 @@ def input_table(path, opt, table_list, datatype):
             for gene in opt.gene:
                 seq_error = 0
                 if gene in df.columns:
-                    if not (pd.isna(df[gene][n])) or str(df[gene][n]).strip() == "":
-
+                    if not (
+                        (pd.isna(df[gene][n])) or len(str(df[gene][n]).strip()) == 0
+                    ):
                         # skip blank sequences
                         if df[gene][n].startswith(">"):
                             # remove fasta header
