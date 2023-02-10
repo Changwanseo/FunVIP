@@ -1,6 +1,6 @@
 from funid.src import cluster, tool, hasher, manage_input, save
 from funid.src.ext import blast, makeblastdb, mmseqs, makemmseqsdb
-from funid.src.manage_input import save_df
+from funid.src.save import save_df
 import copy
 import pandas as pd
 import numpy as np

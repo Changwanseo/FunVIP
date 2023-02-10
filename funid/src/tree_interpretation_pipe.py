@@ -6,6 +6,7 @@ from funid.src.hasher import encode, decode
 from funid.src.reporter import Singlereport
 from funid.src.patch import patch
 import pandas as pd
+import re
 import sys, os
 import shutil
 import logging
@@ -118,6 +119,8 @@ def synchronize(V, path, tree_info_list):
 
     for tree_info in tree_info_list:
         possible_genus = get_possible_genus(tree_info)
+        logging.debug(f"Synchronize for genus : {possible_genus}")
+
         for genus in possible_genus:
             if not (genus) in tree_info_dict:
                 tree_info_dict[genus] = {tree_info.group: {tree_info.gene: tree_info}}
@@ -129,12 +132,21 @@ def synchronize(V, path, tree_info_list):
                 logging.error("DEVELOPMENTAL ERROR, DUPLICATED TREE_INFO")
                 raise Exception
 
+    cnt_sp_adder = {}
+
     for genus in tree_info_dict.keys():
+
+        if not (genus in cnt_sp_adder):
+            cnt_sp_adder[genus] = 0
+
+        logging.debug(f"Synchronizing {genus}")
         # cnt number that should be added (sp. {cnt_sp_adder})
-        cnt_sp_adder = 0
 
         # sp. numbers should be counted by genus
         for group in sorted(list(tree_info_dict[genus].keys())):
+
+            logging.debug(f"Synchronizing {group}")
+
             if not ("concatenated" in tree_info_dict[genus][group]):
                 # Now concatenated analysis gets mandatory
                 logging.info(
@@ -147,18 +159,30 @@ def synchronize(V, path, tree_info_list):
                 # Get all sp. taxon list
                 taxon_set = set()
                 for taxon in tree_info.collapse_dict.keys():
-                    if "sp." in taxon[1]:
+                    if taxon[0] == "genus" and re.fullmatch(r"sp. [0-9]+", taxon[1]):
+                        logging.debug(f"Sp. checking : {taxon[1]}")
                         taxon_set.add(taxon)
                 # Make one hash - one sp dict pair
                 hash_dict = {}
 
                 # Add sp numbers to synchronize through genus
                 for taxon in taxon_set:
+                    logging.debug(f"Working on {taxon}")
+                    logging.debug(f"Adding {cnt_sp_adder[genus]} to {taxon}")
+
                     for leaf in tree_info.collapse_dict[taxon][0].leaf_list:
-                        hash_dict[leaf[0]] = (
-                            taxon[0],
-                            f"sp. {str(int(taxon[1].split(' ')[1]) + cnt_sp_adder)}",
-                        )
+                        # Just for debugging
+                        try:
+                            hash_dict[leaf[0]] = (
+                                taxon[0],
+                                f"sp. {str(int(taxon[1].split(' ')[1]) + cnt_sp_adder[genus])}",
+                            )
+
+                        except:
+                            print(
+                                f"DEVELOPMENTAL ERROR in synchronizing for taxon {taxon}"
+                            )
+                            hash_dict[leaf[0]] = (taxon[0], f"sp. {str(taxon)}")
 
                 ## Update tree_info.collapse_dict with cnt_sp_adder
                 # Perform in two steps in order to take collapse_dict safe
@@ -166,7 +190,7 @@ def synchronize(V, path, tree_info_list):
                     tree_info.collapse_dict[
                         (
                             taxon[0],
-                            f"tmp sp. {str(int(taxon[1].split(' ')[1]) + cnt_sp_adder)}",
+                            f"tmp sp. {str(int(taxon[1].split(' ')[1]) + cnt_sp_adder[genus])}",
                         )
                     ] = tree_info.collapse_dict.pop(taxon)
 
@@ -174,24 +198,24 @@ def synchronize(V, path, tree_info_list):
                     tree_info.collapse_dict[
                         (
                             taxon[0],
-                            f"sp. {str(int(taxon[1].split(' ')[1]) + cnt_sp_adder)}",
+                            f"sp. {str(int(taxon[1].split(' ')[1]) + cnt_sp_adder[genus])}",
                         )
                     ] = tree_info.collapse_dict.pop(
                         (
                             taxon[0],
-                            f"tmp sp. {str(int(taxon[1].split(' ')[1]) + cnt_sp_adder)}",
+                            f"tmp sp. {str(int(taxon[1].split(' ')[1]) + cnt_sp_adder[genus])}",
                         )
                     )
 
                     for collapse_info in tree_info.collapse_dict[
                         (
                             taxon[0],
-                            f"sp. {str(int(taxon[1].split(' ')[1]) + cnt_sp_adder)}",
+                            f"sp. {str(int(taxon[1].split(' ')[1]) + cnt_sp_adder[genus])}",
                         )
                     ]:
                         collapse_info.taxon = (
                             taxon[0],
-                            f"sp. {str(int(taxon[1].split(' ')[1]) + cnt_sp_adder)}",
+                            f"sp. {str(int(taxon[1].split(' ')[1]) + cnt_sp_adder[genus])}",
                         )
 
                 # Now solve other genes
@@ -307,7 +331,8 @@ def synchronize(V, path, tree_info_list):
                             except:
                                 pass
 
-                cnt_sp_adder += len(taxon_set)
+                cnt_sp_adder[genus] += len(taxon_set)
+                print(f"Adding {len(taxon_set)} to {genus} cnt")
 
     # Return sp number fixed tree_info_list
     return tree_info_list

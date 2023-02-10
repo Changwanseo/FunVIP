@@ -11,6 +11,7 @@ from Bio.Blast import NCBIXML
 from Bio import SeqIO
 
 import logging
+import gc
 from funid.src.ext import mmseqs
 
 
@@ -127,10 +128,17 @@ def assign_gene(result_dict, V, cutoff=0.99):
 # cluster each of Funinfo object and assign group
 def cluster(FI, df_search, V, path, opt):
 
+    # import tracemalloc
+
+    # tracemalloc.start(10)
+    # time1 = tracemalloc.take_snapshot()
+
     list_group = copy.deepcopy(V.list_group)
 
     # delete V to reduce memory assumption
     del V
+
+    gc.collect()
 
     # If no evidence available, return it
     if df_search is None:
@@ -152,6 +160,9 @@ def cluster(FI, df_search, V, path, opt):
         cutoff_df = df_search[
             df_search["bitscore"] > df_search["bitscore"][0] * opt.cluster.cutoff
         ]
+
+        del df_search
+        gc.collect()
 
         group_count = len(set(cutoff_df["subject_group"]))
         list_group = list(set(cutoff_df["subject_group"]))
@@ -175,9 +186,7 @@ def cluster(FI, df_search, V, path, opt):
                 logging.error("DEVELOPMENTAL ERROR IN GROUP ASSIGN")
                 raise Exception
 
-            logging.info(
-                f"{FI.id} {FI.description} has clustered to {FI.adjusted_group}"
-            )
+            logging.info(f"{FI.id} has clustered to {FI.adjusted_group}")
 
         # if group already updated
         else:
@@ -186,6 +195,10 @@ def cluster(FI, df_search, V, path, opt):
                     logging.warning(f" Clustering result colliding in {FI.id}")
 
         # return funinfo object with adjusted group, and selected group
+        # time2 = tracemalloc.take_snapshot()
+        # stats = time2.compare_to(time1, "lineno")
+        # for stat in stats[:3]:
+        #    print(stat)
 
         return FI, list_group[0]
 
@@ -199,6 +212,7 @@ def append_outgroup(V, df_search, gene, group, path, opt):
 
     # In multiprocessing, delete V for memory
     del V
+    gc.collect()
 
     # ready for by sseqid hash, which group to append
     # this time, append adjusted group
@@ -246,6 +260,9 @@ def append_outgroup(V, df_search, gene, group, path, opt):
     else:
         cutoff_df = df_search[df_search["bitscore"] > 0]
         cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
+
+    del df_search
+    gc.collect()
 
     # sort by bitscore
     cutoff_df.sort_values(by=["bitscore"], inplace=True, ascending=False)
