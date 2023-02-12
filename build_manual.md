@@ -21,6 +21,7 @@ conda env remove -n FunID-build
 In new conda environment
 ```
 conda create -n FunID-condabuild python=3.9
+conda activate FunID-condabuild
 conda install -c conda-forge grayskull
 conda install -c conda-forge packaging
 conda install conda-build
@@ -31,8 +32,8 @@ grayskull pypi FunID
 anaconda login
 conda config --set anaconda_upload no
 conda config --add channels cwseo
-conda install python=3.9 // I don't know why, but python version changes during installation sometimes
-conda-build ./funid -c conda-forge
+conda-build ./funid -c conda-forge // copy tar.bz2 location when this one ends
 conda install anaconda-project
 anaconda upload {Build file location} // tar.bz2 in conda-build log
+conda env remove -n FunID-condabuild
 ```
