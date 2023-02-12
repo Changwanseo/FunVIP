@@ -4,8 +4,8 @@ from sys import platform
 import subprocess
 
 name = "FunID"
-__version__ = "0.3.3.0"
-release = "0.3.3.0.0"
+__version__ = "0.3.3.1"
+release = "0.3.3.1.0"
 
 # Default setup options
 setup_options = dict(
