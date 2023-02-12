@@ -4,7 +4,7 @@ from funid.src import tree_interpretation
 from funid.src.tool import initialize_path, get_genus_species, mkdir
 from funid.src.hasher import encode, decode
 from funid.src.reporter import Singlereport
-from funid.src.patch import patch
+
 import pandas as pd
 import re
 import sys, os
@@ -216,6 +216,15 @@ def synchronize(V, path, tree_info_list):
                         )
                     ] = tree_info.collapse_dict.pop(taxon)
 
+                # Update taxon
+                for taxon in tree_info.collapse_dict:
+                    for n, collapse_info in enumerate(tree_info.collapse_dict[taxon]):
+                        collapse_info.taxon = taxon
+                        if len(tree_info.collapse_dict[taxon]) == 1:
+                            collapse_info.clade_cnt = 0
+                        else:
+                            collapse_info.clade_cnt = n + 1
+
                 ### CONCATENATED PART DONE
                 # Now solve other genes
                 for gene in tree_info_dict[genus][group]:
@@ -336,6 +345,17 @@ def synchronize(V, path, tree_info_list):
                                 (taxon[0], taxon[1][4:])
                             ] = tree_info.collapse_dict.pop(taxon)
 
+                        # Update taxon
+                        for taxon in tree_info.collapse_dict:
+                            for n, collapse_info in enumerate(
+                                tree_info.collapse_dict[taxon]
+                            ):
+                                collapse_info.taxon = taxon
+                                if len(tree_info.collapse_dict[taxon]) == 1:
+                                    collapse_info.clade_cnt = 0
+                                else:
+                                    collapse_info.clade_cnt = n + 1
+
     # Return sp number fixed tree_info_list
     return tree_info_list
 
@@ -347,7 +367,6 @@ def pipe_module_tree_visualization(
     path,
     opt,
 ):
-    patch()
 
     group = tree_info.group
     gene = tree_info.gene

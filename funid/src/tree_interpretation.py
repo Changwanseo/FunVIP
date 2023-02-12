@@ -367,6 +367,9 @@ class Tree_information:
         for node in self.t.traverse():
             node.img_style["size"] = 0  # removing circles whien size is 0
 
+        from funid.src.patch import patch
+
+        patch()
         self.t.render(f"{out}", tree_style=self.Tree_style.ts)
         self.Tree_style.ts.show_leaf_name = False
 
@@ -915,7 +918,7 @@ class Tree_information:
         # collect taxon string to decide in polishing
         taxon_string_list = []
         for collapse_taxon in self.collapse_dict:
-
+            # collapse_info.taxon should be taxon
             for collapse_info in self.collapse_dict[collapse_taxon]:
                 clade = collapse_info.clade
                 # if only one clade with same name exists
@@ -1020,6 +1023,9 @@ class Tree_information:
     ### edit svg image from initial output from ete3
     def polish_image(self, out, taxon_string_list, genus_list):
         # make it to tmp svg file and parse
+        from funid.src.patch import patch
+
+        patch()
         self.t.render(f"{out}", tree_style=self.Tree_style.ts)
         tree_xml = ET.parse(f"{out}")
 
