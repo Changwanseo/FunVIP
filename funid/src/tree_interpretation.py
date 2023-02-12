@@ -915,11 +915,6 @@ class Tree_information:
         # collect taxon string to decide in polishing
         taxon_string_list = []
         for collapse_taxon in self.collapse_dict:
-            """
-            for key in self.collapse_dict:
-                print(f"{key} {self.collapse_dict[key]}")
-            """
-            print(self.gene)
 
             for collapse_info in self.collapse_dict[collapse_taxon]:
                 clade = collapse_info.clade

@@ -16,6 +16,7 @@ from funid.src.tool import (
     manage_unicode,
     mkdir,
 )
+from pathlib import Path
 from funid.src.logics import isnewicklegal, isuniquecolumn, isvalidcolor
 from funid.src.hasher import decode, newick_legal, hash_funinfo_list
 
@@ -611,10 +612,10 @@ def query_input(opt, path):
     )[0]
 
     for file in query_table:
-        shutil.copy(f"{file}", f"{path.out_query}/{file}")
+        shutil.copy(f"{file}", f"{path.out_query}")
 
     for file in query_fasta:
-        shutil.copy(f"{file}", f"{path.out_query}/{file}")
+        shutil.copy(f"{file}", f"{path.out_query}")
 
     logging.info(f"Total {len(query_list)} sequences parsed from query")
 

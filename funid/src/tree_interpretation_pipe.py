@@ -221,7 +221,6 @@ def synchronize(V, path, tree_info_list):
                 for gene in tree_info_dict[genus][group]:
                     if gene != "concatenated":
 
-                        print(gene)
                         # bygene_taxon_dict : {Penicillium citrinum : {(Penicillium, sp. 1), (Penicillium, sp. 2), (Penicillium, citrinum)}}}
                         # bygene_taxon_string_dict : {Penicillium citrinum : (Penicillium, citrinum/sp.1/sp.2)}
                         bygene_taxon_dict = {}
@@ -316,10 +315,6 @@ def synchronize(V, path, tree_info_list):
                         ]
                         tmp_taxon_list = []
 
-                        for key in tree_info.collapse_dict:
-                            if key[1].startswith("tmp"):
-                                print(f"Line 323 {key} {tree_info.collapse_dict[key]}")
-
                         for taxon in change_taxon_list:
                             tmp_taxon = (
                                 taxon[0],
@@ -336,18 +331,10 @@ def synchronize(V, path, tree_info_list):
                                 ] += tree_info.collapse_dict[taxon]
                                 tree_info.collapse_dict.pop(taxon)
 
-                        for key in tree_info.collapse_dict:
-                            if type(tree_info.collapse_dict[key]) == str:
-                                print(f"BEFORE {key} {tree_info.collapse_dict[key]}")
-
                         for taxon in tmp_taxon_list:
                             tree_info.collapse_dict[
                                 (taxon[0], taxon[1][4:])
                             ] = tree_info.collapse_dict.pop(taxon)
-
-                        for key in tree_info.collapse_dict:
-                            if key[1].startswith("tmp"):
-                                print(f"AFTER {key} {tree_info.collapse_dict[key]}")
 
     # Return sp number fixed tree_info_list
     return tree_info_list
