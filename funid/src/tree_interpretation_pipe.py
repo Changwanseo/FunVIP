@@ -160,8 +160,6 @@ def synchronize(V, path, tree_info_list):
                 # Start with concatenated to define standard sp numbers
                 tree_info = tree_info_dict[genus][group]["concatenated"]
 
-                print(tree_info.collapse_dict.keys())
-
                 for taxon in tree_info.collapse_dict.keys():
                     # Get taxon with right sp. form
                     if taxon[0] == genus and re.fullmatch(r"sp. [0-9]+", taxon[1]):
@@ -197,31 +195,33 @@ def synchronize(V, path, tree_info_list):
                 ## Update tree_info.collapse_dict with cnt_sp_adder
                 # Perform in two steps in order to take collapse_dict safe
                 # First, pop original name and add with tmp
-                for taxon in sp_convert_dict[genus][group].keys():
-                    tree_info.collapse_dict[
-                        (
-                            taxon[0],
-                            f"tmp {sp_convert_dict[genus][group][taxon][1]}",
-                        )
-                    ] = tree_info.collapse_dict.pop(taxon)
+                tmp_taxon_list = []
 
-                # Then, remove tmp
                 for taxon in sp_convert_dict[genus][group].keys():
-                    tree_info.collapse_dict[
-                        (
-                            taxon[0],
-                            f"{sp_convert_dict[genus][group][taxon][1]}",
-                        )
-                    ] = tree_info.collapse_dict.pop(
+                    tmp_taxon = (
                         taxon[0],
                         f"tmp {sp_convert_dict[genus][group][taxon][1]}",
                     )
+                    tree_info.collapse_dict[tmp_taxon] = tree_info.collapse_dict.pop(
+                        taxon
+                    )
+                    tmp_taxon_list.append(tmp_taxon)
+
+                # Then, remove tmp
+                for taxon in tmp_taxon_list:
+                    tree_info.collapse_dict[
+                        (
+                            taxon[0],
+                            taxon[1][4:],
+                        )
+                    ] = tree_info.collapse_dict.pop(taxon)
 
                 ### CONCATENATED PART DONE
-
                 # Now solve other genes
                 for gene in tree_info_dict[genus][group]:
                     if gene != "concatenated":
+
+                        print(gene)
                         # bygene_taxon_dict : {Penicillium citrinum : {(Penicillium, sp. 1), (Penicillium, sp. 2), (Penicillium, citrinum)}}}
                         # bygene_taxon_string_dict : {Penicillium citrinum : (Penicillium, citrinum/sp.1/sp.2)}
                         bygene_taxon_dict = {}
@@ -231,28 +231,35 @@ def synchronize(V, path, tree_info_list):
                         tree_info = tree_info_dict[genus][group][gene]
 
                         # Synchronize bygene taxon name to concatenated
-                        logging.debug(f"Collapse_dict: {tree_info.collapse_dict}")
+                        # logging.debug(f"Collapse_dict: {tree_info.collapse_dict}")
                         for taxon in tree_info.collapse_dict:
-                            logging.debug(f"Searching for collapse dict with {taxon}")
-                            bygene_taxon_dict[taxon] = set()
+                            if taxon[0] == genus:
 
-                            # Get all hash of designated taxon leaf
-                            clade = tree_info.collapse_dict[taxon][0]
-                            hash_list = [leaf[0] for leaf in clade.leaf_list]
+                                # Get all hash of designated taxon leaf
+                                clade = tree_info.collapse_dict[taxon][0]
 
-                            # Name of the collapsed clade should include all taxon names of hash
-                            print(hash_list)
-                            print(hash_dict)
-                            for _hash in hash_list:
-                                if _hash in hash_dict:
-                                    bygene_taxon_dict[taxon].union(hash_dict[_hash])
+                                try:
+                                    pass
+                                    # print(clade.leaf_list)
+                                except:
                                     logging.debug(
-                                        f"Adding {hash_dict[_hash]} for hash_dict[_hash]"
+                                        f"Collapse_dict: {tree_info.collapse_dict}"
                                     )
+                                    raise Exception
 
-                        logging.debug(
-                            f"bygene_taxon_dict generated: {bygene_taxon_dict}"
-                        )
+                                hash_list = [leaf[0] for leaf in clade.leaf_list]
+
+                                # Name of the collapsed clade should include all taxon names of hash
+                                for _hash in hash_list:
+                                    if _hash in hash_dict:
+
+                                        # Only work with related taxon
+                                        if not taxon in bygene_taxon_dict:
+                                            bygene_taxon_dict[taxon] = set()
+
+                                        bygene_taxon_dict[taxon] = bygene_taxon_dict[
+                                            taxon
+                                        ].union(hash_dict[_hash])
 
                         # Make bygene_taxon_dict to string
                         # Only work with current genus
@@ -283,7 +290,7 @@ def synchronize(V, path, tree_info_list):
                                 nonsp_species_epithet_list + sp_species_epithet_list
                             )
 
-                            # Remove unexpected situations
+                            # Remove unexpected slashes when species epithet is empty
                             sp_string.replace("//", "/")
                             if sp_string.startswith("/"):
                                 sp_string = sp_string[1:]
@@ -294,87 +301,53 @@ def synchronize(V, path, tree_info_list):
 
                         ## Update tree_info.collapse_dict with designated name
                         # Perform in two steps in order to take collapse_dict safe
-                        tmp_taxon_list = list(set(tree_info.collapse_dict.keys()))
-                        dumped_dict = {}
 
                         ## Update tree_info.collapse_dict with cnt_sp_adder
                         # Perform in two steps in order to take collapse_dict safe
                         # First, pop original name and add with tmp
-                        for taxon in tmp_taxon_list:
-                            tree_info.collapse_dict[
-                                (
-                                    taxon[0],
-                                    f"tmp {bygene_taxon_string_dict[taxon][1]}",
-                                )
-                            ] = tree_info.collapse_dict.pop(taxon)
+                        change_taxon_list = [
+                            taxon
+                            for taxon in tree_info.collapse_dict.keys()
+                            if (
+                                taxon[0] == genus
+                                and taxon in tree_info.collapse_dict
+                                and taxon in bygene_taxon_string_dict
+                            )
+                        ]
+                        tmp_taxon_list = []
 
-                        # Then, remove tmp
-                        for taxon in bygene_taxon_string_dict.keys():
-                            tree_info.collapse_dict[
-                                (
-                                    taxon[0],
-                                    f"{bygene_taxon_string_dict[taxon][1]}",
-                                )
-                            ] = tree_info.collapse_dict.pop(
+                        for key in tree_info.collapse_dict:
+                            if key[1].startswith("tmp"):
+                                print(f"Line 323 {key} {tree_info.collapse_dict[key]}")
+
+                        for taxon in change_taxon_list:
+                            tmp_taxon = (
                                 taxon[0],
                                 f"tmp {bygene_taxon_string_dict[taxon][1]}",
                             )
-
-                        """
-                        for taxon in tmp_taxon_list:
-                            if not (
-                                f"tmp {bygene_taxon_string_dict[taxon]}"
-                                in tree_info.collapse_dict
-                            ):
+                            if not (tmp_taxon in tree_info.collapse_dict):
                                 tree_info.collapse_dict[
-                                    (
-                                        taxon[0],
-                                        f"tmp {bygene_taxon_string_dict[taxon]}",
-                                    )
+                                    tmp_taxon
                                 ] = tree_info.collapse_dict.pop(taxon)
-                                dumped_dict[taxon] = (
-                                    taxon[0],
-                                    f"tmp {bygene_taxon_string_dict[taxon]}",
-                                )
+                                tmp_taxon_list.append(tmp_taxon)
                             else:
-                                cnt = 1
-                                while 1:
-                                    if (
-                                        not (
-                                            f"tmp {bygene_taxon_string_dict[taxon]} {cnt}"
-                                        )
-                                        in tree_info.collapse_dict
-                                    ):
-                                        tree_info.collapse_dict[
-                                            (
-                                                taxon[0],
-                                                f"tmp {bygene_taxon_string_dict[taxon]} {cnt}",
-                                            )
-                                        ] = tree_info.collapse_dict.pop(taxon)
-                                        dumped_dict[taxon] = (
-                                            taxon[0],
-                                            f"tmp {bygene_taxon_string_dict[taxon]} {cnt}",
-                                        )
-                                        break
-                                    else:
-                                        cnt += 1
+                                tree_info.collapse_dict[
+                                    tmp_taxon
+                                ] += tree_info.collapse_dict[taxon]
+                                tree_info.collapse_dict.pop(taxon)
+
+                        for key in tree_info.collapse_dict:
+                            if type(tree_info.collapse_dict[key]) == str:
+                                print(f"BEFORE {key} {tree_info.collapse_dict[key]}")
 
                         for taxon in tmp_taxon_list:
-                            try:
-                                tree_info.collapse_dict[
-                                    (taxon[0], f"{bygene_taxon_string_dict[taxon]}")
-                                ] = tree_info.collapse_dict.pop(dumped_dict[taxon])
+                            tree_info.collapse_dict[
+                                (taxon[0], taxon[1][4:])
+                            ] = tree_info.collapse_dict.pop(taxon)
 
-                                for collapse_info in tree_info.collapse_dict[
-                                    (taxon[0], f"{bygene_taxon_string_dict[taxon]}")
-                                ]:
-                                    collapse_info.taxon = (
-                                        taxon[0],
-                                        f"{bygene_taxon_string_dict[taxon]}",
-                                    )
-                            except:
-                                pass
-                        """
+                        for key in tree_info.collapse_dict:
+                            if key[1].startswith("tmp"):
+                                print(f"AFTER {key} {tree_info.collapse_dict[key]}")
 
     # Return sp number fixed tree_info_list
     return tree_info_list
