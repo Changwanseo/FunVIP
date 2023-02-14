@@ -57,77 +57,6 @@ def load_session(opt, global_var: dict, savefile: str) -> None:
     save.close()
 
 
-"""
-def save(list_FI, path, option):
-    def save_originalfasta(list_FI, path, filename):
-        with open(f"{path}/{filename}", "w") as fp:
-            for FI in list_FI:
-                fp.write(f">{FI.description}\n{FI.seq}\n")
-
-    def save_excel(list_FI, path, filename):
-        dict_excel = {
-            "hash": [],
-            "id": [],
-            "genus": [],
-            "species": [],
-            "source": [],
-            "datatype": [],
-            "group": [],
-            "adjusted_group": [],
-        }
-
-        seq_set = set()
-        for FI in list_FI:
-            for gene in FI.seq:
-                seq_set.add(gene)
-
-        for gene in seq_set:
-            dict_excel[gene] = []
-
-        for FI in list_FI:
-            dict_excel["hash"].append(FI.hash)
-            dict_excel["id"].append(FI.original_id)
-            dict_excel["genus"].append(FI.genus)
-            dict_excel["species"].append(FI.ori_species)
-            dict_excel["source"].append(FI.source)
-            dict_excel["datatype"].append(FI.datatype)
-            dict_excel["group"].append(FI.group)
-            dict_excel["adjusted_group"].append(FI.adjusted_group)
-            for gene in seq_set:
-                if gene in FI.seq:
-                    dict_excel[gene].append(FI.seq[gene])
-                else:
-                    dict_excel[gene].append("")
-
-        df = pd.DataFrame(dict_excel)
-        df.to_excel(f"{path}/{filename}", index=False)
-
-    save_excel(list_FI, path.data, f"{option.runname}_group Assignment.xlsx")
-
-    # Save by source
-    origin_set = set()
-
-    for FI in list_FI:
-        origin_set.add((FI.source, FI.datatype))
-
-    for origin in origin_set:
-
-        # set path
-        if origin[1] in ["db", "query", "outgroup"]:
-            outpath = path.data
-        else:
-            logging.info(origin)
-            logging.error("Wrong datatype")
-            raise Exception
-
-        tmp_list = []
-        for FI in list_FI:
-            if FI.datatype == origin[1]:
-                if FI.source == origin[0]:
-                    tmp_list.append(FI)
-"""
-
-
 def save_fasta(list_funinfo, gene, filename, by="id"):
 
     list_funinfo = list(set(list_funinfo))  # remove ambiguous seqs
@@ -168,15 +97,6 @@ def save_fastabygroup(list_funinfo, path, option, add="Reference", outgroup=Fals
 
     outpath = path.data
     set_group = set()
-
-    """
-    for funinfo in list_funinfo:
-        set_group.add(funinfo.adjusted_group)
-        if funinfo.adjusted_group != str:
-            print(funinfo)
-    """
-
-    # print(set_group)
 
     for group in set_group:
         tmp_list = []

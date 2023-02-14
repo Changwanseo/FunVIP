@@ -75,7 +75,7 @@ class Option:
         self.criterion = "BIC"
         self.step = ""
         self.level = "genus"
-        self.queryonly = True
+        self.queryonly = False
         self.confident = True
         self.verbose = 2
         self.maxoutgroup = 3

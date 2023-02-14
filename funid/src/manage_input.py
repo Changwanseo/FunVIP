@@ -14,7 +14,9 @@ from funid.src.tool import (
     get_genus_species,
     get_id,
     manage_unicode,
+    mkdir,
 )
+from pathlib import Path
 from funid.src.logics import isnewicklegal, isuniquecolumn, isvalidcolor
 from funid.src.hasher import decode, newick_legal, hash_funinfo_list
 
@@ -176,7 +178,7 @@ class Funinfo:
                 self.color = color
             else:
                 logging.error(
-                    f"color {color} does not seems to be valid svg color nor hex code"
+                    f"Color {color} does not seems to be valid svg color nor hex code"
                 )
                 raise Exception
 
@@ -255,25 +257,6 @@ def input_fasta(path, opt, fasta_list, datatype):
         name = ".".join(file.split("/")[-1].split(".")[:-1])  # name
 
         logging.info(f"{file}: Fasta file")
-
-        ## Testing
-        fasta_file = SeqIO.parse(file, "fasta")
-        for seq in fasta_file:
-            newinfo = Funinfo()
-            newinfo.update_seqrecord(seq)
-            newinfo.update_datatype(datatype)
-            newinfo.update_group("")  # because group not designated yet
-            # id by regex match
-            newinfo.update_id(seq.description, regexs=opt.regex)
-            if get_genus_species(seq.description)[0] != "":
-                newinfo.update_genus(get_genus_species(seq.description)[0])
-
-            if get_genus_species(seq.description)[1] != "":
-                newinfo.update_ori_species(get_genus_species(seq.description)[1])
-
-            tmp_list.append(newinfo)
-
-        funinfo_list += tmp_list
 
         try:
             fasta_file = SeqIO.parse(file, "fasta")
@@ -414,9 +397,6 @@ def input_table(path, opt, table_list, datatype):
             # if gene name were not designated by user, use seq
             opt.gene = list(set([gene.lower().strip() for gene in opt.gene]))
 
-            # should be imported after initialize to prevent error
-            from .tool import mkdir
-
             # find all NCBI accessions in seq
             for gene in opt.gene:
                 if isuniquecolumn(
@@ -529,8 +509,6 @@ def input_table(path, opt, table_list, datatype):
             newinfo.update_datatype(datatype)
 
             # parse each of the genes
-            # For each of the gene
-            # logging.debug(f"Gene found in db input {opt.gene}")
             for gene in opt.gene:
                 seq_error = 0
                 if gene in df.columns:
@@ -563,6 +541,7 @@ def input_table(path, opt, table_list, datatype):
                             newinfo.update_seq(
                                 gene, seq_string.replace("-", "").replace(".", "")
                             )
+
     # make it to list at last
     list_funinfo = [funinfo_dict[x] for x in funinfo_dict]
 
@@ -591,7 +570,7 @@ def db_input(opt, path) -> list:
     group_set.discard("")
     if len(group_set) <= 1:
         logging.error(
-            f"Only {len(group_set)} detected : {group_set}. Please add outgroup sequences"
+            f"Only 1 group soley detected : {group_set}. Please add outgroup sequences"
         )
         raise Exception
 
@@ -617,18 +596,28 @@ def query_input(opt, path):
         for file in opt.query
         if any(file.endswith(x) for x in (".fa", ".fna", ".fas", ".fasta", ".txt"))
     ]
-    query_excel = [file for file in opt.query if (file.endswith(".xlsx"))]
+    query_table = [
+        file
+        for file in opt.query
+        if any(
+            file.endswith(x)
+            for x in (".csv", ".tsv", ".xlsx", ".ftr", ".feather", ".parquet")
+        )
+    ]
 
     query_list = []
     query_list += input_fasta(path, opt, query_fasta, "query")
     query_list += input_table(
-        path=path, opt=opt, table_list=query_excel, datatype="query"
+        path=path, opt=opt, table_list=query_table, datatype="query"
     )[0]
 
-    for file in query_fasta:
-        shutil.copy(f"{file}", f"{path.out_query}/{file}")
+    for file in query_table:
+        shutil.copy(f"{file}", f"{path.out_query}")
 
-    logging.info(f"Total {len(query_list)} sequences parsed")
+    for file in query_fasta:
+        shutil.copy(f"{file}", f"{path.out_query}")
+
+    logging.info(f"Total {len(query_list)} sequences parsed from query")
 
     return query_list, opt
 
@@ -649,89 +638,4 @@ def data_input(V, R, opt, path):
     for FI in V.list_FI:
         V.dict_hash_FI[FI.hash] = FI
 
-    # update report
-    # R.statistics.update_input_statistics(V, opt)
-
     return V, R, opt
-
-
-"""
-def save_fasta(list_funinfo, gene, filename, by="id"):
-
-    list_funinfo = list(set(list_funinfo))  # remove ambiguous seqs
-
-    with open(f"{filename}", "w") as fp:
-        if gene == "unclassified":  # for unclassified query
-            flag = 0
-            for info in list_funinfo:
-                for n, seq in enumerate(info.unclassified_seq):
-                    if by == "hash":
-                        fp.write(f">{info.hash}_{n}\n{seq}\n")
-                    else:
-                        fp.write(f">{info.id}_{n}\n{seq}\n")
-                    flag = 1
-
-        else:
-            flag = 0
-            for info in list_funinfo:
-                if gene in info.seq:
-                    if gene in info.seq:
-                        if by == "hash":
-                            fp.write(f">{info.hash}\n{info.seq[gene]}\n")
-                        else:
-                            fp.write(f">{info.id}\n{info.seq[gene]}\n")
-                        flag = 1
-
-    # returns 1 if meaningful sequence exists
-    return flag
-"""
-
-
-# Try removing this, revive if error occurs
-"""
-def save_originalfasta(list_info, path, filename):
-    with open(f"{path}/{filename}", "w") as fp:
-        for info in list_info:
-            fp.write(f">{info.description}\n{info.seq}\n")
-"""
-
-
-def save_fastabygroup(list_funinfo, path, option, add="Reference", outgroup=False):
-
-    outpath = path.data
-    set_group = set()
-
-    for group in set_group:
-        tmp_list = []
-        for funinfo in list_funinfo:
-            if funinfo.adjusted_group == group:
-                tmp_list.append(funinfo)
-
-        save_fasta(tmp_list, outpath, f"{add}_{group}.fasta")
-
-
-def save_mergedfasta(fasta_list, out_path):
-
-    out_fasta_list = []
-    for fasta in fasta_list:
-        out_fasta_list += list(SeqIO.parse(fasta, "fasta"))
-
-    SeqIO.write(out_fasta_list, out_path, "fasta")
-
-
-# save dataframe
-def save_df(df, out, fmt="csv"):
-
-    if fmt == "csv" or fmt == "tsv":
-        df.to_csv(out, index=False)
-    elif fmt == "xlsx" or fmt == "excel":
-        df.to_excel(out, index=False)
-    elif fmt == "parquet":
-        df.to_parquet(out, index=False)
-    elif fmt == "feather" or fmt == "ftr":
-        df.to_feather(out, index=False)
-    else:
-        logging.warning(
-            f"Not appropriate format entered for matrix format, using csv as default"
-        )
-        df.to_csv(out, index=False)
