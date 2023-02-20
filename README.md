@@ -1,4 +1,4 @@
-#### This is Beta release. Unstable
+#### This is Beta release. Unstable. We're eagaring bug reports
 
 ## Scheduling
 ### Beta release part 1 (2023 Feburary ~ As paper published, ver 0.3)
@@ -28,27 +28,31 @@ A automatic tree-based sequence identification pipeline for fungal species
 
 
 ## Installation with conda
-1. conda create -n FunID python=3.9
-2. conda activate FunID
-3. conda install -c cwseo FunID
+1. ```conda create -n FunID python=3.9```
+2. ```conda activate FunID```
+3. ```conda install -c cwseo FunID```
 4. run ```FunID --test Penicillium ``` to check installation
 
 ## Installation with conda (using pip)
-1. conda create -n FunID python=3.9
-2. conda activate FunID
-3. conda install pip
-4. pip install FunID
+1. ```conda create -n FunID python=3.9```
+2. ```conda activate FunID```
+3. ```conda install pip```
+4. ```pip install FunID```
 5. run ```FunID --test Penicillium ``` to check installation
 
-
-
 ## Installation from source
-1. git clone https://github.com/Changwanseo/FunID.git
-2. Move to ~/FunID
-3. conda create -n FunID python=3.9
-4. conda activate FunID
-5. pip install ./
+1. ```git clone https://github.com/Changwanseo/FunID.git```
+2. Move to ```~/FunID```
+3. ```conda create -n FunID python=3.9```
+4. ```conda activate FunID```
+5. ```pip install ./```
 6. run ```FunID --test Penicillium ``` to check installation
+
+## Additional information for Linux
+* Currently, FunID is one-step installed only in Windows
+* to use in linux please run this command additionally
+
+```conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 blast mafft trimal gblocks```
 
 ## Usage
 ```FunID --db {Your database file} --query {Your query file} --email {Your email} --gene {Your genes} --preset {fast or accurate}```
