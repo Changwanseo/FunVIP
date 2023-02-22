@@ -43,10 +43,10 @@ NEWICK_ILLEGAL = (
     " ",
 )
 
+
 # default funinfo class
 class Funinfo:
     def __init__(self):
-
         self.original_id = ""  # original id, can be newick illegal
         self.id = ""  #  newick illegal characters removed
         self.hash = ""  # hash : HSXXHE
@@ -101,7 +101,6 @@ class Funinfo:
         self.description = description
 
     def update_genus(self, genus):
-
         # Try to solve illegal unicode characters
         if pd.isnull(genus):
             genus = ""
@@ -125,7 +124,6 @@ class Funinfo:
         self.genus = genus
 
     def update_ori_species(self, species):
-
         # Try to solve illegal unicode characters
         if pd.isnull(species):
             species = ""
@@ -144,11 +142,9 @@ class Funinfo:
             self.ori_species = species
 
     def update_species(self, gene, species):
-
         self.bygene_species[gene] = species
 
     def update_group(self, group):
-
         # Try to solve illegal unicode characters
         if pd.isnull(group):
             group = ""
@@ -168,7 +164,6 @@ class Funinfo:
         self.group = group
 
     def update_color(self, color):
-
         if pd.isnull(color):
             color = None
             self.color = color
@@ -185,7 +180,6 @@ class Funinfo:
         logging.debug(f"Updated color {color}")
 
     def update_datatype(self, datatype):
-
         # Available datatypes : db, query
         if not (datatype in ("db", "query", "outgroup")):
             logging.error(f"{datatype} is not available datatype")
@@ -201,7 +195,6 @@ class Funinfo:
         self.datatype = datatype
 
     def update_id(self, id_, regexs=None):
-
         if not regexs == None:
             id_ = getid_(id_, tuple(regexs))
 
@@ -237,14 +230,12 @@ class Funinfo:
 
 # getting data input from fasta file
 def input_fasta(path, opt, fasta_list, datatype):
-
     # initialize path to use function "get_genus_species"
     initialize_path(path)
     funinfo_list = []
 
     # Fasta files only
     for file in fasta_list:
-
         # Copy input files to designation
         if datatype == "query":
             shutil.copy(file, path.out_query)
@@ -284,7 +275,6 @@ def input_fasta(path, opt, fasta_list, datatype):
 
 # getting datafile from excel or tabular file
 def input_table(path, opt, table_list, datatype):
-
     string_error = 0
 
     initialize_path(path)  # this one is ugly
@@ -413,7 +403,6 @@ def input_table(path, opt, table_list, datatype):
 
             # if NCBI accessions detected in sequence part, download it
             if len(download_set) > 0:
-
                 logging.info(
                     f"Running GenMine to download {len(download_set)} sequences from GenBank"
                 )
@@ -426,7 +415,15 @@ def input_table(path, opt, table_list, datatype):
 
                 # Run GenMine
                 cmd = f"GenMine -c {path.GenMine}/Accessions.txt -o {path.GenMine} -e {opt.email}"
-                subprocess.call(cmd, shell=True)
+                return_code = subprocess.call(cmd, shell=True)
+
+                if return_code != 0:
+                    logging.error(f"GenMine failed with return_code: {return_code}")
+                    logging.error(f"This is usually ncbi server connection error")
+                    logging.error(
+                        f"Check your network problems, or replace all accession numbers in your db file with actual sequences to run locally"
+                    )
+                    raise Exception
 
                 GenMine_df_list = [
                     file
@@ -474,7 +471,6 @@ def input_table(path, opt, table_list, datatype):
 
         # Generate funinfo by each row
         for n, acc in enumerate(df["id"]):
-
             # Check if each of the ids are unique
             # Remove non-unicode first
             new_acc = True
@@ -513,7 +509,6 @@ def input_table(path, opt, table_list, datatype):
                 seq_error = 0
                 if gene in df.columns:
                     if not (pd.isna(df[gene][n])) or str(df[gene][n]).strip() == "":
-
                         # skip blank sequences
                         if df[gene][n].startswith(">"):
                             # remove fasta header
@@ -549,7 +544,6 @@ def input_table(path, opt, table_list, datatype):
 
 
 def db_input(opt, path) -> list:
-
     # Get DB input
     logging.info(f"Input DB list: {opt.db}")
     db_namelist = [str(os.path.basename(db)) for db in opt.db]
@@ -590,7 +584,6 @@ def db_input(opt, path) -> list:
 
 
 def query_input(opt, path):
-
     query_fasta = [
         file
         for file in opt.query
