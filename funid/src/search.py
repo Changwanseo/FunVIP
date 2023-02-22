@@ -48,7 +48,6 @@ def create_search_db(opt, db_fasta, db, path) -> None:
 
 # Merge fragmented search matches from given blast or mmseqss results
 def merge_fragments(df) -> pd.DataFrame():
-
     # Check if list (or pandas series or one-column DataFrame) has only one value
     def get_unique(series) -> str:
         if len(set(series)) == 1:
@@ -119,21 +118,18 @@ def merge_fragments(df) -> pd.DataFrame():
 
 # Core search : Running blast or mmseqss
 def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
-
     # Working on saved database
     # find key for which db to use
     # get hash number of the given db to compare
     _hash = hashlib.md5(open(db_fasta, "rb").read()).hexdigest()
 
     if opt.cachedb is True or opt.usecache is True:
-
         if _hash is None:
             logging.error(f"Database file {db_fasta} missing")
             raise Exception
 
         # Try to parse DB
         if opt.usecache is True:
-
             # When succesfully parsed DB
             if (
                 os.path.isdir(f"{path.in_db}/{opt.method.search.lower()}/{_hash}")
@@ -144,7 +140,6 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
 
             # When parsing existing DB failed
             else:
-
                 logging.info("No existing database found")
 
                 # Try save DB
@@ -247,7 +242,6 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
 
 # 3# Main search: Get blast or mmseqs dataframe results from given dataset
 def search_df(V, path, opt):
-
     # Initialize variable for search result
     dict_search = {}
 
@@ -266,7 +260,6 @@ def search_df(V, path, opt):
 
     # Make database by genes
     for gene in opt.gene:
-
         db_state = save.save_fasta(
             list_funinfo=list_db_FI,
             gene=gene,
@@ -378,7 +371,6 @@ def search_df(V, path, opt):
         # This part should be changed by using former search result for faster performance
 
         for gene in V.list_qr_gene:
-
             df_search = search(
                 query_fasta=f"{path.tmp}/{opt.runname}_Query_{gene}.fasta",
                 db_fasta=f"{path.tmp}/{opt.runname}_DB_{gene}.fasta",
