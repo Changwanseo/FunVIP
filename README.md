@@ -58,7 +58,7 @@ A automatic tree-based sequence identification pipeline for fungal species
 ```FunID --db {Your database file} --query {Your query file} --email {Your email} --gene {Your genes} --preset {fast or accurate}```
 
 ### Example
-```FunID --db Penicillium.xlsx --query Query.xlsx --email wan101010@snu.ac.kr --gene ITS BenA RPB2 CaM --preset fast```
+```FunID --db Penicillium.xlsx --query Query.xlsx --email {Your email} --gene ITS BenA RPB2 CaM --preset fast```
 
 
 \* See documentation for detailed usage
