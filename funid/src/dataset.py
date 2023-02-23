@@ -7,11 +7,11 @@ import logging
 import re
 import json
 
+
 # Datasets are group of sequences with same genes for analysis, including query, database and outgroup
 # Each of the dataset varialbe
 class Dataset:
     def __init__(self, gene, group, list_qr, list_db, list_og):
-
         # Which gene is this dataset, gene name or concatenated
         self.gene = gene
         # Which group is this dataset
@@ -86,7 +86,6 @@ class FunID_var:
         self.multigene_list = None
 
     def __repr__(self):
-
         out_dict = {}
         for key in self.dict_dataset:
             out_dict[key] = len(self.dict_dataset[key])
@@ -109,7 +108,6 @@ class FunID_var:
                 FI.bygene_species[gene] = FI.ori_species
 
     def remove_dataset(self, group, gene):
-
         if not (group) in self.dict_dataset:
             logging.warning(
                 f"Passing removing dataset of {group} {gene} because no {group} priorly exists"
@@ -125,7 +123,6 @@ class FunID_var:
                 del self.dict_dataset[group]
 
     def exist_dataset(self, group, gene):
-
         try:
             self.dict_dataset[group][gene]
             return True
@@ -134,11 +131,9 @@ class FunID_var:
 
     # generate dataset by group and gene
     def generate_dataset(self, opt):
-
         dict_funinfo = {}
 
         for group in self.list_group:
-
             logging.info(f"Generating dataset for {group}")
             dict_funinfo[group] = {}
 
@@ -305,7 +300,6 @@ class FunID_var:
 
     # Remove invalid dataset to be analyzed
     def remove_invalid_dataset(self):
-
         # collect remove list : removing after iterating
         list_remove = []
         for group in self.dict_dataset:
@@ -361,7 +355,6 @@ class FunID_var:
     def validate_alignments(self, path, opt):
         for group in self.dict_dataset:
             for gene in self.dict_dataset[group]:
-
                 # Check if dataset exists
                 pass
 

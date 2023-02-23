@@ -20,12 +20,12 @@ from funid.src.logics import isnewicklegal
 from funid.src.hasher import decode, newick_legal, hash_funinfo_list
 import shelve
 
+
 # Saving functions should be in main branch because of globals() function
 # try move it to other place by sending globals() as variable
 # In future, try selectively save to reduce datasize
 # Session saving function
 def save_session(opt, path, global_var: dict, var: dict) -> None:
-
     # if opt.save_run is True:
     if 1:  # ADD saving options in further developmental stage
         save = shelve.open(path.save, "n")
@@ -58,7 +58,6 @@ def load_session(opt, global_var: dict, savefile: str) -> None:
 
 
 def save_fasta(list_funinfo, gene, filename, by="id"):
-
     list_funinfo = list(set(list_funinfo))  # remove ambiguous seqs
 
     with open(f"{filename}", "w") as fp:
@@ -76,7 +75,7 @@ def save_fasta(list_funinfo, gene, filename, by="id"):
             flag = 0
             for info in list_funinfo:
                 if gene in info.seq:
-                    if gene in info.seq:
+                    if len(info.seq[gene]) > 0:
                         if by == "hash":
                             fp.write(f">{info.hash}\n{info.seq[gene]}\n")
                         else:
@@ -94,7 +93,6 @@ def save_originalfasta(list_info, path, filename):
 
 
 def save_fastabygroup(list_funinfo, path, option, add="Reference", outgroup=False):
-
     outpath = path.data
     set_group = set()
 
@@ -109,7 +107,6 @@ def save_fastabygroup(list_funinfo, path, option, add="Reference", outgroup=Fals
 
 # Save tree file to designated path, and decode it
 def save_tree(out, hash_dict, hash_file_path, decoded_file_path, fix=False):
-
     # print(out)
     file = out.split("/")[-1]
     shutil.move(out, hash_file_path)
@@ -135,7 +132,6 @@ def save_tree(out, hash_dict, hash_file_path, decoded_file_path, fix=False):
 
 
 def save_mergedfasta(fasta_list, out_path):
-
     out_fasta_list = []
     for fasta in fasta_list:
         out_fasta_list += list(SeqIO.parse(fasta, "fasta"))
@@ -145,7 +141,6 @@ def save_mergedfasta(fasta_list, out_path):
 
 # save dataframe
 def save_df(df, out, fmt="csv"):
-
     if fmt == "csv" or fmt == "tsv":
         df.to_csv(out, index=False)
     elif fmt == "xlsx" or fmt == "excel":
