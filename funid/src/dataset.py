@@ -344,12 +344,14 @@ class FunID_var:
                             + self.dict_dataset[group][gene].list_og_FI
                         )
 
-                    save.save_fasta(
-                        fasta_list,
-                        gene,
-                        f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta",
-                        by="hash",
-                    )
+                    # Remove no seqs
+                    for fasta in fasta_list:
+                        save.save_fasta(
+                            fasta_list,
+                            gene,
+                            f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta",
+                            by="hash",
+                        )
 
     # Validate if any multiple sequence alignment has no overlapping region
     def validate_alignments(self, path, opt):

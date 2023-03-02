@@ -229,7 +229,6 @@ def synchronize(V, path, tree_info_list):
                 # Now solve other genes
                 for gene in tree_info_dict[genus][group]:
                     if gene != "concatenated":
-
                         # bygene_taxon_dict : {Penicillium citrinum : {(Penicillium, sp. 1), (Penicillium, sp. 2), (Penicillium, citrinum)}}}
                         # bygene_taxon_string_dict : {Penicillium citrinum : (Penicillium, citrinum/sp.1/sp.2)}
                         bygene_taxon_dict = {}
@@ -242,7 +241,6 @@ def synchronize(V, path, tree_info_list):
                         # logging.debug(f"Collapse_dict: {tree_info.collapse_dict}")
                         for taxon in tree_info.collapse_dict:
                             if taxon[0] == genus:
-
                                 # Get all hash of designated taxon leaf
                                 clade = tree_info.collapse_dict[taxon][0]
 
@@ -260,7 +258,6 @@ def synchronize(V, path, tree_info_list):
                                 # Name of the collapsed clade should include all taxon names of hash
                                 for _hash in hash_list:
                                     if _hash in hash_dict:
-
                                         # Only work with related taxon
                                         if not taxon in bygene_taxon_dict:
                                             bygene_taxon_dict[taxon] = set()
@@ -367,7 +364,6 @@ def pipe_module_tree_visualization(
     path,
     opt,
 ):
-
     group = tree_info.group
     gene = tree_info.gene
     genus_list = V.tup_genus
@@ -448,7 +444,7 @@ def pipe_tree_interpretation(V, path, opt):
             if (
                 len(V.dict_dataset[group][gene].list_qr_FI) > 0
                 or opt.queryonly is False
-            ):
+            ) and len(V.dict_dataset[group][gene].list_og_FI) > 0:
                 # Generating tree_interpretation opts for multithreading support
                 tree_interpretation_opt.append(
                     (

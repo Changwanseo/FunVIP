@@ -1,5 +1,4 @@
 def main():
-
     from funid.src import align
     from funid.src import tree_interpretation_pipe
     from funid.src import cluster
@@ -96,6 +95,11 @@ def main():
         # R.initialize_metadata(opt)
         # get input data
         V, R, opt = manage_input.data_input(V, R, opt, path)
+
+        for FI in V.list_FI:
+            print(FI.final_species)
+
+        raise Exception
 
         # get possible genus list for recognizing genus name
         V = initialize.get_genus_list(V, opt, path)
