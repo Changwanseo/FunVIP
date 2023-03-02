@@ -364,6 +364,10 @@ def pipe_module_tree_visualization(
     path,
     opt,
 ):
+    ##########################################
+    ########## THIS IS THE PROBLEM ###########
+    ##########################################
+
     group = tree_info.group
     gene = tree_info.gene
     genus_list = V.tup_genus
@@ -384,6 +388,7 @@ def pipe_module_tree_visualization(
         for taxon in tree_info.collapse_dict.keys()
         if not (taxon[1].startswith("sp."))
     ]
+
     list_taxon_2 = [
         taxon for taxon in tree_info.collapse_dict.keys() if taxon[1].startswith("sp.")
     ]
@@ -408,6 +413,7 @@ def pipe_module_tree_visualization(
                     get_genus_species(leaf[2], genus_list=genus_list)
                 )
                 report.update_species_assigned(" ".join(taxon))
+                print(f"Type 1:{V.dict_hash_FI[leaf[0]].datatype} {taxon}")
                 report.ambiguous = collapse_info.clade_cnt
                 report.flat = collapse_info.flat
 
@@ -426,6 +432,10 @@ def pipe_module_tree_visualization(
                         get_genus_species(leaf[2], genus_list=genus_list)
                     )
                     report.update_species_assigned((f"{taxon[0]} {taxon[1]} {n+1}"))
+                    print(
+                        f"Type 2:{V.dict_hash_FI[leaf[0]].datatype} {taxon[0]} {taxon[1]} {n+1} "
+                    )
+
                     report.ambiguous = collapse_info.clade_cnt
                     report.flat = collapse_info.flat
 
@@ -494,6 +504,8 @@ def pipe_tree_interpretation(V, path, opt):
             pipe_module_tree_visualization(*option) for option in tree_visualization_opt
         ]
 
+    ### After this
+
     # Collect identifiation result to V
     for report_list in tree_visualization_result:
         for report in report_list:
@@ -509,5 +521,7 @@ def pipe_tree_interpretation(V, path, opt):
                 FI.bygene_species[report.gene] = report.species_assigned
                 if report.flat is True:
                     FI.flat.append(report.gene)
+
+    ### Before this
 
     return V, path, opt

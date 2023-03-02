@@ -96,11 +96,6 @@ def main():
         # get input data
         V, R, opt = manage_input.data_input(V, R, opt, path)
 
-        for FI in V.list_FI:
-            print(FI.final_species)
-
-        raise Exception
-
         # get possible genus list for recognizing genus name
         V = initialize.get_genus_list(V, opt, path)
 
@@ -220,11 +215,14 @@ def main():
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
 
+        # After here
+
     # Visualize
     if opt.continue_from_previous is False or index_step(opt.step) <= 8:
         step = "visualize"
         logging.info("VISUALIZE")
 
+        # The genus duplication occurs here
         # Running visualization
         V, path, opt = tree_interpretation_pipe.pipe_tree_interpretation(V, path, opt)
 
