@@ -1054,7 +1054,6 @@ class Tree_information:
         for text in text_list:
             # Decide if string of the tree is bootstrap, scale, taxon or id
             # taxon_list = [" ".join(x) for x in self.collapse_dict.keys()]
-
             try:
                 int(text.text)
                 text_type = "bootstrap"

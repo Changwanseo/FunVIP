@@ -94,6 +94,7 @@ class Funinfo:
             self.seq[gene] = seq
 
         self.bygene_species[gene] = self.ori_species
+
         # Update concatenated
         self.bygene_species["concatenated"] = self.ori_species
 

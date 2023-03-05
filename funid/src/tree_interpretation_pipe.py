@@ -119,7 +119,7 @@ def synchronize(V, path, tree_info_list):
         logging.debug(f"Synchronize for genus : {possible_genus}")
 
         for genus in possible_genus:
-            if not (genus) in tree_info_dict:
+            if not genus in tree_info_dict:
                 tree_info_dict[genus] = {tree_info.group: {tree_info.gene: tree_info}}
             elif not (tree_info.group in tree_info_dict[genus]):
                 tree_info_dict[genus][tree_info.group] = {tree_info.gene: tree_info}
@@ -364,10 +364,6 @@ def pipe_module_tree_visualization(
     path,
     opt,
 ):
-    ##########################################
-    ########## THIS IS THE PROBLEM ###########
-    ##########################################
-
     group = tree_info.group
     gene = tree_info.gene
     genus_list = V.tup_genus
@@ -413,7 +409,7 @@ def pipe_module_tree_visualization(
                     get_genus_species(leaf[2], genus_list=genus_list)
                 )
                 report.update_species_assigned(" ".join(taxon))
-                print(f"Type 1:{V.dict_hash_FI[leaf[0]].datatype} {taxon}")
+                # report.update_species_assigned(taxon[1])
                 report.ambiguous = collapse_info.clade_cnt
                 report.flat = collapse_info.flat
 
@@ -432,9 +428,6 @@ def pipe_module_tree_visualization(
                         get_genus_species(leaf[2], genus_list=genus_list)
                     )
                     report.update_species_assigned((f"{taxon[0]} {taxon[1]} {n+1}"))
-                    print(
-                        f"Type 2:{V.dict_hash_FI[leaf[0]].datatype} {taxon[0]} {taxon[1]} {n+1} "
-                    )
 
                     report.ambiguous = collapse_info.clade_cnt
                     report.flat = collapse_info.flat
