@@ -9,7 +9,8 @@ from funid.src.tool import index_step
 from funid.src.save import save_df
 
 # For version reporting
-__version__ = "0.3.3"
+__version__ = "0.3.4"
+
 
 ### Temporary report for tree_interpretation_pipe
 # To collect result from multiprocessing on tree_interpretation
@@ -49,11 +50,11 @@ class Singlereport:
 
 #############################################################
 
+
 #############################################################
 ### Final reporting data
 ### All reports should be generated from here
 class Report:
-
     # Try to make report in dictionary form, most of them should be printed in tabular form
     def __init__(self):
         # Should be finished after release
@@ -103,7 +104,6 @@ class Report:
         self.query_result = None
 
     def update_dataset(self, V, opt):
-
         for gene in V.list_qr_gene:
             self.dataset[gene.upper()] = []
 
@@ -147,7 +147,6 @@ class Report:
 
         # Collect result from each hash
         for _hash in V.dict_hash_FI:
-
             FI = V.dict_hash_FI[_hash]
 
             # Collect result from only used sequences
@@ -156,7 +155,6 @@ class Report:
                 if any(
                     key in V.dict_dataset[FI.adjusted_group] for key in FI.seq.keys()
                 ):
-
                     # Default results
                     self.result["ID"].append(FI.id)
                     self.result["HASH"].append(FI.hash)
@@ -293,7 +291,6 @@ class Report:
     ### Main report runner
     # Update report by pipeline step
     def update_report(self, V, path, opt, step):
-
         if step == "setup":
             self.report_text(V, path, opt, step)
         elif step == "search":
@@ -328,7 +325,6 @@ class Report:
 
     # Generate report in text file
     def report_text(self, V, path, opt, step):
-
         # Rewrite everytime when called, the io step won't be that much
         with open(f"{path.root}/{opt.runname}.report.txt", "wt", encoding="UTF8") as f:
             if index_step(step) >= 0:
@@ -761,7 +757,6 @@ class Report:
                 )
 
     def report_table(self, V, path, opt, step):
-
         # Generate list of table to be written
         list_table = []
 
