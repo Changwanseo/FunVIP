@@ -4,10 +4,9 @@ import os
 
 
 def opt_generator(V, opt, path, step):
-
     list_opt = []
 
-    # alignment options generator
+    ## alignment options generator
     if step == "alignment":
         for group in V.dict_dataset:
             for gene in V.dict_dataset[group]:

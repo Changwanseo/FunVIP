@@ -118,6 +118,7 @@ def synchronize(V, path, tree_info_list):
         possible_genus = set([taxon[0] for taxon in tree_info.collapse_dict])
         logging.debug(f"Synchronize for genus : {possible_genus}")
 
+        # Generating tree_info_dict - genus - group - tree_info cascade
         for genus in possible_genus:
             if not genus in tree_info_dict:
                 tree_info_dict[genus] = {tree_info.group: {tree_info.gene: tree_info}}
@@ -143,33 +144,31 @@ def synchronize(V, path, tree_info_list):
             sp_convert_dict[genus] = {}  # conversion pair
             sp_cnt_dict[genus] = 1  # counter
 
-        logging.debug(f"Synchronizing {genus}")
-
         # sp. numbers should be counted by genus
         for group in sorted(list(tree_info_dict[genus].keys())):
             sp_convert_dict[genus][group] = {}
-            logging.debug(f"Synchronizing sp. number of {group}")
+            logging.debug(f"Synchronizing sp. number of {genus}, {group}")
 
             # Now concatenated analysis gets mandatory
             # However, some genera can only exist in certain gene analysis - they are not correlated to synchronizing
             if not ("concatenated" in tree_info_dict[genus][group]):
                 logging.info(
-                    f"No concatenated dataset for {genus} {group}. Passing synchronizing"
+                    f"No concatenated dataset for {genus}, {group}. Passing synchronizing"
                 )
             else:
                 # Start with concatenated to define standard sp numbers
                 tree_info = tree_info_dict[genus][group]["concatenated"]
 
                 for taxon in tree_info.collapse_dict.keys():
-                    # Get taxon with right sp. form
+                    # Get sp. nov taxon
                     if taxon[0] == genus and re.fullmatch(r"sp. [0-9]+", taxon[1]):
                         logging.debug(f"Sp. checking : {taxon[1]}")
-                        # Save sp. conversion pair
+                        # Save sp. nov renaming pair to dict
                         sp_convert_dict[genus][group][taxon] = (
                             taxon[0],
                             f"sp. {sp_cnt_dict[genus]}",
                         )
-                        # Add more counter
+                        # Increase counter
                         sp_cnt_dict[genus] += 1
 
                         # Add given sp. taxons, generate hash dict

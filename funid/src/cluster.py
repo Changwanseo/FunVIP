@@ -16,7 +16,6 @@ from funid.src.ext import mmseqs
 
 
 def check_gene_availability(V, opt):
-
     available_gene = []
     unavailable_gene = []
 
@@ -40,7 +39,6 @@ def get_naive_group(V):
 
 # Append query_group information column to dict_gene_SR
 def append_query_group(V):
-
     # For normal gene matrix
     group_dict = {}
     for FI in V.list_FI:
@@ -63,7 +61,6 @@ def append_query_group(V):
 
 # assign gene to unclassified gene by search result
 def assign_gene(result_dict, V, cutoff=0.99):
-
     # if no query exists to assign, return dataset without operations
     if len(result_dict.keys()) == 0:
         return V
@@ -79,10 +76,8 @@ def assign_gene(result_dict, V, cutoff=0.99):
     gene_result_grouped = gene_result_all.groupby(gene_result_all["qseqid"])
 
     for funinfo in V.list_FI:
-
         # for seq of funinfo
         for n, seq in enumerate(funinfo.unclassified_seq):
-
             try:
                 # get each of the dataframe for each funinfo
                 current_df = gene_result_grouped.get_group(f"{funinfo.hash}_{n}")
@@ -127,7 +122,6 @@ def assign_gene(result_dict, V, cutoff=0.99):
 
 # cluster each of Funinfo object and assign group
 def cluster(FI, df_search, V, path, opt):
-
     # import tracemalloc
 
     # tracemalloc.start(10)
@@ -205,7 +199,6 @@ def cluster(FI, df_search, V, path, opt):
 
 # Append outgroup to given group-gene dataset by search matrix
 def append_outgroup(V, df_search, gene, group, path, opt):
-
     logging.info(f"Appending outgroup on group: {group}, Gene: {gene}")
 
     list_FI = copy.deepcopy(V.list_FI)
@@ -224,6 +217,7 @@ def append_outgroup(V, df_search, gene, group, path, opt):
         funinfo_dict[funinfo.hash] = funinfo
 
     # For non-concatenated analysis
+    """
     if gene != "concatenated":
         # generate minimal bitscore cutoff that does not overlaps to query-query bitscore value range
         cutoff_set_df = df_search[df_search["subject_group"] == group]
@@ -235,6 +229,7 @@ def append_outgroup(V, df_search, gene, group, path, opt):
         # get result stasifies over cutoff
         cutoff_df = df_search[df_search["bitscore"] < bitscore_cutoff]
         cutoff_df = cutoff_df[cutoff_df["bitscore"] > 0]
+
         # split that same group to include all to alignment, and left other groups for outgroup selection
         cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
 
@@ -260,6 +255,9 @@ def append_outgroup(V, df_search, gene, group, path, opt):
     else:
         cutoff_df = df_search[df_search["bitscore"] > 0]
         cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
+    """
+    cutoff_df = df_search[df_search["bitscore"] > 0]
+    cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
 
     del df_search
     gc.collect()
@@ -337,7 +335,6 @@ def append_outgroup(V, df_search, gene, group, path, opt):
 
 
 def group_cluster_opt_generator(V, opt, path):
-
     # cluster(FO, df_search, V, path, opt)
     if len(V.list_qr_gene) == 0:
         logging.error(
@@ -347,7 +344,6 @@ def group_cluster_opt_generator(V, opt, path):
 
     # For non concatenated analysis or if only one gene exists
     elif len(V.list_qr_gene) <= 1 or V.cSR is None:
-
         # For caching
         df_group_dict = {}
         qseqid_dict = {}
@@ -421,7 +417,6 @@ def group_cluster_opt_generator(V, opt, path):
 
 # opts ready for multithreading in outgroup append
 def outgroup_append_opt_generator(V, path, opt):
-
     opt_append_outgroup = []
 
     # if concatenated analysis is false
@@ -464,7 +459,6 @@ def outgroup_append_opt_generator(V, path, opt):
 def pipe_cluster(V, opt, path):
     # If clustering enabled
     if opt.method.search in ("blast", "mmseqs"):
-
         logging.info("group clustering")
 
         # cluster opt generation for multiprocessing
@@ -530,7 +524,6 @@ def pipe_cluster(V, opt, path):
 
 ## Main outgroup appending pipeline
 def pipe_append_outgroup(V, path, opt):
-
     opt_append_outgroup = outgroup_append_opt_generator(V, path, opt)
 
     # run multiprocessing start
