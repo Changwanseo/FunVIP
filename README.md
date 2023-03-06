@@ -32,6 +32,7 @@ A automatic tree-based sequence identification pipeline for fungal species
 2. ```conda activate FunID```
 3. ```conda install -c cwseo FunID```
 4. run ```FunID --test Penicillium ``` to check installation
+If this one fails, use next one
 
 ## Installation with conda (using pip)
 1. ```conda create -n FunID python=3.9```
@@ -39,8 +40,18 @@ A automatic tree-based sequence identification pipeline for fungal species
 3. ```conda install pip```
 4. ```pip install FunID```
 5. run ```FunID --test Penicillium ``` to check installation
+If you are using linux system please follow "Additional information for Linux"
+* For mac system, this installation probably work, but we couldn't test it because we don't have any mac device. We're looking for feedbacks in mac
+
+## Additional information for Linux
+* Currently, FunID is one-step installed only in Windows
+* to use in linux please run this command additionally
+
+```conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 blast mafft trimal gblocks```
+
 
 ## Installation from source
+* this is for developmental steps
 1. ```git clone https://github.com/Changwanseo/FunID.git```
 2. Move to ```~/FunID```
 3. ```conda create -n FunID python=3.9```
@@ -48,11 +59,6 @@ A automatic tree-based sequence identification pipeline for fungal species
 5. ```pip install ./```
 6. run ```FunID --test Penicillium ``` to check installation
 
-## Additional information for Linux
-* Currently, FunID is one-step installed only in Windows
-* to use in linux please run this command additionally
-
-```conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 blast mafft trimal gblocks```
 
 ## Usage
 ```FunID --db {Your database file} --query {Your query file} --email {Your email} --gene {Your genes} --preset {fast or accurate}```
