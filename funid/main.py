@@ -1,5 +1,4 @@
 def main():
-
     from funid.src import align
     from funid.src import tree_interpretation_pipe
     from funid.src import cluster
@@ -103,7 +102,7 @@ def main():
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
 
-    # Searching (BLAST or mmseqss)
+    # Searching (BLAST or mmseqs)
     if opt.continue_from_previous is False or index_step(opt.step) <= 1:
         step = "search"
         logging.info("SEARCHING")
@@ -216,11 +215,14 @@ def main():
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
 
+        # After here
+
     # Visualize
     if opt.continue_from_previous is False or index_step(opt.step) <= 8:
         step = "visualize"
         logging.info("VISUALIZE")
 
+        # The genus duplication occurs here
         # Running visualization
         V, path, opt = tree_interpretation_pipe.pipe_tree_interpretation(V, path, opt)
 

@@ -1,12 +1,12 @@
 from funid.src import ext, hasher
 from funid.src.opt_generator import opt_generator
 import multiprocessing as mp
+import logging
 import shutil
 import os
 
 
 def pipe_tree(V, path, opt, model_dict):
-
     # for tree, use hash dict with genus and species information
     tree_hash_dict = hasher.encode(V.list_FI, newick=True)
 
@@ -23,43 +23,49 @@ def pipe_tree(V, path, opt, model_dict):
                 len(V.dict_dataset[group][gene].list_qr_FI) > 0
                 or opt.queryonly is False
             ):
-                # If not trimming use this
-                if opt.method.tree.lower() == "raxml":
-                    ext.RAxML(
-                        fasta=f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
-                        out=f"{opt.runname}_{group}_{gene}.nwk",
-                        hash_dict=tree_hash_dict,
-                        path=path,
-                        thread=opt.thread,
-                        bootstrap=opt.bootstrap,
-                        model=model_dict[group][gene],
-                    )
+                # draw tree only when outgroup sequence exists
+                if len(V.dict_dataset[group][gene].list_og_FI) > 0:
+                    # If not trimming use this
+                    if opt.method.tree.lower() == "raxml":
+                        ext.RAxML(
+                            fasta=f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
+                            out=f"{opt.runname}_{group}_{gene}.nwk",
+                            hash_dict=tree_hash_dict,
+                            path=path,
+                            thread=opt.thread,
+                            bootstrap=opt.bootstrap,
+                            model=model_dict[group][gene],
+                        )
 
-                elif opt.method.tree.lower() == "iqtree":
-                    ext.IQTREE(
-                        fasta=f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
-                        out=f"{opt.runname}_{group}_{gene}.nwk",
-                        hash_dict=tree_hash_dict,
-                        path=path,
-                        thread=opt.thread,
-                        bootstrap=opt.bootstrap,
-                        model=model_dict[group][gene],
-                    )
+                    elif opt.method.tree.lower() == "iqtree":
+                        ext.IQTREE(
+                            fasta=f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
+                            out=f"{opt.runname}_{group}_{gene}.nwk",
+                            hash_dict=tree_hash_dict,
+                            path=path,
+                            thread=opt.thread,
+                            bootstrap=opt.bootstrap,
+                            model=model_dict[group][gene],
+                        )
 
-                # if fasttree, append to opt
+                    # if fasttree, append to opt
+                    else:
+                        if not (opt.method.tree.lower() == "fasttree"):
+                            logging.warning(
+                                "Tree construction method not selected, working for default opt, FastTree"
+                            )
+                        fasttree_opt.append(
+                            (
+                                f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
+                                f"{opt.runname}_{group}_{gene}.nwk",
+                                tree_hash_dict,
+                                path,
+                                model_dict[group][gene],
+                            )
+                        )
                 else:
-                    if not (opt.method.tree.lower() == "fasttree"):
-                        logging.warning(
-                            "[Warning] Tree construction method not selected, working for default opt, FastTree"
-                        )
-                    fasttree_opt.append(
-                        (
-                            f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
-                            f"{opt.runname}_{group}_{gene}.nwk",
-                            tree_hash_dict,
-                            path,
-                            model_dict[group][gene],
-                        )
+                    logging.warning(
+                        f"Passing tree construction of {group} {gene} dataset because no outgroup available"
                     )
 
     # for fasttree, perform multiprocessing

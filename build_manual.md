@@ -28,7 +28,7 @@ conda install conda-build
 conda install conda-verify
 conda install anaconda-client
 conda install git
-grayskull pypi FunID
+grayskull pypi FunID // Check if version is as you expected during this process
 anaconda login
 conda config --set anaconda_upload no
 conda config --add channels cwseo

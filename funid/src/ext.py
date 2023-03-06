@@ -7,10 +7,10 @@ import shutil
 from pathlib import Path
 from funid.src.save import save_tree
 
+
 # Search methods
 # BLAST
 def blast(query, db, out, path, opt):
-
     path_blast = Path(f"{path.sys_path}/external/BLAST_Windows/bin/blastn.exe")
 
     if platform == "win32":
@@ -24,13 +24,12 @@ def blast(query, db, out, path, opt):
 
 # mmseqs
 def mmseqs(query, db, out, tmp, path, opt):
-
     path_mmseqs = f"{path.sys_path}/external/mmseqs_Windows/mmseqs.bat"
 
     if platform == "win32":
-        CMD = f"{path_mmseqs} easy-search {query} {db} {out} {tmp} --threads {opt.thread} --search-type 3 -e {opt.cluster.evalue}"
+        CMD = f"{path_mmseqs} easy-search {query} {db} {out} {tmp} --threads {opt.thread} -k {opt.cluster.wordsize} --search-type 3 -e {opt.cluster.evalue} --dbtype 2"
     else:
-        CMD = f"mmseqs easy-search {query} {db} {out} {tmp} --threads {opt.thread} --search-type 3 -e {opt.cluster.evalue}"
+        CMD = f"mmseqs easy-search {query} {db} {out} {tmp} --threads {opt.thread} -k {opt.cluster.wordsize} --search-type 3 -e {opt.cluster.evalue} --dbtype 2"
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
@@ -38,7 +37,6 @@ def mmseqs(query, db, out, tmp, path, opt):
 
 # DB building methods
 def makeblastdb(fasta, db, path):
-
     path_makeblastdb = f"{path.sys_path}/external/BLAST_Windows/bin/makeblastdb.exe"
 
     if platform == "win32":
@@ -54,7 +52,6 @@ def makeblastdb(fasta, db, path):
 
 
 def makemmseqsdb(fasta, db, path):
-
     path_makemmseqsdb = f"{path.sys_path}/external/mmseqs_Windows/mmseqs.bat"
 
     if platform == "win32":
@@ -100,7 +97,6 @@ def MAFFT(
 
 # Trimming
 def Gblocks(fasta, out, path):
-
     if platform == "win32":
         CMD = f"{path.sys_path}/external/Gblocks_Windows_0.91b/Gblocks_0.91b/Gblocks.exe {fasta} -t=d -b4=2 -b5=a -e=.gb"
     else:
@@ -117,7 +113,6 @@ def Gblocks(fasta, out, path):
 
 
 def Trimal(fasta, out, path, algorithm="gt", threshold=0.2):
-
     if algorithm == "gt":
         algorithm = f"{algorithm} {threshold}"
 
@@ -155,7 +150,6 @@ def Modeltest_ng(fasta, out, models, thread):
 
 # IQTREE ModelFinder
 def ModelFinder(fasta, opt, path, thread):
-
     if opt.method.tree == "iqtree":
         model_term = "-m MFP"
     elif opt.method.tree == "raxml":
@@ -188,7 +182,6 @@ def RAxML(
     partition=None,
     model="-m GTRGAMMA",
 ):
-
     if model == "skip":
         model = ""
 
@@ -220,13 +213,12 @@ def RAxML(
 
 
 def FastTree(fasta, out, hash_dict, path, model=""):
-
     if model == "skip":
         model = ""
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/FastTree_Windows/FastTree.exe -quiet -nt {model} -log {path.tmp}/fasttreelog {fasta} > {path.tmp}/{out}"
+        CMD = f"{path.sys_path}/external/FastTree_Windows/FastTree.exe -quiet -nt {model} -log {path.tmp}/fasttreelog -seed 1 {fasta} > {path.tmp}/{out}"
     else:
-        CMD = f"FastTree -quiet -nt {model} -log {path.tmp}/fasttreelog {fasta}  > {path.tmp}/{out}"
+        CMD = f"FastTree -quiet -nt {model} -log {path.tmp}/fasttreelog -seed 1 {fasta}   > {path.tmp}/{out}"
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
@@ -243,7 +235,6 @@ def FastTree(fasta, out, hash_dict, path, model=""):
 def IQTREE(
     fasta, out, hash_dict, path, thread=1, bootstrap=1000, partition=None, model=""
 ):
-
     if model == "skip":
         model = ""
 

@@ -306,7 +306,7 @@ class Tree_information:
         self.t.resolve_polytomy()
 
         for outgroup in self.outgroup:
-            print(f"finding outgroup {outgroup} ({outgroup.hash}) in {self.tree_name}")
+            print(f"Finding outgroup {outgroup} ({outgroup.hash}) in {self.tree_name}")
             for leaf in self.t:
                 if outgroup.hash in leaf.name:
                     outgroup_leaves.append(leaf)
@@ -1054,7 +1054,6 @@ class Tree_information:
         for text in text_list:
             # Decide if string of the tree is bootstrap, scale, taxon or id
             # taxon_list = [" ".join(x) for x in self.collapse_dict.keys()]
-
             try:
                 int(text.text)
                 text_type = "bootstrap"

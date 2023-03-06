@@ -118,8 +118,9 @@ def synchronize(V, path, tree_info_list):
         possible_genus = set([taxon[0] for taxon in tree_info.collapse_dict])
         logging.debug(f"Synchronize for genus : {possible_genus}")
 
+        # Generating tree_info_dict - genus - group - tree_info cascade
         for genus in possible_genus:
-            if not (genus) in tree_info_dict:
+            if not genus in tree_info_dict:
                 tree_info_dict[genus] = {tree_info.group: {tree_info.gene: tree_info}}
             elif not (tree_info.group in tree_info_dict[genus]):
                 tree_info_dict[genus][tree_info.group] = {tree_info.gene: tree_info}
@@ -143,33 +144,31 @@ def synchronize(V, path, tree_info_list):
             sp_convert_dict[genus] = {}  # conversion pair
             sp_cnt_dict[genus] = 1  # counter
 
-        logging.debug(f"Synchronizing {genus}")
-
         # sp. numbers should be counted by genus
         for group in sorted(list(tree_info_dict[genus].keys())):
             sp_convert_dict[genus][group] = {}
-            logging.debug(f"Synchronizing sp. number of {group}")
+            logging.debug(f"Synchronizing sp. number of {genus}, {group}")
 
             # Now concatenated analysis gets mandatory
             # However, some genera can only exist in certain gene analysis - they are not correlated to synchronizing
             if not ("concatenated" in tree_info_dict[genus][group]):
                 logging.info(
-                    f"No concatenated dataset for {genus} {group}. Passing synchronizing"
+                    f"No concatenated dataset for {genus}, {group}. Passing synchronizing"
                 )
             else:
                 # Start with concatenated to define standard sp numbers
                 tree_info = tree_info_dict[genus][group]["concatenated"]
 
                 for taxon in tree_info.collapse_dict.keys():
-                    # Get taxon with right sp. form
+                    # Get sp. nov taxon
                     if taxon[0] == genus and re.fullmatch(r"sp. [0-9]+", taxon[1]):
                         logging.debug(f"Sp. checking : {taxon[1]}")
-                        # Save sp. conversion pair
+                        # Save sp. nov renaming pair to dict
                         sp_convert_dict[genus][group][taxon] = (
                             taxon[0],
                             f"sp. {sp_cnt_dict[genus]}",
                         )
-                        # Add more counter
+                        # Increase counter
                         sp_cnt_dict[genus] += 1
 
                         # Add given sp. taxons, generate hash dict
@@ -229,7 +228,6 @@ def synchronize(V, path, tree_info_list):
                 # Now solve other genes
                 for gene in tree_info_dict[genus][group]:
                     if gene != "concatenated":
-
                         # bygene_taxon_dict : {Penicillium citrinum : {(Penicillium, sp. 1), (Penicillium, sp. 2), (Penicillium, citrinum)}}}
                         # bygene_taxon_string_dict : {Penicillium citrinum : (Penicillium, citrinum/sp.1/sp.2)}
                         bygene_taxon_dict = {}
@@ -242,7 +240,6 @@ def synchronize(V, path, tree_info_list):
                         # logging.debug(f"Collapse_dict: {tree_info.collapse_dict}")
                         for taxon in tree_info.collapse_dict:
                             if taxon[0] == genus:
-
                                 # Get all hash of designated taxon leaf
                                 clade = tree_info.collapse_dict[taxon][0]
 
@@ -260,7 +257,6 @@ def synchronize(V, path, tree_info_list):
                                 # Name of the collapsed clade should include all taxon names of hash
                                 for _hash in hash_list:
                                     if _hash in hash_dict:
-
                                         # Only work with related taxon
                                         if not taxon in bygene_taxon_dict:
                                             bygene_taxon_dict[taxon] = set()
@@ -367,7 +363,6 @@ def pipe_module_tree_visualization(
     path,
     opt,
 ):
-
     group = tree_info.group
     gene = tree_info.gene
     genus_list = V.tup_genus
@@ -388,6 +383,7 @@ def pipe_module_tree_visualization(
         for taxon in tree_info.collapse_dict.keys()
         if not (taxon[1].startswith("sp."))
     ]
+
     list_taxon_2 = [
         taxon for taxon in tree_info.collapse_dict.keys() if taxon[1].startswith("sp.")
     ]
@@ -412,6 +408,7 @@ def pipe_module_tree_visualization(
                     get_genus_species(leaf[2], genus_list=genus_list)
                 )
                 report.update_species_assigned(" ".join(taxon))
+                # report.update_species_assigned(taxon[1])
                 report.ambiguous = collapse_info.clade_cnt
                 report.flat = collapse_info.flat
 
@@ -430,6 +427,7 @@ def pipe_module_tree_visualization(
                         get_genus_species(leaf[2], genus_list=genus_list)
                     )
                     report.update_species_assigned((f"{taxon[0]} {taxon[1]} {n+1}"))
+
                     report.ambiguous = collapse_info.clade_cnt
                     report.flat = collapse_info.flat
 
@@ -448,7 +446,7 @@ def pipe_tree_interpretation(V, path, opt):
             if (
                 len(V.dict_dataset[group][gene].list_qr_FI) > 0
                 or opt.queryonly is False
-            ):
+            ) and len(V.dict_dataset[group][gene].list_og_FI) > 0:
                 # Generating tree_interpretation opts for multithreading support
                 tree_interpretation_opt.append(
                     (
@@ -498,6 +496,8 @@ def pipe_tree_interpretation(V, path, opt):
             pipe_module_tree_visualization(*option) for option in tree_visualization_opt
         ]
 
+    ### After this
+
     # Collect identifiation result to V
     for report_list in tree_visualization_result:
         for report in report_list:
@@ -513,5 +513,7 @@ def pipe_tree_interpretation(V, path, opt):
                 FI.bygene_species[report.gene] = report.species_assigned
                 if report.flat is True:
                     FI.flat.append(report.gene)
+
+    ### Before this
 
     return V, path, opt
