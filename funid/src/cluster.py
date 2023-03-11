@@ -136,7 +136,9 @@ def cluster(FI, df_search, V, path, opt):
 
     # If no evidence available, return it
     if df_search is None:
-        logging.warning(f"No adjusted_group assigned to {FI}")
+        # if confident is True, no adjusted_group for db is normal situation
+        if opt.confident is False and FI.datatype is "db":
+            logging.warning(f"No adjusted_group assigned to {FI}")
         FI.adjusted_group = FI.group
         return FI, None
     # for db sequence with group, retain it
@@ -220,6 +222,8 @@ def append_outgroup(V, df_search, gene, group, path, opt):
     """
     if gene != "concatenated":
         # generate minimal bitscore cutoff that does not overlaps to query-query bitscore value range
+        
+        # For getting inner group
         cutoff_set_df = df_search[df_search["subject_group"] == group]
         try:
             bitscore_cutoff = min(cutoff_set_df["bitscore"])
@@ -417,8 +421,13 @@ def group_cluster_opt_generator(V, opt, path):
 
 # opts ready for multithreading in outgroup append
 def outgroup_append_opt_generator(V, path, opt):
+    from time import time
+
+    time1 = time()
+
     opt_append_outgroup = []
 
+    #### Pararellize this part
     # if concatenated analysis is false
     # Assign different outgroup for each dataset
     for group in V.dict_dataset:
@@ -451,6 +460,10 @@ def outgroup_append_opt_generator(V, path, opt):
                 logging.warning(
                     f"{group} / concatenated dataset exists, but cannot append outgroup due to no corresponding search result"
                 )
+
+    time2 = time()
+
+    logging.info(f"{time2-time1}s consumed in outgroup_append_opt_generator")
 
     return opt_append_outgroup
 

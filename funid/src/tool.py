@@ -10,6 +10,7 @@ import shutil
 import platform
 from unidecode import unidecode
 
+
 # Maybe we should move this to /funid/src/toolbox/ and split these to multiple files
 def initialize_path(path):
     global genus_file
@@ -22,7 +23,6 @@ def mkdir(path):
 
 
 def union_funinfo_list(funinfo_list1, funinfo_list2):
-
     hash_list = [x.hash for x in funinfo_list1]
     for funinfo in funinfo_list2:
         if not funinfo.hash in hash_list:
@@ -33,13 +33,12 @@ def union_funinfo_list(funinfo_list1, funinfo_list2):
 
 # if string is not ascii, automatically solve it with unicode library
 def manage_unicode(string, column="", row=""):
-
     try:
         string.encode("ascii")
         return string
     except:
         logging.warning(
-            f"Illegal unicode character found in ID/Accession column, {row}th row : {string}. Trying flexible solve"
+            f"Illegal unicode character found in {column} column, {row}th row : {string}. Trying flexible solve"
         )
         try:
             return unidecode(string)
@@ -68,7 +67,6 @@ def get_genus_species(
     ],
     genus_list=None,
 ):
-
     return_genus = ""
     return_species = ""
 
@@ -181,7 +179,6 @@ def get_id(string, id_list):
 
 # select FI with specific datatype from FI_list
 def select(funinfo_list, datatype):
-
     tmp_list = []
     for funinfo in funinfo_list:
         if funinfo.datatype == datatype:
@@ -203,7 +200,6 @@ def excel_sheetname_legal(string):
 
 # moves newick files generated in tree building process to appropriate location
 def cleanup_tree(path):
-
     # move result files to each of the folders
     mkdir(f"{path.out_tree}/hash")
     hash_files = [
@@ -221,7 +217,6 @@ def cleanup_tree(path):
 
 # moves svg files generated in CAT-V to appropriate location
 def cleanup_tree_image(path):
-
     # move result files to each of the folders
     mkdir(f"{path.out_tree}/hash")
     hash_files = [

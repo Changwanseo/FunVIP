@@ -355,11 +355,9 @@ class FunID_var:
 
     # Validate if any multiple sequence alignment has no overlapping region
     def validate_alignments(self, path, opt):
+        fail_list = []
         for group in self.dict_dataset:
             for gene in self.dict_dataset[group]:
-                # Check if dataset exists
-                pass
-
                 # Check if alignment corresponding to dataset exists
                 if not (
                     os.path.isfile(
@@ -370,9 +368,10 @@ class FunID_var:
                         f"Alignment file {path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta does not exists"
                     )
 
+                    fail_list.append(group_gene)
+
                 else:
                     # If alignment exists, check if alignment does have overlapping regions
-
                     ## Parse alignment
                     seq_list = list(
                         SeqIO.parse(
@@ -381,9 +380,23 @@ class FunID_var:
                         )
                     )
 
+                    # Remove empty sequences
+                    remove_hash = []
+                    for seq in seq_list:
+                        if len(str(seq.seq).replace("-", "")) == 0:
+                            remove_hash.append(seq.id)
+
+                    # Remove unusable sequence and re-read it
+                    ## db_list, query_list, outgroup_list might has to be changed
+                    seq_list = [seq for seq in seq_list if not seq.id in remove_hash]
+                    SeqIO.write(
+                        seq_list,
+                        f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
+                        "fasta",
+                    )
+
                     ## Transform alignment to vector
                     ## Change gap to 0, and other characters to 1
-
                     vectors = [
                         np.fromiter(
                             re.sub(r"[^0]", "1", re.sub(r"[\-]", "0", str(seq.seq))),
@@ -391,18 +404,30 @@ class FunID_var:
                         )
                         for seq in seq_list
                     ]
-
                     ## Multiply vectors
                     vector_products = np.prod(np.vstack(vectors), axis=0)
+                    logging.debug(
+                        f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta resulted multiplied vector {vector_products}"
+                    )
 
                     ## If all value of vectors are zero, it means that all regions have at least one gap
                     ## Raise warning for this
                     if np.all((vector_products == 0)):
                         logging.warning(
-                            f"Alignment for {group} {gene} does not have any overlapping regions! Please check alignment to find out if some of the sequences were from different regions"
+                            f"Alignment for {group} {gene} does not have any overlapping regions! Removing from analysis"
                         )
+                        fail_list.append((group, gene))
                     else:
                         logging.info(f"Alignment for {group} {gene} passed validation")
 
                 # If alignment corresponding to dataset does not exists, raise warning or error
                 pass
+
+        """
+        # Remove bad alignments
+        for fail in fail_list:
+            group = fail[0]
+            gene = fail[1]
+            self.dict_dataset[group].pop(gene)
+            logging.warning(f"Alignment for {group} {gene} has removed from analysis")
+        """

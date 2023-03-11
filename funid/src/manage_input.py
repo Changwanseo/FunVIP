@@ -108,7 +108,7 @@ class Funinfo:
 
         # Genus with space causes error while mafft
         genus = genus.strip().replace(" ", "_")
-        genus = manage_unicode(genus)
+        genus = manage_unicode(genus, column="Genus")
 
         # Check ambiguity
         if self.genus != "" and self.genus != genus:
@@ -129,7 +129,7 @@ class Funinfo:
         if pd.isnull(species):
             species = ""
         species = species.strip()
-        species = manage_unicode(species)
+        species = manage_unicode(species, column="Species")
 
         # Check ambiguity
         if self.ori_species != "" and self.ori_species != species:
@@ -152,7 +152,7 @@ class Funinfo:
 
         # Group with space causes error while mafft
         group = group.strip().replace(" ", "_")
-        group = manage_unicode(group)
+        group = manage_unicode(group, column="Group")
 
         # Check ambiguity
         if self.group != "" and self.group != group:
@@ -169,7 +169,7 @@ class Funinfo:
             color = None
             self.color = color
         else:
-            color = manage_unicode(str(color).strip())
+            color = manage_unicode(str(color).strip(), column="Color")
             if isvalidcolor(color) is True:
                 self.color = color
             else:
@@ -475,7 +475,7 @@ def input_table(path, opt, table_list, datatype):
             # Check if each of the ids are unique
             # Remove non-unicode first
             new_acc = True
-            df["id"][n] = manage_unicode(str(df["id"][n]), column="accession", row=n)
+            df["id"][n] = manage_unicode(str(df["id"][n]), column="ID/Accession", row=n)
             # Generate funinfo for each id
             if df["id"][n] in funinfo_dict:
                 newinfo = funinfo_dict[df["id"][n]]

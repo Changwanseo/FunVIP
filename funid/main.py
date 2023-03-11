@@ -9,7 +9,7 @@ def main():
     from funid.src import logger
     from funid.src import manage_input
     from funid.src import modeltest
-    from funid.src import multigene
+    from funid.src import concatenate
     from funid.src import patch
     from funid.src import reporter
     from funid.src import tool
@@ -111,7 +111,7 @@ def main():
         V = search.search_df(V, path, opt)
 
         # Concatenate search matrix among genes
-        V = multigene.concatenate_df(V, path, opt)
+        V = concatenate.concatenate_df(V, path, opt)
 
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
@@ -176,16 +176,18 @@ def main():
     # Concatenation (multigene)
     if opt.continue_from_previous is False or index_step(opt.step) <= 5:
         step = "concatenate"
-        logging.info("CONCATENATING MULTIGENE ALIGNMENTS")
+        logging.info("CONCATENATING MULTILOCI ALIGNMENTS")
 
         # Multigene
-        V = multigene.combine_alignment(V, opt, path)
+        V = concatenate.combine_alignment(V, opt, path)
 
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
 
     # Alignment validations - whether some of the sequences does not have overlapping regions
     V.validate_alignments(path, opt)
+
+    # raise Exception
 
     # Modeltest
     if opt.continue_from_previous is False or index_step(opt.step) <= 6:

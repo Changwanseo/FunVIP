@@ -10,31 +10,32 @@ def opt_generator(V, opt, path, step):
     if step == "alignment":
         for group in V.dict_dataset:
             for gene in V.dict_dataset[group]:
-                # thread assignment
-                if opt.verbose < 3:
-                    if opt.thread in (1, 3):
-                        thread = 1
+                if gene != "concatenated":
+                    # thread assignment
+                    if opt.verbose < 3:
+                        if opt.thread in (1, 3):
+                            thread = 1
+                        else:
+                            thread = 2
                     else:
-                        thread = 2
-                else:
-                    thread = opt.thread
+                        thread = opt.thread
 
-                # double checking path
-                if os.path.isfile(
-                    f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta"
-                ):
-                    list_opt.append(
-                        (
-                            f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta",
-                            f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
-                            path,
-                            thread,
-                            opt.mafft.algorithm,
-                            "adjustdirection",
-                            opt.mafft.op,
-                            opt.mafft.ep,
+                    # double checking path
+                    if os.path.isfile(
+                        f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta"
+                    ):
+                        list_opt.append(
+                            (
+                                f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta",
+                                f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
+                                path,
+                                thread,
+                                opt.mafft.algorithm,
+                                "adjustdirection",
+                                opt.mafft.op,
+                                opt.mafft.ep,
+                            )
                         )
-                    )
 
     elif step == "trimming":
         # Generate trimming opts for multiprocessing

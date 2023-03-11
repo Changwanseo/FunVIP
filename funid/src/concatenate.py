@@ -9,7 +9,6 @@ from funid.src import search, hasher
 
 
 def combine_alignment(V, opt, path):
-
     multigene_list = []
     for group in V.dict_dataset:
         if "concatenated" in V.dict_dataset[group]:
@@ -98,7 +97,6 @@ def combine_alignment(V, opt, path):
 
 # for concatenating blast result to get single bitscore among results
 def concatenate_df(V, path, opt):
-
     logging.info("Concatenating search results")
     df_list = [V.dict_gene_SR[gene] for gene in V.dict_gene_SR]
 
@@ -195,13 +193,11 @@ def concatenate_df(V, path, opt):
                         inplace=True,
                     )
 
-    # What is this?
-    # V.cSR = V.cSR
-
     # Save it
+    # decode df is not working well here
     if opt.nosearchresult is False:
         search.save_df(
-            hasher.decode_df(V.dict_hash_name, V.cSR),
+            hasher.decode_df(V.dict_id_hash, V.cSR),
             f"{path.out_matrix}/{opt.runname}_BLAST_result_concatenated.{opt.matrixformat}",
             fmt=opt.matrixformat,
         )

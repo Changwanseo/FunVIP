@@ -48,7 +48,14 @@ def pipe_module_tree_interpretation(
     logging.debug(tree_name)
 
     if os.path.isfile(tree_name):
-        Tree(tree_name, format=2)
+        try:
+            Tree(tree_name, format=2)
+        except:
+            for FI in funinfo_list:
+                print(FI.original_id)
+                print(FI.datatype)
+            print(f"[DEVELOPMENTAL ERROR] Failed on tree {tree_name}")
+            raise Exception
     else:
         logging.warning(f"Cannot find {tree_name}")
         raise Exception
