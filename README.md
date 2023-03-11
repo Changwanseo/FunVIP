@@ -47,7 +47,7 @@ If you are using linux system please follow "Additional information for Linux"
 * Currently, FunID is one-step installed only in Windows
 * to use in linux please run this command additionally
 
-```conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 blast mafft trimal gblocks fasttree```
+```conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 blast mafft trimal gblocks```
 
 
 ## Installation from source
