@@ -224,15 +224,20 @@ def append_outgroup(V, df_search, gene, group, path, opt):
     if 1:
         # generate minimal bitscore cutoff that does not overlaps to query-query bitscore value range
 
-        # For getting inner group
+        ## For getting inner group
         cutoff_set_df = df_search[df_search["subject_group"] == group]
         try:
-            bitscore_cutoff = min(cutoff_set_df["bitscore"])
+            # offset will prevent selecting outgroup too close to ingroup
+            bitscore_cutoff = max(
+                1, min(cutoff_set_df["bitscore"]) - opt.outgroupoffset
+            )
         except:
             bitscore_cutoff = 999999  # use infinite if failed
 
-        # get result stasifies over cutoff
+        ## get result stasifies over cutoff
+        # outgroup should be outside of ingroup
         cutoff_df = df_search[df_search["bitscore"] < bitscore_cutoff]
+        # Remove malformat result
         cutoff_df = cutoff_df[cutoff_df["bitscore"] > 0]
 
         # split that same group to include all to alignment, and left other groups for outgroup selection

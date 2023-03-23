@@ -42,6 +42,7 @@ class Option:
             self.cutoff = 0.95
             self.evalue = 0.00001
             self.wordsize = 7
+            self.outgroupoffset = 20
 
     # MAFFT option
     class MAFFT_Option:
@@ -209,9 +210,13 @@ class Option:
                 self.visualize.fsize_bootstrap = parser_dict[key]
 
             # Cluster options
+            elif key.lower() in ("cluster-cutoff"):
+                self.cluster.evalue = parser_dict[key]
             elif key.lower() in ("evalue"):
                 self.cluster.evalue = parser_dict[key]
             elif key.lower() in ("wordsize"):
+                self.cluster.wordsize = parser_dict[key]
+            elif key.lower() in ("outgroupoffset"):
                 self.cluster.wordsize = parser_dict[key]
 
             # MAFFT options
@@ -467,6 +472,12 @@ class Option:
         try:
             if not parser.cluster_wordsize is None:
                 self.cluster.wordsize = parser.cluster_wordsize
+        except:
+            pass
+
+        try:
+            if not parser.cluster_outgroupoffset is None:
+                self.cluster.outgroupoffset = parser.cluster_outgroupoffset
         except:
             pass
 
@@ -1223,6 +1234,18 @@ class Option:
                 self.cluster.wordsize = 7
         except:
             list_error.append("wordsize should be int not less than 7. Changing to 7")
+
+        # cluster-outgroupoffset
+        # outgroupoffset for clustering - should be 0 or positive
+        try:
+            self.cluster.outgroupoffset = int(self.cluster.outgroupoffset)
+            if self.cluster.outgroupoffset < 0:
+                list_warning.append(
+                    "outgroupoffset should be 0 or positive, setting to 0"
+                )
+                self.cluster.outgroupoffset = 0
+        except:
+            list_error.append("outgroupoffset should be 0 or positive integer")
 
         # mafft-algorithm
         # mafft-algorithm - auto, l-ins-i
