@@ -14,9 +14,9 @@ def blast(query, db, out, path, opt):
     path_blast = Path(f"{path.sys_path}/external/BLAST_Windows/bin/blastn.exe")
 
     if platform == "win32":
-        CMD = f"{path_blast} -out {out} -query {query} -outfmt 6 -db {db} -word_size {opt.cluster.wordsize} -evalue {opt.cluster.evalue} -num_threads {opt.thread}"
+        CMD = f"{path_blast} -out '{out}' -query '{query}' -outfmt 6 -db '{db}' -word_size {opt.cluster.wordsize} -evalue {opt.cluster.evalue} -num_threads {opt.thread}"
     else:
-        CMD = f"blastn -out {out} -query {query} -outfmt 6 -db {db} -word_size {opt.cluster.wordsize} -evalue {opt.cluster.evalue} -num_threads {opt.thread}"
+        CMD = f"blastn -out '{out}' -query '{query}' -outfmt 6 -db '{db}' -word_size {opt.cluster.wordsize} -evalue {opt.cluster.evalue} -num_threads {opt.thread}"
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
@@ -27,9 +27,9 @@ def mmseqs(query, db, out, tmp, path, opt):
     path_mmseqs = f"{path.sys_path}/external/mmseqs_Windows/mmseqs.bat"
 
     if platform == "win32":
-        CMD = f"{path_mmseqs} easy-search {query} {db} {out} {tmp} --threads {opt.thread} -k {opt.cluster.wordsize} --search-type 3 -e {opt.cluster.evalue} --dbtype 2"
+        CMD = f"{path_mmseqs} easy-search '{query}' '{db}' '{out}' '{tmp}' --threads {opt.thread} -k {opt.cluster.wordsize} --search-type 3 -e {opt.cluster.evalue} --dbtype 2"
     else:
-        CMD = f"mmseqs easy-search {query} {db} {out} {tmp} --threads {opt.thread} -k {opt.cluster.wordsize} --search-type 3 -e {opt.cluster.evalue} --dbtype 2"
+        CMD = f"mmseqs easy-search '{query}' '{db}' '{out}' '{tmp}' --threads {opt.thread} -k {opt.cluster.wordsize} --search-type 3 -e {opt.cluster.evalue} --dbtype 2"
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
@@ -40,9 +40,9 @@ def makeblastdb(fasta, db, path):
     path_makeblastdb = f"{path.sys_path}/external/BLAST_Windows/bin/makeblastdb.exe"
 
     if platform == "win32":
-        CMD = f"{path_makeblastdb} -in {fasta} -blastdb_version 4 -title {db} -dbtype nucl"
+        CMD = f"{path_makeblastdb} -in '{fasta}' -blastdb_version 4 -title '{db}'' -dbtype nucl"
     else:
-        CMD = f"makeblastdb -in {fasta} -blastdb_version 4 -title {db} -dbtype nucl"
+        CMD = f"makeblastdb -in '{fasta}' -blastdb_version 4 -title '{db}' -dbtype nucl"
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
     # Change db names
@@ -55,9 +55,9 @@ def makemmseqsdb(fasta, db, path):
     path_makemmseqsdb = f"{path.sys_path}/external/mmseqs_Windows/mmseqs.bat"
 
     if platform == "win32":
-        CMD = f"{path_makemmseqsdb} createdb {fasta} {db} --createdb-mode 0 --dbtype 2"
+        CMD = f"{path_makemmseqsdb} createdb '{fasta}' '{db}'' --createdb-mode 0 --dbtype 2"
     else:
-        CMD = f"mmseqs createdb {fasta} {db} --createdb-mode 0 --dbtype 2"
+        CMD = f"mmseqs createdb '{fasta}' '{db}' --createdb-mode 0 --dbtype 2"
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
 
@@ -83,9 +83,9 @@ def MAFFT(
         shutil.copy(fasta, out)
     else:
         if platform == "win32":
-            CMD = f"{path.sys_path}/external/MAFFT_Windows/mafft-win/mafft.bat --thread {thread} --{algorithm} --maxiterate {maxiterate} --{adjust} --op {op} --ep {ep} --quiet {fasta} > {out}"
+            CMD = f"{path.sys_path}/external/MAFFT_Windows/mafft-win/mafft.bat --thread {thread} --{algorithm} --maxiterate {maxiterate} --{adjust} --op {op} --ep {ep} --quiet '{fasta}' > '{out}'"
         else:
-            CMD = f"mafft --thread {thread} --{algorithm} --maxiterate {maxiterate} --{adjust} --op {op} --ep {ep} --quiet {fasta} > {out}"
+            CMD = f"mafft --thread {thread} --{algorithm} --maxiterate {maxiterate} --{adjust} --op {op} --ep {ep} --quiet '{fasta}' > '{out}'"
 
         logging.info(CMD)
         try:
@@ -98,9 +98,9 @@ def MAFFT(
 # Trimming
 def Gblocks(fasta, out, path):
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/Gblocks_Windows_0.91b/Gblocks_0.91b/Gblocks.exe {fasta} -t=d -b4=2 -b5=a -e=.gb"
+        CMD = f"{path.sys_path}/external/Gblocks_Windows_0.91b/Gblocks_0.91b/Gblocks.exe '{fasta}' -t=d -b4=2 -b5=a -e=.gb"
     else:
-        CMD = f"Gblocks {fasta} -t=d -b4=2 -b5=a -e=.gb"
+        CMD = f"Gblocks '{fasta}' -t=d -b4=2 -b5=a -e=.gb"
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
@@ -117,7 +117,7 @@ def Trimal(fasta, out, path, algorithm="gt", threshold=0.2):
         algorithm = f"{algorithm} {threshold}"
 
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/trimal.v1.2rev59/trimAl/bin/trimal.exe -in {fasta} -out {out} -{algorithm}"
+        CMD = f"{path.sys_path}/external/trimal.v1.2rev59/trimAl/bin/trimal.exe -in '{fasta}' -out '{out}' -{algorithm}"
 
     else:
         CMD = f"trimal -in {fasta} -out {out} -{algorithm}"
@@ -142,7 +142,7 @@ def Modeltest_ng(fasta, out, models, thread):
         logging.error("Modeltest-NG is not available in windows. Try IQTREE modeltest")
         raise Exception
     else:
-        CMD = f"modeltest-ng -i {fasta} -o {out} -t ml -p {thread} --disable-checkpoint {models}"
+        CMD = f"modeltest-ng -i '{fasta}' -o '{out}' -t ml -p {thread} --disable-checkpoint {models}"
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
@@ -163,10 +163,10 @@ def ModelFinder(fasta, opt, path, thread):
         raise Exception
 
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/iqtree-2.1.3-Windows/bin/iqtree2.exe --seqtype DNA -s {fasta} {model_term} -merit {opt.criterion} -T {thread}"
+        CMD = f"{path.sys_path}/external/iqtree-2.1.3-Windows/bin/iqtree2.exe --seqtype DNA -s '{fasta}' {model_term} -merit {opt.criterion} -T {thread}"
     else:
         # not final
-        CMD = f"iqtree --seqtype DNA -s {fasta} {model_term} -merit {opt.criterion} -T {thread}"
+        CMD = f"iqtree --seqtype DNA -s '{fasta}' {model_term} -merit {opt.criterion} -T {thread}"
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
 
@@ -190,9 +190,9 @@ def RAxML(
     os.chdir(path.tmp)
 
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/RAxML_Windows/raxmlHPC-PTHREADS-AVX2.exe -s {fasta} -n {out} -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
+        CMD = f"{path.sys_path}/external/RAxML_Windows/raxmlHPC-PTHREADS-AVX2.exe -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
     else:
-        CMD = f"raxmlHPC-PTHREADS-AVX -s {fasta} -n {out} -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
+        CMD = f"raxmlHPC-PTHREADS-AVX -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
 
     if not (partition is None):
         CMD += f" -q {partition}"
@@ -216,9 +216,9 @@ def FastTree(fasta, out, hash_dict, path, model=""):
     if model == "skip":
         model = ""
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/FastTree_Windows/FastTree.exe -quiet -nt {model} -log {path.tmp}/fasttreelog -seed 1 {fasta} > {path.tmp}/{out}"
+        CMD = f"{path.sys_path}/external/FastTree_Windows/FastTree.exe -quiet -nt {model} -log {path.tmp}/fasttreelog -seed 1 '{fasta}' > {path.tmp}/{out}"
     else:
-        CMD = f"FastTree -quiet -nt {model} -log {path.tmp}/fasttreelog -seed 1 {fasta}   > {path.tmp}/{out}"
+        CMD = f"FastTree -quiet -nt {model} -log {path.tmp}/fasttreelog -seed 1 '{fasta}'   > {path.tmp}/{out}"
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
