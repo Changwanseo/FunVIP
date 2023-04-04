@@ -610,7 +610,7 @@ class Option:
                     # Check if DB location is valid
                     try:
                         if not (os.path.exists(f"{db}")):
-                            list_error.append(f"{db} is not a valid query path")
+                            list_error.append(f"{db} is not a valid db path")
                     except:
                         pass
 
@@ -1255,13 +1255,23 @@ class Option:
                 self.mafft.algorithm = str(self.mafft.algorithm)
                 if not (
                     self.mafft.algorithm.lower()
-                    in ("auto", "l-ins-i", "linsi", "localpair")
+                    in (
+                        "auto",
+                        "l-ins-i",
+                        "linsi",
+                        "localpair",
+                        "g-ins-i",
+                        "ginsi",
+                        "globalpair",
+                    )
                 ):
                     list_error.append(
                         f"Invalid mafft algorithm {self.mafft.algorithm}. Currently available algorithms are auto and l-ins-i"
                     )
                 elif self.mafft.algorithm.lower() in ("l-ins-i", "linsi", "localpair"):
                     self.mafft.algorithm = "localpair"
+                elif self.mafft.algorithm.lower() in ("g-ins-i", "ginsi", "globalpair"):
+                    self.mafft.algorithm = "globalpair"
 
             except:
                 list_error.append(
