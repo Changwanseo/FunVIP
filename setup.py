@@ -4,8 +4,8 @@ from sys import platform
 import subprocess
 
 name = "FunID"
-__version__ = "0.3.5"
-release = "0.3.5.0.0"
+__version__ = "0.3.6"
+release = "0.3.6.0.0"
 
 # Default setup options
 setup_options = dict(
@@ -22,7 +22,7 @@ setup_options = dict(
         "ete3==3.1.2",
         "Cython",
         "dendropy",
-        "GenMine>=1.0.7.1",
+        "GenMine>=1.0.8",
         "lxml",
         "matplotlib==3.5.1",
         "numpy==1.22.3",
