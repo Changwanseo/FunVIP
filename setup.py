@@ -4,8 +4,8 @@ from sys import platform
 import subprocess
 
 name = "FunID"
-__version__ = "0.3.6"
-release = "0.3.6.0.0"
+__version__ = "0.3.6.1"
+release = "0.3.6.1.0"
 
 # Default setup options
 setup_options = dict(
@@ -15,7 +15,7 @@ setup_options = dict(
     author="Changwan Seo",
     author_email="wan101010@snu.ac.kr",
     url="https://github.com/Changwanseo/FunID",
-    python_requires="<=3.10, >3.8",
+    python_requires="<3.11, >3.8",
     packages=["funid", "funid.src", "funid.data", "funid.test_dataset", "funid.preset"],
     install_requires=[
         "biopython==1.78",
