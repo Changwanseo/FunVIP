@@ -108,10 +108,14 @@ def main():
         logging.info("SEARCHING")
 
         # Generate BLAST or mmseqs matrices for further analysis
+        # Also, gene informations are updated in this step
         V = search.search_df(V, path, opt)
 
         # Concatenate search matrix among genes
         V = concatenate.concatenate_df(V, path, opt)
+
+        # Save gene update query inputs
+        V = manage_input.update_queryfile(V, path, opt)
 
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
@@ -186,8 +190,6 @@ def main():
 
     # Alignment validations - whether some of the sequences does not have overlapping regions
     V.validate_alignments(path, opt)
-
-    # raise Exception
 
     # Modeltest
     if opt.continue_from_previous is False or index_step(opt.step) <= 6:

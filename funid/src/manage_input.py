@@ -7,6 +7,7 @@ import json
 import pandas as pd
 import numpy as np
 import logging
+
 from unidecode import unidecode
 from Bio import SeqIO
 from funid.src.tool import (
@@ -17,6 +18,7 @@ from funid.src.tool import (
     mkdir,
 )
 from pathlib import Path
+from funid.src import save
 from funid.src.logics import isnewicklegal, isuniquecolumn, isvalidcolor
 from funid.src.hasher import decode, newick_legal, hash_funinfo_list
 
@@ -555,8 +557,10 @@ def db_input(opt, path) -> list:
 
     # do it after save_db option enabled
     for n, db in enumerate(db_namelist):
-        df_list[n].to_excel(
-            f"{path.out_db}/Saved_{'.'.join(db.split('.')[:-1])}.xlsx", index=False
+        save.save_df(
+            df_list[n],
+            f"{path.out_db}/Saved_{'.'.join(db.split('.')[:-1])}.xlsx",
+            fmt=opt.matrixformat,
         )
 
     # validate dataset
@@ -605,6 +609,7 @@ def query_input(opt, path):
         path=path, opt=opt, table_list=query_table, datatype="query"
     )[0]
 
+    # Save query initially in raw format, because gene has not been assigned yet
     for file in query_table:
         shutil.copy(f"{file}", f"{path.out_query}")
 
@@ -633,3 +638,25 @@ def data_input(V, R, opt, path):
         V.dict_hash_FI[FI.hash] = FI
 
     return V, R, opt
+
+
+# This function updates initial input query files to saved files with matrices and downloaded sequences
+def update_queryfile(V, path, opt):
+    # Dictionary to generate dataframe
+    out_dict = {"ID": []}
+
+    for gene in opt.gene:
+        out_dict[gene] = []
+
+    for FI in V.list_FI:
+        if FI.datatype == "query":
+            out_dict["ID"].append(FI.original_id)
+            for gene in opt.gene:
+                if gene in FI.seq:
+                    out_dict[gene].append(FI.seq[gene])
+                else:
+                    out_dict[gene].append("")
+    df_out = pd.DataFrame(out_dict)
+    save.save_df(
+        df_out, f"{path.out_query}/Saved_query.{opt.matrixformat}", fmt=opt.matrixformat
+    )
