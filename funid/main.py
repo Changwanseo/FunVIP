@@ -81,20 +81,14 @@ def main():
     # Reload previous session if --continue selected
     if opt.continue_from_previous is True:
         var = save.load_session(opt, savefile=path.save)
-        try:
+        if "V" in var:
             V = var["V"]
-        except:
-            pass
-        try:
+        if "R" in var:
             R = var["R"]
-        except:
-            pass
-        try:
+        if "path" in var:
             path = var["path"]
-        except:
-            pass
-
-        print(V)
+        if "model_dict" in var:
+            model_dict = var["model_dict"]
 
     ##########################################################################
     #     End of initializing blocks should not be moved for function!!!     #

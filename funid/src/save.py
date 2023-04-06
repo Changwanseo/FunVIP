@@ -26,7 +26,7 @@ import shelve
 # In future, try selectively save to reduce datasize
 # Session saving function
 def save_session(opt, path, global_var: dict, var: dict) -> None:
-    managed_keys = ("V", "R", "opt", "path")
+    managed_keys = ("V", "R", "opt", "path", "model_dict")
 
     # if opt.save_run is True:
     save = shelve.open(path.save, "n")
