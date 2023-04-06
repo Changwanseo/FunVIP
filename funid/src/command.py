@@ -10,7 +10,6 @@ class CommandParser:
         )
 
     def get_args(self) -> argparse.Namespace:
-
         # Mandatory options
         group_required = self.parser.add_argument_group(
             title="required", description="Main options"
@@ -79,7 +78,7 @@ class CommandParser:
         )
         group_run.add_argument(
             "--continue",
-            dest="[WIP] continue_from_previous",
+            dest="continue_from_previous",
             action="store_true",
             help="Continue from previous run",
         )

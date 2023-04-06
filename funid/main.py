@@ -78,6 +78,24 @@ def main():
     # R includes all reporting objects such as warnings, errors, statistics
     R = reporter.Report()
 
+    # Reload previous session if --continue selected
+    if opt.continue_from_previous is True:
+        var = save.load_session(opt, savefile=path.save)
+        try:
+            V = var["V"]
+        except:
+            pass
+        try:
+            R = var["R"]
+        except:
+            pass
+        try:
+            path = var["path"]
+        except:
+            pass
+
+        print(V)
+
     ##########################################################################
     #     End of initializing blocks should not be moved for function!!!     #
     ##########################################################################
@@ -100,7 +118,8 @@ def main():
         V = initialize.get_genus_list(V, opt, path)
 
         R.update_report(V=V, path=path, opt=opt, step=step)
-        save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
+
+        save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
     # Searching (BLAST or mmseqs)
     if opt.continue_from_previous is False or index_step(opt.step) <= 1:
@@ -120,7 +139,7 @@ def main():
         manage_input.update_queryfile(V, path, opt)
 
         R.update_report(V=V, path=path, opt=opt, step=step)
-        save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
+        save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
     # Clustering
     if opt.continue_from_previous is False or index_step(opt.step) <= 2:
@@ -159,7 +178,7 @@ def main():
         V.save_dataset(path, opt)
 
         R.update_report(V=V, path=path, opt=opt, step=step)
-        save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
+        save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
     # Alignment
     if opt.continue_from_previous is False or index_step(opt.step) <= 3:
@@ -168,7 +187,7 @@ def main():
         V, path, opt = align.pipe_alignment(V, path, opt)
 
         R.update_report(V=V, path=path, opt=opt, step=step)
-        save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
+        save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
     # Trimming
     if opt.continue_from_previous is False or index_step(opt.step) <= 4:
@@ -177,7 +196,7 @@ def main():
         V, path, opt = trim.pipe_trimming(V, path, opt)
 
         R.update_report(V=V, path=path, opt=opt, step=step)
-        save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
+        save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
     # Concatenation (multigene)
     if opt.continue_from_previous is False or index_step(opt.step) <= 5:
@@ -188,7 +207,7 @@ def main():
         V = concatenate.combine_alignment(V, opt, path)
 
         R.update_report(V=V, path=path, opt=opt, step=step)
-        save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
+        save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
     # Alignment validations - whether some of the sequences does not have overlapping regions
     V.validate_alignments(path, opt)
@@ -202,7 +221,7 @@ def main():
         model_dict = modeltest.modeltest(V, path, opt)
 
         R.update_report(V=V, path=path, opt=opt, step=step)
-        save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
+        save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
     # Tree construction
     if opt.continue_from_previous is False or index_step(opt.step) <= 7:
@@ -213,13 +232,13 @@ def main():
         V, path, opt = tree.pipe_tree(V, path, opt, model_dict)
 
         R.update_report(V=V, path=path, opt=opt, step=step)
-        save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
+        save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         # move tree files
         tool.cleanup_tree(path)
 
         R.update_report(V=V, path=path, opt=opt, step=step)
-        save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
+        save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         # After here
 
@@ -236,7 +255,7 @@ def main():
         tool.cleanup_tree_image(path)
 
         R.update_report(V=V, path=path, opt=opt, step=step)
-        save.save_session(opt=opt, path=path, global_var=globals(), var=dir())
+        save.save_session(opt=opt, path=path, global_var=locals(), var=dir())
 
     # Report
     if opt.continue_from_previous is False or index_step(opt.step) <= 9:
@@ -247,7 +266,7 @@ def main():
         V.homogenize_dataset()
 
         R.update_report(V, path, opt, step=step)
-        save.save_session(opt=opt, path=path, global_var=globals(), var=vars())
+        save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         end_time = time()
         logging.info(f"FunID ended in {end_time - start_time}")

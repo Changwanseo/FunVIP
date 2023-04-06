@@ -148,7 +148,7 @@ class Option:
                 self.verbose = parser_dict[key]
             elif key.lower() in ("maxoutgroup"):
                 self.maxoutgroup = parser_dict[key]
-            elif key.lower() in ("collapsedistcutff"):
+            elif key.lower() in ("collapsedistcutoff"):
                 self.collapsedistcutoff = parser_dict[key]
             elif key.lower() in ("collapsebscutoff"):
                 self.collapsebscutoff = parser_dict[key]
@@ -172,6 +172,8 @@ class Option:
                 self.nosearchmatrix = parser_dict[key]
             elif key.lower() in ("nosearchresult"):
                 self.nosearchresult = parser_dict[key]
+            elif key.lower() in ("confident"):
+                self.confident = parser_dict[key]
 
             # Method options
             elif key.lower() in ("search"):
@@ -429,7 +431,7 @@ class Option:
 
         try:
             if not parser.collapsedistcutoff is None:
-                self.collapsedistcutoff = parser.collapseddistcutoff
+                self.collapsedistcutoff = parser.collapsedistcutoff
         except:
             pass
 
@@ -694,6 +696,8 @@ class Option:
 
                 # Change outdir to absolute path
                 self.outdir = str(os.path.abspath(self.outdir))
+        else:
+            self.outdir = "./"
 
         # continue - continue should be validated before runname designated
         # If continue is not None, give True, else, give False
