@@ -8,6 +8,8 @@ import pandas as pd
 import numpy as np
 import logging
 
+from copy import deepcopy
+
 from unidecode import unidecode
 from Bio import SeqIO
 from funid.src.tool import (
@@ -74,7 +76,9 @@ class Funinfo:
         self.genus, self.ori_species = get_genus_species(seq.description)
 
         if gene in self.seq:
-            logging.error(f"More than 1 sequence for {gene} found for {self.id}")
+            logging.error(
+                f"More than 1 sequence for {gene} found for {self.id} during update_seqrecord"
+            )
             raise Exception
         elif gene is None:
             self.unclassified_seq.append(str(seq.seq.ungap("-")))
@@ -88,7 +92,9 @@ class Funinfo:
             if (
                 self.seq[gene] != seq
             ):  # if more than 1 sequence per gene gets in, and if they are different
-                logging.error(f"More than 1 sequence for {gene} found for {self.id}")
+                logging.error(
+                    f"More than 1 sequence for {gene} found for {self.id} during update_seq"
+                )
                 raise Exception
             else:
                 pass
@@ -199,17 +205,12 @@ class Funinfo:
 
     def update_id(self, id_, regexs=None):
         if not regexs == None:
-            id_ = getid_(id_, tuple(regexs))
+            id_ = get_id(id_, tuple(regexs))
 
         # if cannot find id by regex
-        if id_ == "":
-            id_ = newick_legal(id_)
         id_ = str(id_)
         self.original_id = id_
-        if not (isnewicklegal(id_)):
-            for c in NEWICK_ILLEGAL:
-                id_ = id_.replace(c, "")
-            id_ = id_.replace(" ", "_")
+        id_ = newick_legal(id_)
         self.id = id_
 
     def update_hash(self, n):
@@ -232,10 +233,9 @@ class Funinfo:
 
 
 # getting data input from fasta file
-def input_fasta(path, opt, fasta_list, datatype):
+def input_fasta(path, opt, fasta_list, funinfo_dict, datatype):
     # initialize path to use function "get_genus_species"
     initialize_path(path)
-    funinfo_list = []
 
     # Fasta files only
     for file in fasta_list:
@@ -253,35 +253,57 @@ def input_fasta(path, opt, fasta_list, datatype):
         logging.info(f"{file}: Fasta file")
 
         try:
-            fasta_file = SeqIO.parse(file, "fasta")
-            for seq in fasta_file:
-                newinfo = Funinfo()
-                newinfo.update_seqrecord(seq)
-                newinfo.update_datatype(datatype)
-                newinfo.update_group("")  # because group not designated yet
-                # id by regex match
-                newinfo.update_id(seq.description, regexs=opt.regex)
-                if get_genus_species(seq.description)[0] != "":
-                    newinfo.update_genus(get_genus_species(seq.description)[0])
+            fasta_list = list(SeqIO.parse(file, "fasta"))
+            for seq in fasta_list:
+                if not opt.regex == None:
+                    id_ = get_id(seq.description, tuple(opt.regex))
+                else:
+                    id_ = seq.description
 
-                if get_genus_species(seq.description)[1] != "":
-                    newinfo.update_ori_species(get_genus_species(seq.description)[1])
+                id_ = newick_legal(id_)
 
-                tmp_list.append(newinfo)
+                if id_ in funinfo_dict:
+                    funinfo_dict[id_].update_seqrecord(seq)
+                    funinfo_dict[id_].update_datatype(datatype)
+                    funinfo_dict[id_].update_group("")
+                    if get_genus_species(seq.description)[0] != "":
+                        funinfo_dict[id_].update_genus(
+                            get_genus_species(seq.description)[0]
+                        )
 
-            funinfo_list += tmp_list
+                    if get_genus_species(seq.description)[1] != "":
+                        funinfo_dict[id_].update_ori_species(
+                            get_genus_species(seq.description)[1]
+                        )
+
+                else:
+                    newinfo = Funinfo()
+                    newinfo.update_seqrecord(seq)
+                    newinfo.update_datatype(datatype)
+                    newinfo.update_group("")  # because group not designated yet
+                    # id by regex match
+                    newinfo.update_id(seq.description, regexs=opt.regex)
+                    if get_genus_species(seq.description)[0] != "":
+                        newinfo.update_genus(get_genus_species(seq.description)[0])
+
+                    if get_genus_species(seq.description)[1] != "":
+                        newinfo.update_ori_species(
+                            get_genus_species(seq.description)[1]
+                        )
+
+                    funinfo_dict[id_] = deepcopy(newinfo)
+
         except:
-            logging.warning(f"{file} is not a valid fasta file skipping")
+            logging.warning(f"{file} does not seems to be valid fasta file skipping")
 
-    return funinfo_list
+    return funinfo_dict
 
 
 # getting datafile from excel or tabular file
-def input_table(path, opt, table_list, datatype):
+def input_table(funinfo_dict, path, opt, table_list, datatype):
     string_error = 0
 
     initialize_path(path)  # this one is ugly
-    funinfo_dict = {}
     df_list = []
 
     # extensionto filetype translation
@@ -540,21 +562,30 @@ def input_table(path, opt, table_list, datatype):
                                 gene, seq_string.replace("-", "").replace(".", "")
                             )
 
+        # After successfully parsed this table, save if
+        save.save_df(
+            df,
+            f"{path.out_db}/Saved_{'.'.join(table.split('.')[:-1])}.{opt.matrixformat}",
+            fmt=opt.matrixformat,
+        )
+
     # make it to list at last
-    list_funinfo = [funinfo_dict[x] for x in funinfo_dict]
+    # list_funinfo = [funinfo_dict[x] for x in funinfo_dict]
 
-    return list_funinfo, df_list
+    return funinfo_dict
 
 
-def db_input(opt, path) -> list:
+def db_input(funinfo_dict, opt, path) -> list:
     # Get DB input
     logging.info(f"Input DB list: {opt.db}")
-    db_namelist = [str(os.path.basename(db)) for db in opt.db]
+    # db_namelist = [str(os.path.basename(db)) for db in opt.db]
 
-    funinfo_list, df_list = input_table(
-        path=path, opt=opt, table_list=opt.db, datatype="db"
+    funinfo_dict = input_table(
+        funinfo_dict=funinfo_dict, path=path, opt=opt, table_list=opt.db, datatype="db"
     )
 
+    """
+    #### MOVE THIS TO TABLE INPUT
     # do it after save_db option enabled
     for n, db in enumerate(db_namelist):
         save.save_df(
@@ -562,10 +593,11 @@ def db_input(opt, path) -> list:
             f"{path.out_db}/Saved_{'.'.join(db.split('.')[:-1])}.xlsx",
             fmt=opt.matrixformat,
         )
+    """
 
     # validate dataset
     # if only one group exists, outgroup cannot work
-    group_set = set(funinfo.group for funinfo in funinfo_list)
+    group_set = set(funinfo_dict[key].group for key in funinfo_dict)
     group_set.discard("")
     if len(group_set) <= 1:
         logging.error(
@@ -575,20 +607,20 @@ def db_input(opt, path) -> list:
 
     # check if minimum outgroup number count exceeds minimum group
     group_cnt_dict = {x: 0 for x in group_set}
-    for funinfo in funinfo_list:
-        if type(funinfo.group) is str:
-            if funinfo.group in group_set:
-                group_cnt_dict[funinfo.group] += 1
+    for key in funinfo_dict:
+        if type(funinfo_dict[key].group) is str:
+            if funinfo_dict[key].group in group_set:
+                group_cnt_dict[funinfo_dict[key].group] += 1
 
     if any(group_cnt_dict[x] < opt.maxoutgroup for x in group_cnt_dict):
         logging.warning(
             f"Sequences in database of some group has lower number than MINIMUM_OUTGROUP_COUNT. It may cause error when outgroup selection, or may select not most appropriate outgroup to group. Please lower number of MINIMUM_OUTGROUP_COUNT in option or add more sequences to these groups"
         )
 
-    return funinfo_list
+    return funinfo_dict
 
 
-def query_input(opt, path):
+def query_input(funinfo_dict, opt, path):
     query_fasta = [
         file
         for file in opt.query
@@ -603,11 +635,20 @@ def query_input(opt, path):
         )
     ]
 
-    query_list = []
-    query_list += input_fasta(path, opt, query_fasta, "query")
-    query_list += input_table(
-        path=path, opt=opt, table_list=query_table, datatype="query"
-    )[0]
+    funinfo_dict = input_table(
+        funinfo_dict=funinfo_dict,
+        path=path,
+        opt=opt,
+        table_list=query_table,
+        datatype="query",
+    )
+    funinfo_dict = input_fasta(
+        path=path,
+        opt=opt,
+        fasta_list=query_fasta,
+        funinfo_dict=funinfo_dict,
+        datatype="query",
+    )
 
     # Save query initially in raw format, because gene has not been assigned yet
     for file in query_table:
@@ -616,20 +657,26 @@ def query_input(opt, path):
     for file in query_fasta:
         shutil.copy(f"{file}", f"{path.out_query}")
 
-    logging.info(f"Total {len(query_list)} sequences parsed from query")
+    logging.info(
+        f"Total {len([funinfo_dict[key].datatype =='query' for key in funinfo_dict.keys()])} sequences parsed from query"
+    )
 
-    return query_list, opt
+    return funinfo_dict
 
 
 # combined db and query input
 def data_input(V, R, opt, path):
+    funinfo_dict = {}
+
     # get database input
-    db_funinfo_list = db_input(opt, path)
+    funinfo_dict = db_input(funinfo_dict=funinfo_dict, opt=opt, path=path)
 
     # get query input
-    query_funinfo_list, opt = query_input(opt, path)
+    funinfo_dict = query_input(funinfo_dict=funinfo_dict, opt=opt, path=path)
+
     # combine all data
-    V.list_FI = db_funinfo_list + query_funinfo_list
+    V.list_FI = [funinfo_dict[key] for key in funinfo_dict]
+
     # hashing data for safety in tree analysis
     V.list_FI = hash_funinfo_list(V.list_FI)
 
@@ -656,7 +703,9 @@ def update_queryfile(V, path, opt):
                     out_dict[gene].append(FI.seq[gene])
                 else:
                     out_dict[gene].append("")
+
     df_out = pd.DataFrame(out_dict)
     save.save_df(
         df_out, f"{path.out_query}/Saved_query.{opt.matrixformat}", fmt=opt.matrixformat
     )
+    raise Exception
