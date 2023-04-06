@@ -16,7 +16,7 @@ class Option:
     # Method option
     class Method_Option:
         def __init__(self):
-            self.search = "mmseqs"
+            self.search = "blast"
             self.alignment = "mafft"
             self.trim = "trimal"
             self.modeltest = "none"

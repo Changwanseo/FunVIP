@@ -708,4 +708,3 @@ def update_queryfile(V, path, opt):
     save.save_df(
         df_out, f"{path.out_query}/Saved_query.{opt.matrixformat}", fmt=opt.matrixformat
     )
-    raise Exception
