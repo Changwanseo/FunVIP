@@ -806,10 +806,14 @@ class Tree_information:
             def get_taxon(c, gene, mode="db"):
                 # get taxon
                 def t(leaf):
-                    return (
-                        self.funinfo_dict[leaf.name].genus,
-                        self.funinfo_dict[leaf.name].bygene_species[gene],
-                    )
+                    try:
+                        return (
+                            self.funinfo_dict[leaf.name].genus,
+                            self.funinfo_dict[leaf.name].bygene_species[gene],
+                        )
+                    except:
+                        print(leaf.name)
+                        raise Exception
 
                 taxon_dict = {}
 

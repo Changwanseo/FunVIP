@@ -697,7 +697,7 @@ class Option:
                 # Change outdir to absolute path
                 self.outdir = str(os.path.abspath(self.outdir))
         else:
-            self.outdir = "./"
+            self.outdir = os.getcwd()
 
         # continue - continue should be validated before runname designated
         # If continue is not None, give True, else, give False
