@@ -228,13 +228,12 @@ def main():
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
-        # move tree files
+        # move tree and image files
         tool.cleanup_tree(path)
+        tool.cleanup_tree_image(path)
 
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
-
-        # After here
 
     # Visualize
     if opt.continue_from_previous is False or index_step(opt.step) <= 8:
@@ -246,6 +245,7 @@ def main():
         V, path, opt = tree_interpretation_pipe.pipe_tree_interpretation(V, path, opt)
 
         # move tree image files
+        tool.cleanup_tree(path)
         tool.cleanup_tree_image(path)
 
         R.update_report(V=V, path=path, opt=opt, step=step)

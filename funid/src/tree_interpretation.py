@@ -363,81 +363,14 @@ class Tree_information:
                 print(f"[ERROR] Outgroup : {self.outgroup}")
                 print(f"[ERROR] Outgroup clade : {self.outgroup_clade}")
                 raise Exception
-        """
-        ingroup_leaves = []
-        self.t.resolve_polytomy()
 
-        for ingroup in self.db_list:
-            print(f"Finding ingroup {ingroup} ({ingroup.hash}) in {self.tree_name}")
-            for leaf in self.t:
-                if ingroup.hash in leaf.name:
-                    ingroup_leaves.append(leaf)
-
-        outgroup_leaves = []
-        for outgroup in self.outgroup:
-            print(f"Finding outgroup {outgroup} ({outgroup.hash}) in {self.tree_name}")
-            for leaf in self.t:
-                if outgroup.hash in leaf.name:
-                    outgroup_leaves.append(leaf)
-
-        self.outgroup_leaf_name_list = [leaf.name for leaf in outgroup_leaves]
-
-        # find smallest monophyletic clade that contains all leaves in ingroup_leaves
-        # reroot with ingroup_clade
-        try:
-            if len(ingroup_leaves) >= 2:
-                self.ingroup_clade = self.t.get_common_ancestor(ingroup_leaves)
-                self.t.set_ingroup(self.ingroup_clade)
-                self.t.ladderize(direction=1)
-                self.ingroup_clade = self.t.get_common_ancestor(ingroup_leaves)
-            elif len(ingroup_leaves) == 1:
-                self.ingroup_clade = ingroup_leaves[0]
-                self.t.set_ingroup(self.ingroup_clade)
-                self.t.ladderize(direction=1)
-                self.ingroup_clade = ingroup_leaves[0]
-            else:
-                print(f"[ERROR] no ingroup selected in {self.tree_name}")
-                raise Exception
-
-            if len(ingroup_leaves) != len(self.ingroup_clade):
-                print(
-                    f"[WARNING] ingroup does not seems to be monophyletic in {self.tree_name}"
-                )
-
-        except:
-            print(f"[WARNING] no ingroup selected in {self.tree_name}")
-
-            ingroup_flag = False
-            # if ingroup_clade is on the root side, reroot with other leaf temporarily and reroot again
-            for leaf in self.t:
-                if not (leaf in ingroup_leaves):
-                    self.t.set_outgroup(leaf)
-                    # Rerooting again while ingrouping gets possible
-                    try:
-                        self.ingroup_clade = self.t.get_common_ancestor(ingroup_leaves)
-                        # print(f"Ancestor: {self.ingroup_clade}")
-                        self.t.set_outgroup(self.ingroup_clade)
-                        ingroup_flag = True
-                        break
-                    except:
-                        pass
-
-            if ingroup_flag is False:
-                # never erase this for debugging
-                print(f"[ERROR] ingroup not selected in {self.tree_name}")
-                print(f"[ERROR] ingroup leaves: {ingroup_leaves}")
-                print(f"[ERROR] ingroup : {self.ingroup}")
-                print(f"[ERROR] ingroup clade : {self.ingroup_clade}")
-                raise Exception
-
-        # Changed to ingroup
-        """
         self.Tree_style.ts.show_leaf_name = True
         for node in self.t.traverse():
             node.img_style["size"] = 0  # removing circles whien size is 0
 
         from funid.src.patch import patch
 
+        # To prevent ete3 bug for all processors
         patch()
         self.t.render(f"{out}", tree_style=self.Tree_style.ts)
         self.Tree_style.ts.show_leaf_name = False

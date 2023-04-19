@@ -197,7 +197,7 @@ class Funinfo:
         # Check ambiguity
         if self.datatype != "" and self.datatype != datatype:
             logging.error(
-                f"DEVELOPMENTAL ERROR : Colliding datatype found for {funinfo}, {self.datatype} and {datatype}"
+                f"DEVELOPMENTAL ERROR : Colliding datatype found for {self.original_id}, {self.datatype} and {datatype}"
             )
             raise Exception
 
@@ -562,15 +562,12 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                                 gene, seq_string.replace("-", "").replace(".", "")
                             )
 
-        # After successfully parsed this table, save if
+        # After successfully parsed this table, save it
         save.save_df(
             df,
-            f"{path.out_db}/Saved_{'.'.join(table.split('.')[:-1])}.{opt.matrixformat}",
+            f"{path.out_db}/Saved_{'.'.join(table.split('/')[-1].split('.')[:-1])}.{opt.matrixformat}",
             fmt=opt.matrixformat,
         )
-
-    # make it to list at last
-    # list_funinfo = [funinfo_dict[x] for x in funinfo_dict]
 
     return funinfo_dict
 
@@ -578,22 +575,10 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
 def db_input(funinfo_dict, opt, path) -> list:
     # Get DB input
     logging.info(f"Input DB list: {opt.db}")
-    # db_namelist = [str(os.path.basename(db)) for db in opt.db]
 
     funinfo_dict = input_table(
         funinfo_dict=funinfo_dict, path=path, opt=opt, table_list=opt.db, datatype="db"
     )
-
-    """
-    #### MOVE THIS TO TABLE INPUT
-    # do it after save_db option enabled
-    for n, db in enumerate(db_namelist):
-        save.save_df(
-            df_list[n],
-            f"{path.out_db}/Saved_{'.'.join(db.split('.')[:-1])}.xlsx",
-            fmt=opt.matrixformat,
-        )
-    """
 
     # validate dataset
     # if only one group exists, outgroup cannot work
