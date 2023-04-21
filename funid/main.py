@@ -36,7 +36,7 @@ def main():
     patch.patch()
 
     # For starting time stamp
-    start_time = time()
+    time_start = time()
 
     # Recursion limit exceeds for big trees
     sys.setrecursionlimit(1000000)
@@ -115,6 +115,8 @@ def main():
 
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
+        time_setup = time()
+
     # Searching (BLAST or mmseqs)
     if opt.continue_from_previous is False or index_step(opt.step) <= 1:
         step = "search"
@@ -134,6 +136,8 @@ def main():
 
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
+
+        time_search = time()
 
     # Clustering
     if opt.continue_from_previous is False or index_step(opt.step) <= 2:
@@ -174,6 +178,8 @@ def main():
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
+        time_cluster = time()
+
     # Alignment
     if opt.continue_from_previous is False or index_step(opt.step) <= 3:
         step = "align"
@@ -183,6 +189,8 @@ def main():
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
+        time_align = time()
+
     # Trimming
     if opt.continue_from_previous is False or index_step(opt.step) <= 4:
         step = "trim"
@@ -191,6 +199,8 @@ def main():
 
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
+
+        time_trim = time()
 
     # Concatenation (multigene)
     if opt.continue_from_previous is False or index_step(opt.step) <= 5:
@@ -203,8 +213,10 @@ def main():
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
-    # Alignment validations - whether some of the sequences does not have overlapping regions
-    V.validate_alignments(path, opt)
+        # Alignment validations - whether some of the sequences does not have overlapping regions
+        V.validate_alignments(path, opt)
+
+        time_concatenate = time()
 
     # Modeltest
     if opt.continue_from_previous is False or index_step(opt.step) <= 6:
@@ -216,6 +228,8 @@ def main():
 
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
+
+        time_modeltest = time()
 
     # Tree construction
     if opt.continue_from_previous is False or index_step(opt.step) <= 7:
@@ -235,6 +249,8 @@ def main():
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
+        time_tree = time()
+
     # Visualize
     if opt.continue_from_previous is False or index_step(opt.step) <= 8:
         step = "visualize"
@@ -251,6 +267,8 @@ def main():
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=locals(), var=dir())
 
+        time_visualize = time()
+
     # Report
     if opt.continue_from_previous is False or index_step(opt.step) <= 9:
         step = "report"
@@ -262,6 +280,51 @@ def main():
         R.update_report(V, path, opt, step=step)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
-        end_time = time()
-        logging.info(f"FunID ended in {end_time - start_time}")
-        print(f"FunID ended in {end_time - start_time}")
+        time_end = time()
+        logging.info(f"FunID ended in {time_end - time_start}")
+        print(f"FunID ended in {time_end - time_start}")
+
+        try:
+            logging.info(f"Time setup : {time_setup-time_start}s")
+        except:
+            logging.warning(f"Failed logging initialization time")
+
+        try:
+            logging.info(f"Time search : {time_search-time_setup}s")
+        except:
+            logging.warning(f"Failed logging search time")
+
+        try:
+            logging.info(f"Time cluster : {time_cluster-time_search}s")
+        except:
+            logging.warning(f"Failed logging cluster time")
+
+        try:
+            logging.info(f"Time alignment : {time_align-time_cluster}s")
+        except:
+            logging.warning(f"Failed logging alignment time")
+
+        try:
+            logging.info(f"Time trimming : {time_trim-time_align}s")
+        except:
+            logging.warning(f"Failed logging trimming time")
+
+        try:
+            logging.info(f"Time concatenatation : {time_concatenate-time_trim}s")
+        except:
+            logging.warning(f"Failed logging concatenation time")
+
+        try:
+            logging.info(f"Time tree construction : {time_tree-time_concatenate}s")
+        except:
+            logging.warning(f"Failed logging tree construction time")
+
+        try:
+            logging.info(f"Time tree interpretation : {time_visualize-time_tree}s")
+        except:
+            logging.warning(f"Failed logging tree interpretation time")
+
+        try:
+            logging.info(f"Time report generation: {time_end-time_visualize}s")
+        except:
+            logging.warning(f"Failed logging reoprt generation time")
