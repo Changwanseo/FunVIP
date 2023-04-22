@@ -6,8 +6,8 @@ pip install ./
 # pypi build
 In new conda environment
 ```
-conda create -n FunID-build python=3.9
-conda install pip
+conda create -n FunID-build python=3.10
+conda activate FunID-build
 pip install twine
 python setup.py bdist_wheel --universal
 python setup.py sdist
