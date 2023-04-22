@@ -5,7 +5,6 @@ import sys
 import yaml
 import builtins
 import datetime
-import platform
 import re
 from funid.src.logics import isvalidcolor
 from funid.src.tool import check_avx
@@ -625,9 +624,15 @@ class Option:
         elif len(self.gene) < 1:
             list_error.append(f"At least one gene should be designated")
         else:
+            self.gene = [g.strip() for g in self.gene]
             for gene in self.gene:
                 if not (type(gene) is str):
                     list_error.append(f"gene {gene} is not a valid string format")
+                else:
+                    if sys.platform == "win32" and " " in gene:
+                        list_error.append(
+                            f"You cannot use space for genename in windows platform : {gene}"
+                        )
 
         # email
         # Check if email is in valid format
@@ -722,6 +727,10 @@ class Option:
             list_error.append(f"runname should be string")
         elif re.search(invalid_char, self.runname.strip()):
             list_error.append(f"invalid characters in runname")
+        elif " " in self.runname.strip() and sys.platform == "win32":
+            list_error.append(
+                f"You should not include space for runname in windows platform"
+            )
         else:  # if valid runname
             if self.continue_from_previous is True:
                 # Check if continue available
