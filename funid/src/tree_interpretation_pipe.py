@@ -1,7 +1,7 @@
 # Performing multiple tree interpretation
 from ete3 import Tree
 from funid.src import tree_interpretation
-from funid.src.tool import initialize_path, get_genus_species, mkdir
+from funid.src.tool import initialize_path, get_genus_species
 from funid.src.hasher import encode, decode
 from funid.src.reporter import Singlereport
 
@@ -108,6 +108,21 @@ def pipe_module_tree_interpretation(
 
     # Search tree and delimitate species
     tree_info.tree_search(tree_info.t, gene)
+
+    # Move original newick and replace with adjusted ones
+    shutil.move(
+        f"{path.out_tree}/{opt.runname}_{group}_{gene}.nwk",
+        f"{path.out_tree}/{opt.runname}_{group}_{gene}_original.nwk",
+    )
+    tree_info.t.write(
+        format=0, outfile=f"{path.out_tree}/{opt.runname}_{group}_{gene}.nwk"
+    )
+    decode(
+        tree_hash_dict,
+        f"{path.out_tree}/{opt.runname}_{group}_{gene}.nwk",
+        f"{path.out_tree}/{opt.runname}_{group}_{gene}.nwk",
+        newick=True,
+    )
 
     return tree_info
 

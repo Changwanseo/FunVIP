@@ -26,7 +26,24 @@ import shelve
 # In future, try selectively save to reduce datasize
 # Session saving function
 def save_session(opt, path, global_var: dict, var: dict) -> None:
+    managed_keys = ("V", "R", "opt", "path", "model_dict")
+
     # if opt.save_run is True:
+    save = shelve.open(path.save, "n")
+
+    for key in global_var:
+        if key in managed_keys:
+            save[key] = global_var[key]
+            if opt.verbose >= 3:
+                logging.debug(f"Saved {key}")
+        else:
+            if opt.verbose >= 3:
+                logging.debug(f"Did not saved {key}")
+
+    logging.info(f"Saved current session")
+    save.close()
+
+    """
     if 1:  # ADD saving options in further developmental stage
         save = shelve.open(path.save, "n")
         for key in global_var:
@@ -39,14 +56,16 @@ def save_session(opt, path, global_var: dict, var: dict) -> None:
                     logging.debug(f"Failed shelving: {key}")
         logging.info(f"Saved current session")
         save.close()
+    """
 
 
 # Session loading function
-def load_session(opt, global_var: dict, savefile: str) -> None:
+def load_session(opt, savefile: str) -> None:
+    var = {}
     save = shelve.open(savefile)
     for key in save:
         try:
-            global_var[key] = save[key]
+            var[key] = save[key]
             if opt.verbose >= 3:
                 logging.debug(f"Loading {key}")
         except:
@@ -55,6 +74,8 @@ def load_session(opt, global_var: dict, savefile: str) -> None:
 
     logging.info(f"Loaded previous session")
     save.close()
+
+    return var
 
 
 def save_fasta(list_funinfo, gene, filename, by="id"):

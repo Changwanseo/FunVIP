@@ -35,7 +35,6 @@ def check(
     default=np.NaN,
     solve=False,
 ):
-
     # obj : option things that should be checked
     # type_ : type of the object that should be
     # criterion : name of the option to be written on message
@@ -71,7 +70,6 @@ def check(
 
     # if type is right
     if (type(obj)) is type_:
-
         # if value is not in right range (for int and float)
         if not (isnan(min_)) and not (isnan(max_)):
             if type_ is int or type_ is float:
@@ -138,7 +136,6 @@ def check(
 # Class with all path
 class Path:
     def __init__(self, root):
-
         # For universal data used in every run
         self.sys_path = os.path.abspath(f"{os.path.dirname(__file__)}/../")
 
@@ -166,7 +163,6 @@ class Path:
         mkdir(f"{self.in_db}/blast")
 
     def init_workspace(self, root, opt):
-
         # Workspace directory
         # root will be current run folder in "Result"
         if opt.outdir is None:
@@ -188,47 +184,46 @@ class Path:
         self.save = f"{self.root}/save.shelve"
 
         # GenMine downloader points
-        self.GenMine = f"{self.root}/GenMine"
+        self.GenMine = f"{self.root}/00_GenMine"
         mkdir(self.GenMine)
         self.GenMine_tmp = f"{self.root}/GenMine/tmp"
         mkdir(self.GenMine_tmp)
 
         # DB input save point. Edited from io function
-        self.out_db = f"{self.root}/DB"
+        self.out_db = f"{self.root}/01_DB"
         mkdir(self.out_db)
 
         # Query sequence save point
-        self.out_query = f"{self.root}/Query"
+        self.out_query = f"{self.root}/02_Query"
         mkdir(self.out_query)
 
         # BLAST or mmseqss result saving point
-        self.out_matrix = f"{self.root}/Search"
+        self.out_matrix = f"{self.root}/03_Search"
         mkdir(self.out_matrix)
 
         # Outgroup adjusted before aligned sequence file
-        self.out_adjusted = f"{self.root}/Outgroup_Adjusted"
+        self.out_adjusted = f"{self.root}/04_Dataset"
         mkdir(self.out_adjusted)
 
         # Alignment file directory (non-trimmed, trimmed and concatenated)
-        self.out_alignment = f"{self.root}/Alignment"
+        self.out_alignment = f"{self.root}/05_Alignment"
         mkdir(self.out_alignment)
 
         # modeltest result directory
-        self.out_modeltest = f"{self.root}/Modeltest"
+        self.out_modeltest = f"{self.root}/06_Modeltest"
         mkdir(self.out_modeltest)
 
         # Tree directory
-        self.out_tree = f"{self.root}/Tree"
+        self.out_tree = f"{self.root}/07_Tree"
         mkdir(self.out_tree)
 
         # tmpfile directory
-        self.tmp = f"{self.root}/tmp"
+        self.tmp = f"{self.root}/99_tmp"
         mkdir(self.tmp)
 
 
 ## Main run in initialize.py ##
 def initialize(path_run, parser):
-
     # Path expression for Linux system
     # Use pathlib for better expression
     if sys.platform != "win32":
@@ -263,7 +258,6 @@ def initialize(path_run, parser):
 
 # Initialize available genus list
 def get_genus_list(V, opt, path):
-
     # put this to option in further development
     # if opt.use_default_genus_list is True:
     if 1:

@@ -214,6 +214,17 @@ def cleanup_tree(path):
             os.remove(f"{path.out_tree}/hash/{file}")
             shutil.move(f"{path.out_tree}/{file}", f"{path.out_tree}/hash/{file}")
 
+    mkdir(f"{path.out_tree}/original")
+    hash_files = [
+        f for f in os.listdir(f"{path.out_tree}") if f.endswith("_original.nwk")
+    ]
+    for file in hash_files:
+        try:
+            shutil.move(f"{path.out_tree}/{file}", f"{path.out_tree}/original/{file}")
+        except:
+            os.remove(f"{path.out_tree}/original/{file}")
+            shutil.move(f"{path.out_tree}/{file}", f"{path.out_tree}/original/{file}")
+
 
 # moves svg files generated in CAT-V to appropriate location
 def cleanup_tree_image(path):

@@ -5,7 +5,6 @@ import sys
 import yaml
 import builtins
 import datetime
-import platform
 import re
 from funid.src.logics import isvalidcolor
 from funid.src.tool import check_avx
@@ -16,7 +15,7 @@ class Option:
     # Method option
     class Method_Option:
         def __init__(self):
-            self.search = "mmseqs"
+            self.search = "blast"
             self.alignment = "mafft"
             self.trim = "trimal"
             self.modeltest = "none"
@@ -148,7 +147,7 @@ class Option:
                 self.verbose = parser_dict[key]
             elif key.lower() in ("maxoutgroup"):
                 self.maxoutgroup = parser_dict[key]
-            elif key.lower() in ("collapsedistcutff"):
+            elif key.lower() in ("collapsedistcutoff"):
                 self.collapsedistcutoff = parser_dict[key]
             elif key.lower() in ("collapsebscutoff"):
                 self.collapsebscutoff = parser_dict[key]
@@ -172,6 +171,8 @@ class Option:
                 self.nosearchmatrix = parser_dict[key]
             elif key.lower() in ("nosearchresult"):
                 self.nosearchresult = parser_dict[key]
+            elif key.lower() in ("confident"):
+                self.confident = parser_dict[key]
 
             # Method options
             elif key.lower() in ("search"):
@@ -429,7 +430,7 @@ class Option:
 
         try:
             if not parser.collapsedistcutoff is None:
-                self.collapsedistcutoff = parser.collapseddistcutoff
+                self.collapsedistcutoff = parser.collapsedistcutoff
         except:
             pass
 
@@ -623,9 +624,15 @@ class Option:
         elif len(self.gene) < 1:
             list_error.append(f"At least one gene should be designated")
         else:
+            self.gene = [g.strip() for g in self.gene]
             for gene in self.gene:
                 if not (type(gene) is str):
                     list_error.append(f"gene {gene} is not a valid string format")
+                else:
+                    if sys.platform == "win32" and " " in gene:
+                        list_error.append(
+                            f"You cannot use space for genename in windows platform : {gene}"
+                        )
 
         # email
         # Check if email is in valid format
@@ -694,6 +701,8 @@ class Option:
 
                 # Change outdir to absolute path
                 self.outdir = str(os.path.abspath(self.outdir))
+        else:
+            self.outdir = os.getcwd()
 
         # continue - continue should be validated before runname designated
         # If continue is not None, give True, else, give False
@@ -718,6 +727,10 @@ class Option:
             list_error.append(f"runname should be string")
         elif re.search(invalid_char, self.runname.strip()):
             list_error.append(f"invalid characters in runname")
+        elif " " in self.runname.strip() and sys.platform == "win32":
+            list_error.append(
+                f"You should not include space for runname in windows platform"
+            )
         else:  # if valid runname
             if self.continue_from_previous is True:
                 # Check if continue available

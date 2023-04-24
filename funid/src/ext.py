@@ -4,8 +4,10 @@ from Bio import SeqIO
 import logging
 import os, subprocess
 import shutil
+from copy import deepcopy
 from pathlib import Path
 from funid.src.save import save_tree
+from funid.src.tool import mkdir
 
 
 # Search methods
@@ -13,8 +15,24 @@ from funid.src.save import save_tree
 def blast(query, db, out, path, opt):
     path_blast = Path(f"{path.sys_path}/external/BLAST_Windows/bin/blastn.exe")
 
+    # To prevent makeblastdb error in windows, run it on temporary directory and move it
     if platform == "win32":
-        CMD = f"{path_blast} -out '{out}' -query '{query}' -outfmt 6 -db '{db}' -word_size {opt.cluster.wordsize} -evalue {opt.cluster.evalue} -num_threads {opt.thread}"
+        """
+        # Save original path
+        ori_path = deepcopy(os.getcwd())
+        blast_path = f"{path.tmp}\\blast\\"
+        # remove temporary path if exists
+        if os.path.exists(blastdb_path):
+            shutil.rmtree(blastdb_path)
+        # make new temp blast directory
+        mkdir(blast_path)
+        os.chdir(blast_path)
+
+        # Move makeblastdb.exe and destination file to temporate directory
+        shutil.copy(fasta, blast_path)
+        """
+
+        CMD = f"{path_blast} -out {out} -query {query} -outfmt 6 -db {db} -word_size {opt.cluster.wordsize} -evalue {opt.cluster.evalue} -num_threads {opt.thread}"
     else:
         CMD = f"blastn -out '{out}' -query '{query}' -outfmt 6 -db '{db}' -word_size {opt.cluster.wordsize} -evalue {opt.cluster.evalue} -num_threads {opt.thread}"
 
@@ -27,7 +45,7 @@ def mmseqs(query, db, out, tmp, path, opt):
     path_mmseqs = f"{path.sys_path}/external/mmseqs_Windows/mmseqs.bat"
 
     if platform == "win32":
-        CMD = f"{path_mmseqs} easy-search '{query}' '{db}' '{out}' '{tmp}' --threads {opt.thread} -k {opt.cluster.wordsize} --search-type 3 -e {opt.cluster.evalue} --dbtype 2"
+        CMD = f"{path_mmseqs} easy-search {query} {db} {out} {tmp} --threads {opt.thread} -k {opt.cluster.wordsize} --search-type 3 -e {opt.cluster.evalue} --dbtype 2"
     else:
         CMD = f"mmseqs easy-search '{query}' '{db}' '{out}' '{tmp}' --threads {opt.thread} -k {opt.cluster.wordsize} --search-type 3 -e {opt.cluster.evalue} --dbtype 2"
 
@@ -39,23 +57,53 @@ def mmseqs(query, db, out, tmp, path, opt):
 def makeblastdb(fasta, db, path):
     path_makeblastdb = f"{path.sys_path}/external/BLAST_Windows/bin/makeblastdb.exe"
 
+    # To prevent makeblastdb error in windows, run it on temporary directory and move it
     if platform == "win32":
-        CMD = f"{path_makeblastdb} -in '{fasta}' -blastdb_version 4 -title '{db}'' -dbtype nucl"
+        # Save original path
+        ori_path = deepcopy(os.getcwd())
+        makeblastdb_path = f"{path.tmp}\\makeblastdb\\"
+        # remove temporary path if exists
+        if os.path.exists(makeblastdb_path):
+            shutil.rmtree(makeblastdb_path)
+        # make new temp makeblastdb directory
+        mkdir(makeblastdb_path)
+        os.chdir(makeblastdb_path)
+
+        # Move makeblastdb.exe and destination file to temporate directory
+        shutil.copy(fasta, makeblastdb_path)
+
+        # Remove disk seperator to prevent error
+        fasta_tmp = fasta.replace("\\", "/").split("/")[-1]
+        db_tmp = db.replace("\\", "/").split("/")[-1]
+
+        # run make blast db
+        CMD = f"{path_makeblastdb} -in {fasta_tmp} -blastdb_version 4 -title {db_tmp} -dbtype nucl"
+        logging.info(CMD)
+        Run = subprocess.call(CMD, shell=True)
+        # Change db names
+        shutil.move(fasta_tmp + ".nsq", db + ".nsq")
+        shutil.move(fasta_tmp + ".nin", db + ".nin")
+        shutil.move(fasta_tmp + ".nhr", db + ".nhr")
+        # return to original path
+        os.chdir(ori_path)
+        # remove temporary path
+        if os.path.exists(makeblastdb_path):
+            shutil.rmtree(makeblastdb_path)
     else:
         CMD = f"makeblastdb -in '{fasta}' -blastdb_version 4 -title '{db}' -dbtype nucl"
-    logging.info(CMD)
-    Run = subprocess.call(CMD, shell=True)
-    # Change db names
-    shutil.move(fasta + ".nsq", db + ".nsq")
-    shutil.move(fasta + ".nin", db + ".nin")
-    shutil.move(fasta + ".nhr", db + ".nhr")
+        logging.info(CMD)
+        Run = subprocess.call(CMD, shell=True)
+        # Change db names
+        shutil.move(fasta + ".nsq", db + ".nsq")
+        shutil.move(fasta + ".nin", db + ".nin")
+        shutil.move(fasta + ".nhr", db + ".nhr")
 
 
 def makemmseqsdb(fasta, db, path):
     path_makemmseqsdb = f"{path.sys_path}/external/mmseqs_Windows/mmseqs.bat"
 
     if platform == "win32":
-        CMD = f"{path_makemmseqsdb} createdb '{fasta}' '{db}'' --createdb-mode 0 --dbtype 2"
+        CMD = f"{path_makemmseqsdb} createdb {fasta} {db} --createdb-mode 0 --dbtype 2"
     else:
         CMD = f"mmseqs createdb '{fasta}' '{db}' --createdb-mode 0 --dbtype 2"
     logging.info(CMD)
@@ -83,7 +131,7 @@ def MAFFT(
         shutil.copy(fasta, out)
     else:
         if platform == "win32":
-            CMD = f"{path.sys_path}/external/MAFFT_Windows/mafft-win/mafft.bat --thread {thread} --{algorithm} --maxiterate {maxiterate} --{adjust} --op {op} --ep {ep} --quiet '{fasta}' > '{out}'"
+            CMD = f"{path.sys_path}/external/MAFFT_Windows/mafft-win/mafft.bat --thread {thread} --{algorithm} --maxiterate {maxiterate} --{adjust} --op {op} --ep {ep} --quiet {fasta} > {out}"
         else:
             CMD = f"mafft --thread {thread} --{algorithm} --maxiterate {maxiterate} --{adjust} --op {op} --ep {ep} --quiet '{fasta}' > '{out}'"
 
@@ -98,7 +146,7 @@ def MAFFT(
 # Trimming
 def Gblocks(fasta, out, path):
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/Gblocks_Windows_0.91b/Gblocks_0.91b/Gblocks.exe '{fasta}' -t=d -b4=2 -b5=a -e=.gb"
+        CMD = f"{path.sys_path}/external/Gblocks_Windows_0.91b/Gblocks_0.91b/Gblocks.exe {fasta} -t=d -b4=2 -b5=a -e=.gb"
     else:
         CMD = f"Gblocks '{fasta}' -t=d -b4=2 -b5=a -e=.gb"
 
@@ -117,7 +165,7 @@ def Trimal(fasta, out, path, algorithm="gt", threshold=0.2):
         algorithm = f"{algorithm} {threshold}"
 
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/trimal.v1.2rev59/trimAl/bin/trimal.exe -in '{fasta}' -out '{out}' -{algorithm}"
+        CMD = f"{path.sys_path}/external/trimal.v1.2rev59/trimAl/bin/trimal.exe -in {fasta} -out {out} -{algorithm}"
 
     else:
         CMD = f"trimal -in {fasta} -out {out} -{algorithm}"
@@ -163,7 +211,7 @@ def ModelFinder(fasta, opt, path, thread):
         raise Exception
 
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/iqtree-2.1.3-Windows/bin/iqtree2.exe --seqtype DNA -s '{fasta}' {model_term} -merit {opt.criterion} -T {thread}"
+        CMD = f"{path.sys_path}/external/iqtree-2.1.3-Windows/bin/iqtree2.exe --seqtype DNA -s {fasta} {model_term} -merit {opt.criterion} -T {thread}"
     else:
         # not final
         CMD = f"iqtree --seqtype DNA -s '{fasta}' {model_term} -merit {opt.criterion} -T {thread}"
@@ -190,7 +238,7 @@ def RAxML(
     os.chdir(path.tmp)
 
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/RAxML_Windows/raxmlHPC-PTHREADS-AVX2.exe -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
+        CMD = f"{path.sys_path}/external/RAxML_Windows/raxmlHPC-PTHREADS-AVX2.exe -s {fasta} -n {out} -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
     else:
         CMD = f"raxmlHPC-PTHREADS-AVX -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
 
@@ -216,7 +264,7 @@ def FastTree(fasta, out, hash_dict, path, model=""):
     if model == "skip":
         model = ""
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/FastTree_Windows/FastTree.exe -quiet -nt {model} -log {path.tmp}/fasttreelog -seed 1 '{fasta}' > {path.tmp}/{out}"
+        CMD = f"{path.sys_path}/external/FastTree_Windows/FastTree.exe -quiet -nt {model} -log {path.tmp}/fasttreelog -seed 1 {fasta} > {path.tmp}/{out}"
     else:
         CMD = f"FastTree -quiet -nt {model} -log {path.tmp}/fasttreelog -seed 1 '{fasta}'   > {path.tmp}/{out}"
 

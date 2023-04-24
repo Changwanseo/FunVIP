@@ -3,6 +3,7 @@ from funid.src.opt_generator import opt_generator
 from Bio import SeqIO
 import multiprocessing as mp
 
+
 # Each module to be run in alignment multiprocessing
 def module_alignment(
     in_fasta,
@@ -14,7 +15,6 @@ def module_alignment(
     op,
     ep,
 ):
-
     # Running MAFFT
     ext.MAFFT(
         fasta=in_fasta,
