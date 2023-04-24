@@ -7,6 +7,7 @@ name = "FunID"
 __version__ = "0.3.7"
 release = "0.3.7.0.0"
 
+
 # Default setup options
 setup_options = dict(
     name=name,
