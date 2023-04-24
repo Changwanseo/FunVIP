@@ -35,5 +35,5 @@ conda config --add channels cwseo
 conda-build ./funid -c conda-forge // copy tar.bz2 location when this one ends
 conda install anaconda-project
 anaconda upload {Build file location} // tar.bz2 in conda-build log
-conda env remove -n FunID-condabuild
+conda remove -n FunID-condabuild
 ```
