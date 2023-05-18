@@ -4,8 +4,8 @@ from sys import platform
 import subprocess
 
 name = "FunID"
-__version__ = "0.3.7"
-release = "0.3.7.0.0"
+__version__ = "0.3.8"
+release = "0.3.8.0.0"
 
 
 # Default setup options
@@ -47,6 +47,7 @@ setup_options = dict(
         "funid.data": ["*.xlsx", "*.txt"],
         "funid.test_dataset": ["**"],
         "funid.preset": ["**"],
+        "funid.src": ["**"],
     },
     include_package_data=True,
     license="GPL3",
