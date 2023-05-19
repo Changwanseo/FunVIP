@@ -283,7 +283,12 @@ class CommandParser:
         group_advanced.add_argument(
             "--noavx",
             action="store_true",
-            help="do not use AVX for RAXML, default: False",
+            help="do not use AVX for RAxML, default: False",
+        )
+        group_advanced.add_argument(
+            "--outgroupoffset",
+            help="outgroupoffset value. Highering this value may select more distant outgroup, default : 20",
+            type=int,
         )
 
         # Cache
@@ -323,7 +328,7 @@ class CommandParser:
 
         # Preset
         group_setting = self.parser.add_argument_group(
-            title="setting", description="Presets for easy settings"
+            title="setting", description="Presets for one-step settings"
         )
         group_setting.add_argument(
             "--preset",

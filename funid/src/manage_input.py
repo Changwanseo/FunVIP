@@ -302,7 +302,6 @@ def input_fasta(path, opt, fasta_list, funinfo_dict, datatype):
 
 # getting datafile from excel or tabular file
 def input_table(funinfo_dict, path, opt, table_list, datatype):
-    logging.info("DEBUGGING POINT 0")
     string_error = 0
 
     initialize_path(path)  # this one is ugly
@@ -406,8 +405,6 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
 
         # Sequence column operations, download sequences with GenMine
         if 1:  # If download on/off option added, change this part
-            logging.info("DEBUGGING POINT 1!")
-
             download_dict = {}  # for downloaded sequences
             download_set = set()
             # 1 letter + 5 digit regex should be last, because they overlap with 2 letter + 6 digit ids / shotgun
@@ -435,7 +432,6 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                 logging.info(
                     f"Running GenMine to download {len(download_set)} sequences from GenBank"
                 )
-                logging.info("DEBUGGING POINT 2!")
                 logging.info(download_set)
 
                 # Write GenMine input file
@@ -492,11 +488,9 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                                         df[gene][n] = ""
 
                     # Remove GenMine results to prevent collision with next set
-                    """
                     for file in os.listdir(path.GenMine):
                         if "transformed.xlsx" in file:
                             os.remove(f"{path.GenMine}/{file}")
-                    """
 
                 elif len(GenMine_df_list) == 0:
                     logging.warning(

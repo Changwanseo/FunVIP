@@ -47,7 +47,6 @@ setup_options = dict(
         "funid.data": ["*.xlsx", "*.txt"],
         "funid.test_dataset": ["**"],
         "funid.preset": ["**"],
-        "funid.src": ["**"],
     },
     include_package_data=True,
     license="GPL3",
