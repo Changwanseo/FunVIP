@@ -22,18 +22,20 @@ In new conda environment
 ```
 conda create -n FunID-condabuild python=3.9
 conda activate FunID-condabuild
-conda install -c conda-forge grayskull
-conda install -c conda-forge packaging
-conda install conda-build
-conda install conda-verify
-conda install anaconda-client
-conda install git
-grayskull pypi FunID // Check if version is as you expected during this process
+conda install --yes -c conda-forge grayskull
+conda install --yes -c conda-forge packaging
+conda install --yes conda-build
+conda install --yes conda-verify
+conda install --yes anaconda-client
+conda install --yes git
+conda install --yes urllib3
+grayskull pypi FunID // Check if version is as you expected during this step
 anaconda login
 conda config --set anaconda_upload no
 conda config --add channels cwseo
 conda-build ./funid -c conda-forge // copy tar.bz2 location when this one ends
 conda install anaconda-project
 anaconda upload {Build file location} // tar.bz2 in conda-build log
-conda remove -n FunID-condabuild
+conda deactivate
+conda env remove -n FunID-condabuild
 ```
