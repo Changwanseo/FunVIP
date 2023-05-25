@@ -141,7 +141,9 @@ class FunID_var:
             if opt.queryonly is True:
                 group_flag = False  # whether to run this group
                 for gene in self.list_db_gene:
-                    logging.debug(f"Searching {group} {gene} is good dataset")
+                    logging.debug(
+                        f"Searching dataset {group} {gene} includes query sequences"
+                    )
                     list_qr = [
                         FI
                         for FI in self.list_FI
