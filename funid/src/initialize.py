@@ -158,13 +158,14 @@ class Path:
         else:
             install_flag = 0
             # Not checking gblocks currently, because there are only interactive options without input file
+            # Mafft help does not returns 0
+            # "mafft": "mafft --help",
             check_commands = {
                 "RAxML": "raxmlHPC-PTHREADS-AVX -h",
                 "IQTREE": "iqtree -h",
                 "Modeltest-NG": "modeltest-ng --help",
                 "MMseqs2": "mmseqs -h",
                 "BLASTn": "blastn -help",
-                "mafft": "mafft --help",
                 "Trimal": "trimal -h",
                 "Fasttree": "FastTree",
             }
