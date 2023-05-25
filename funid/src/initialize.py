@@ -1,13 +1,15 @@
-import os, sys, shutil
+import os
+import sys
+import shutil
+import subprocess
 import json
 import pandas as pd
-from Bio import SeqIO
-from funid.src.logics import isnan
 import zipfile
 import numpy as np
 import re
 
-
+from Bio import SeqIO
+from funid.src.logics import isnan
 from funid.src.tool import (
     initialize_path,
     get_genus_species,
@@ -152,6 +154,35 @@ class Path:
                     "r",
                 ) as zip_ref:
                     zip_ref.extractall(f"{self.sys_path}/external/MAFFT_Windows")
+        # For non-windows platform, check all programs installed properly
+        else:
+            install_flag = 0
+            # Not checking gblocks currently, because there are only interactive options without input file
+            check_commands = {
+                "RAxML": "raxmlHPC-PTHREADS-AVX -h",
+                "IQTREE": "iqtree -h",
+                "Modeltest-NG": "modeltest-ng --help",
+                "MMseqs2": "mmseqs -h",
+                "BLASTn": "blastn -help",
+                "mafft": "mafft --help",
+                "Trimal": "trimal -h",
+                "Fasttree": "FastTree",
+            }
+            for program in check_commands:
+                cmd = check_commands[program]
+                # Quietly call each programs
+                return_code = subprocess.call(
+                    cmd, shell=True, stdout=open(os.devnull, "wb")
+                )
+                if return_code != 0:
+                    print(f"[ERROR] {program} not installed!")
+                    install_flag = 1
+
+            if install_flag == 1:
+                print(
+                    f"[ERROR] Some of the dependencies not installed. Use \n conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 blast mafft trimal gblocks fasttree \nto install dependencies"
+                )
+                raise Exception
 
         # Location for list of genus file
         self.genusdb = f"{self.sys_path}/data/genus_line.txt"
