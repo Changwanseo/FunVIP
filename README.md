@@ -84,25 +84,21 @@ If you are using linux system please follow "Additional information for Linux"
 
 
 ## How to make database?
-Database should be tabular files, ```.xlsx, .csv, .parquet or .ftr``` 
-### Essential columns should be included in database
-- ```ID``` : the numbers or symbols that were displayed in reports and figures. It can be NCBI accession, but not necessarily to be
-- ```Genus``` : genus of the species
-- ```Species``` : species epithet of the species. We recommend not to use 'sp.' only, because it can confused with multiple sp.s over clades. Please add numbers (like sp. 1) or other expressions (like aff. amilaria, tmpspecies1)
-- ```{gene names}``` : each of the sequences should be added in {gene names} columns. Old database may condtain ```seq``` column instead of ```{gene names}```, which cannot be applied in multigene mode. {gene names} used in database should be recognized by "GENE" in ```Options.config```  
+  ![Fig 2 FunID interface, usage, and input example](https://github.com/Changwanseo/FunID/assets/64393882/863a78ad-b185-4f6d-81c7-96d8f17ed764)
+
 
 
 [See example database here](https://github.com/Changwanseo/FunID/blob/main/funid/test_dataset/penicillium/DB/DB_Penicillium.xlsx)
 
 
-
+<!--## 
 ## What query formats can be used?
 #### Query formats can be either 
 fasta (```.fa```, ```.fna```, ```.fas```, ```.fasta```, ```.txt```) or
 tabular (```.xlsx```, ```.csv```,  ```.parquet```, ```.ftr```) form
 
 - fasta form : Do not use ambiguous accessions in your fasta name. For example, accessions "A1234" and "A123" can be confused in pipeline. Section and genus name of the sequences will be automatically assigned according to your database. So if you want to fix it, use tabular form
-- tabular form : your table should include ```ID```, and ```{gene names}``` (highly recommended for multigene analysis)
+- tabular form : your table should include ```ID```, and ```{gene names}``` (highly recommended for multigene analysis)-->
 
 <!--## Tips for method selection
 * SEARCH_METHOD : blast is faster for smaller dataset, while mmseqs are faster in huge dataset, but consumes a lot of memory
@@ -118,11 +114,8 @@ tabular (```.xlsx```, ```.csv```,  ```.parquet```, ```.ftr```) form
 * ```/Tree/{section}_{gene}.svg``` : Final collapsed tree in svg format. Can be edited in vector graphics programs, or in powerpoint (by ungroup)
 * ```/Tree/{section}_{gene}_original.svg ``` : Uncollapsed tree for inspection
 
-## License
-Effective license will be added in the seperate file. This is an abstract.
+## How does FunID work?
+![figure1 - ver3](https://github.com/Changwanseo/FunID/assets/64393882/756f5d8a-ab5b-4659-b279-a99fc967c441)
 
-0. Please wait for a while (may be by 2023 Feburary) for advanced (such as re-distribution) usage. We are working on finalizing stage
-1. For softwares in /Bin/External_Programs, each of the software follows their own license 
-2. In non-commercial use, free to use it and redistribute without edit
-3. You may edit for non-commercial use, but should not redistribute without permission
-4. Contact me with email for commercial use
+## License
+GPL 3.0
