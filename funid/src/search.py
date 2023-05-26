@@ -291,6 +291,9 @@ def search_df(V, path, opt):
                 opt=opt,
             )
 
+            # Cutoff by outgroupcutoff
+            df_search = df_search[df_search["bitscore"] > opt.cluster.outgroupoffset]
+
             # append group column
             df_search["subject_group"] = df_search["sseqid"].apply(
                 lambda x: group_dict.get(x)
@@ -327,6 +330,21 @@ def search_df(V, path, opt):
                     path=path,
                     opt=opt,
                 )
+
+                # Cutoff by outgroupcutoff
+                print(vars(opt))
+                print(opt.cluster.outgroupoffset)
+                df_search = df_search[
+                    df_search["bitscore"] > opt.cluster.outgroupoffset
+                ]
+
+                logging.debug(f"{df_search}")
+
+                if len(df_search) == 0:
+                    del df_search
+                    logging.debug(
+                        f"Deleted df because non of the result exceeds outgroupoffset!"
+                    )
 
                 # if dataframe exists
                 if isinstance(df_search, pd.DataFrame):

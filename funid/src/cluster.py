@@ -229,19 +229,41 @@ def append_outgroup(V, df_search, gene, group, path, opt):
         try:
             # offset will prevent selecting outgroup too close to ingroup
             bitscore_cutoff = max(
-                1, min(cutoff_set_df["bitscore"]) - opt.outgroupoffset
+                1, min(cutoff_set_df["bitscore"]) - opt.cluster.outgroupoffset
             )
         except:
             bitscore_cutoff = 999999  # use infinite if failed
 
         ## get result stasifies over cutoff
         # outgroup should be outside of ingroup
+
+        # logging.debug(df_search)
+        # logging.debug(
+        #    f"Outgroup count for group {group} | gene {gene}: {df_search.groupby(['subject_group']).count()}"
+        # )
+
         cutoff_df = df_search[df_search["bitscore"] < bitscore_cutoff]
+
+        # logging.debug(f"Bitscore cutoff: {bitscore_cutoff}")
+        # logging.debug(
+        #    f"Outgroup count for group {group} | gene {gene}: {cutoff_df.groupby(['subject_group']).count()}"
+        # )
+
         # Remove malformat result
         cutoff_df = cutoff_df[cutoff_df["bitscore"] > 0]
 
+        # logging.debug(f"Removing minus bitscore or 0 value")
+        # logging.debug(
+        #    f"Outgroup count for group {group} | gene {gene}: {cutoff_df.groupby(['subject_group']).count()}"
+        # )
+
         # split that same group to include all to alignment, and left other groups for outgroup selection
         cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
+
+        # logging.debug(f"Removing ingroup")
+        # logging.debug(
+        #    f"Outgroup count for group {group} | gene {gene}: {cutoff_df.groupby(['subject_group']).count()}"
+        # )
 
         # If no or fewer than designated number of outgroup matches to condition, use flexible criteria
         if cutoff_df.groupby(["subject_group"]).count().empty:
@@ -269,6 +291,7 @@ def append_outgroup(V, df_search, gene, group, path, opt):
     # cutoff_df = df_search[df_search["bitscore"] > 0]
     # cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
 
+    # Garbage collection for lower memory consumption in this process
     del df_search
     gc.collect()
 
@@ -339,8 +362,11 @@ def append_outgroup(V, df_search, gene, group, path, opt):
                 ambiguous_group += outgroup_dict[_group]
 
         return (group, gene, outgroup_dict[max_group], ambiguous_group)
+
     else:
-        logging.warning(f"No outgroup sequence available for {group}")
+        logging.warning(
+            f"No outgroup sequence available for {group}. Try use higher --cluster-evalue and lower --outgroupoffset, or add closer sequence of {group} to database"
+        )
         return (group, gene, [], [])
 
 
@@ -469,7 +495,7 @@ def outgroup_append_opt_generator(V, path, opt):
 
     time2 = time()
 
-    logging.info(f"{time2-time1}s consumed in outgroup_append_opt_generator")
+    logging.debug(f"{time2-time1}s consumed in outgroup_append_opt_generator")
 
     return opt_append_outgroup
 
@@ -564,7 +590,21 @@ def pipe_append_outgroup(V, path, opt):
         outgroup = result[2]
         ambiguous_group = result[3]
 
-        V.dict_dataset[group][gene].list_og_FI = outgroup
-        V.dict_dataset[group][gene].list_db_FI += ambiguous_group
+        if len(outgroup) == 0 and len(ambiguous_group) == 0:
+            logging.warning(
+                f"Removing {group} {gene} from analysis because outgroup cannot be selected"
+            )
+            V.dict_dataset[group].pop(gene, None)
+
+        else:
+            V.dict_dataset[group][gene].list_og_FI = outgroup
+            V.dict_dataset[group][gene].list_db_FI += ambiguous_group
+
+    for group in V.dict_dataset:
+        if len(V.dict_dataset[group]) == 0:
+            logging.warning(
+                f"Removing {group} from analysis because outgroup cannot be selected to all genes"
+            )
+            V.dict_dataset.pop(group, None)
 
     return V, path, opt

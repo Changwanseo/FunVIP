@@ -1,6 +1,5 @@
 {% set name = "FunID" %}
-{% set version = "0.3.7" %}
-
+{% set version = "0.3.8.1" %}
 
 package:
   name: {{ name|lower }}
@@ -8,8 +7,7 @@ package:
 
 source:
   url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/FunID-{{ version }}.tar.gz
-  sha256: 0894e4504f55967ef8f4708286055a452e6ff9505b228c64af80003e5228aab2
-
+  sha256: f9b59bd8748d11dfd8ba4198a566fb721ba10db03690e01778f1ba52b45328e2
 
 build:
   skip: true  # [py>=311 or py2k]
