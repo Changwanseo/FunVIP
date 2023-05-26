@@ -160,6 +160,8 @@ class Path:
             # Not checking gblocks currently, because there are only interactive options without input file
             # Mafft help does not returns 0
             # "mafft": "mafft --help",
+            # FastTree check fails when run with nohup
+            # "Fasttree": "FastTree",
             check_commands = {
                 "RAxML": "raxmlHPC-PTHREADS-AVX -h",
                 "IQTREE": "iqtree -h",
@@ -167,7 +169,6 @@ class Path:
                 "MMseqs2": "mmseqs -h",
                 "BLASTn": "blastn -help",
                 "Trimal": "trimal -h",
-                "Fasttree": "FastTree",
             }
             for program in check_commands:
                 cmd = check_commands[program]
