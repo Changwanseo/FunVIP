@@ -118,10 +118,4 @@ tabular (```.xlsx```, ```.csv```,  ```.parquet```, ```.ftr```) form
 ![figure1 - ver3](https://github.com/Changwanseo/FunID/assets/64393882/756f5d8a-ab5b-4659-b279-a99fc967c441)
 
 ## License
-Effective license will be added in the seperate file. This is an abstract.
-
-0. Please wait for a while (may be by 2023 Feburary) for advanced (such as re-distribution) usage. We are working on finalizing stage
-1. For softwares in /Bin/External_Programs, each of the software follows their own license 
-2. In non-commercial use, free to use it and redistribute without edit
-3. You may edit for non-commercial use, but should not redistribute without permission
-4. Contact me with email for commercial use
+GPL 3.0
