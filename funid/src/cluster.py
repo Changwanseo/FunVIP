@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import shutil
 import os, sys, subprocess
-import copy
+from copy import deepcopy
 from functools import lru_cache
 from time import sleep
 
@@ -127,7 +127,7 @@ def cluster(FI, df_search, V, path, opt):
     # tracemalloc.start(10)
     # time1 = tracemalloc.take_snapshot()
 
-    list_group = copy.deepcopy(V.list_group)
+    list_group = deepcopy(V.list_group)
 
     # delete V to reduce memory assumption
     del V
@@ -203,7 +203,7 @@ def cluster(FI, df_search, V, path, opt):
 def append_outgroup(V, df_search, gene, group, path, opt):
     logging.info(f"Appending outgroup on group: {group}, Gene: {gene}")
 
-    list_FI = copy.deepcopy(V.list_FI)
+    list_FI = deepcopy(V.list_FI)
 
     # In multiprocessing, delete V for memory
     del V
@@ -600,11 +600,16 @@ def pipe_append_outgroup(V, path, opt):
             V.dict_dataset[group][gene].list_og_FI = outgroup
             V.dict_dataset[group][gene].list_db_FI += ambiguous_group
 
-    for group in V.dict_dataset:
-        if len(V.dict_dataset[group]) == 0:
-            logging.warning(
-                f"Removing {group} from analysis because outgroup cannot be selected to all genes"
-            )
-            V.dict_dataset.pop(group, None)
+    groups = deepcopy(list(V.dict_dataset.keys()))
+
+    for group in groups:
+        try:
+            if len(V.dict_dataset[group]) == 0:
+                logging.warning(
+                    f"Removing {group} from analysis because outgroup cannot be selected to all genes"
+                )
+                V.dict_dataset.pop(group, None)
+        except:
+            pass
 
     return V, path, opt
