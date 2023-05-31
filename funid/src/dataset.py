@@ -402,7 +402,7 @@ class FunID_var:
                     vectors = [
                         np.fromiter(
                             re.sub(r"[^0]", "1", re.sub(r"[\-]", "0", str(seq.seq))),
-                            dtype=np.int,
+                            dtype=np.int32,
                         )
                         for seq in seq_list
                     ]
