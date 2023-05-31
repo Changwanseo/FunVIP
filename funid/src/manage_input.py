@@ -441,11 +441,12 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
 
                 # Run GenMine
                 cmd = f"GenMine -c {path.GenMine}/Accessions.txt -o {path.GenMine} -e {opt.email}"
+                logging.info(f"{cmd}")
                 return_code = subprocess.call(cmd, shell=True)
 
                 if return_code != 0:
                     logging.error(f"GenMine failed with return_code: {return_code}")
-                    logging.error(f"This is usually ncbi server connection error")
+                    logging.error(f"This is usually NCBI server connection error")
                     logging.error(
                         f"Check your network problems, or replace all accession numbers in your db file with actual sequences to run locally"
                     )
@@ -454,7 +455,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                 GenMine_df_list = [
                     file
                     for file in os.listdir(path.GenMine)
-                    if file.endswith("_transformed.xlsx")
+                    if file.endswith("_result.xlsx")
                 ]
 
                 if len(GenMine_df_list) == 1:
@@ -489,7 +490,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
 
                     # Remove GenMine results to prevent collision with next set
                     for file in os.listdir(path.GenMine):
-                        if "transformed.xlsx" in file:
+                        if "_result.xlsx" in file:
                             os.remove(f"{path.GenMine}/{file}")
 
                 elif len(GenMine_df_list) == 0:
