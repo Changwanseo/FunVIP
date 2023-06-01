@@ -601,7 +601,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
 
                         if seq_error_cnt > 0:
                             logging.warning(
-                                f"Illegal DNA character {seq_error_list} found in {gene} of DB {df['id'][n]}"
+                                f"Illegal DNA character {seq_error_list} found in {gene} of {datatype} {df['id'][n]}"
                             )
                         elif seq_error_cnt == 0:
                             # remove gaps for preventing BLAST error
