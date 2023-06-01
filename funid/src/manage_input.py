@@ -208,7 +208,7 @@ class Funinfo:
         flag = 0
         # Available datatypes : db, query
         if not (datatype in ("db", "query", "outgroup")):
-            logging.error(f"{datatype} is not available datatype")
+            logging.error(f"DEVELOPMENTAL ERROR: {datatype} is not available datatype")
             raise Exception
 
         # Check ambiguity
@@ -544,8 +544,6 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
             # Check if each of the ids are unique
             # Remove non-unicode first
             new_acc = True
-            # str_id = manage_unicode(str(df["id"][n]), column="ID/Accession", row=n)
-            # df["id"][n] = str_id
 
             # Generate funinfo for each id
             if df["id"][n] in funinfo_dict:
@@ -563,18 +561,18 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
 
             # if flag_species is true, try to parse species
             if not (flag_species is None or flag_species is False):
-                error_flag = newinfo.update_ori_species(df["species"][n])
+                error_flag += newinfo.update_ori_species(df["species"][n])
 
             # if flag_level is true, try to parse the optimal taxonomic group
             if not (flag_level is None or flag_level is False):
-                newinfo.update_group(df[flag_level][n])
+                error_flag += newinfo.update_group(df[flag_level][n])
 
             # if flag_color is true, try to parse color for taxon
             if not (flag_color is None or flag_color is False):
                 newinfo.update_color(df[flag_color][n])
 
             # update datatype
-            newinfo.update_datatype(datatype)
+            error_flag += newinfo.update_datatype(datatype)
 
             # parse each of the genes
             for gene in opt.gene:
@@ -591,9 +589,11 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                         # adjust seq_string
                         seq_string = seq_string.replace("\n", "").replace(" ", "")
 
-                        # Finding if sequence contains error
+                        # Finding if DNA sequence contains error
                         seq_error_cnt = 0
                         seq_error_list = []
+
+                        seq_string = manage_unicode(seq_string)
                         for x in seq_string:  # x is every character of sequence
                             if not x.lower() in "acgtryswkmbdhvn-.":
                                 seq_error_cnt += 1

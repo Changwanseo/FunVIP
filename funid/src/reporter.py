@@ -397,7 +397,6 @@ class Report:
                 f.write(f"CACHEDB:                {opt.cachedb}\n")
                 f.write(f"USECACHE:               {opt.usecache}\n")
                 f.write(f"MATRIXFORMAT:           {opt.matrixformat}\n")
-                f.write(f"NOSEARCHMATRIX:         {opt.nosearchmatrix}\n")
                 f.write(f"NOSEARCHRESULT:         {opt.nosearchresult}\n")
                 f.write(f"METHOD:                 \n")
                 f.write(f" - SEARCH:              {opt.method.search}\n")

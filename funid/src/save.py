@@ -165,13 +165,19 @@ def save_df(df, out, fmt="csv"):
     if fmt == "csv" or fmt == "tsv":
         df.to_csv(out, index=False)
     elif fmt == "xlsx" or fmt == "excel":
-        df.to_excel(out, index=False)
+        if len(df) <= 1048576 and df.shape[1] <= 16384:
+            df.to_excel(out, index=False)
+        else:
+            logging.warning(
+                f"Size of dataframe exceeds maximum excel limit. Using csv instead"
+            )
+            df.to_csv(out, index=False)
     elif fmt == "parquet":
         df.to_parquet(out, index=False)
     elif fmt == "feather" or fmt == "ftr":
         df.to_feather(out, index=False)
     else:
         logging.warning(
-            f"[Warning] Not appropriate format entered for matrix format, using csv as default"
+            f"Not appropriate format entered for matrix format, using csv as default"
         )
         df.to_csv(out, index=False)

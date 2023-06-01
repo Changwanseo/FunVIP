@@ -86,7 +86,6 @@ class Option:
         self.cachedb = True
         self.usecache = True
         self.matrixformat = "csv"
-        self.nosearchmatrix = False
         self.nosearchresult = False
 
         # Method options
@@ -167,8 +166,6 @@ class Option:
                 self.usecache = parser_dict[key]
             elif key.lower() in ("matrixformat"):
                 self.matrixformat = parser_dict[key]
-            elif key.lower() in ("nosearchmatrix"):
-                self.nosearchmatrix = parser_dict[key]
             elif key.lower() in ("nosearchresult"):
                 self.nosearchresult = parser_dict[key]
             elif key.lower() in ("confident"):
@@ -539,12 +536,6 @@ class Option:
         try:
             if not parser.matrixformat is None:
                 self.matrixformat = parser.matrixformat
-        except:
-            pass
-
-        try:
-            if parser.nosearchmatrix is True:
-                self.nosearchmatrix = parser.nosearchmatrix
         except:
             pass
 
@@ -1416,13 +1407,6 @@ class Option:
             list_error.append(
                 "matrixformat should be one of csv, tsv, xlsx, parquet, ftr, or feather"
             )
-
-        # nosearchmatrix
-        # If nosearchmatrix is not None, give True, else, give False
-        if self.nosearchmatrix is True:
-            self.nosearchmatrix = True
-        else:
-            self.nosearchmatrix = False
 
         # nosearchresult
         # If nosearchresult is not None, give True, else, give False

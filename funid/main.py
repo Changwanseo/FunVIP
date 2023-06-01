@@ -122,8 +122,6 @@ def main():
         step = "search"
         logging.info("SEARCHING")
 
-        print(V.list_FI)
-
         # Generate BLAST or mmseqs matrices for further analysis
         # Also, gene informations are updated in this step
         V = search.search_df(V, path, opt)
