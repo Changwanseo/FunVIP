@@ -34,7 +34,7 @@ A automatic tree-based sequence identification pipeline for fungal species
 4. run ```FunID --test Penicillium ``` to check installation
 If this one fails, use next one
 
-## Installation with conda (using pip)
+## Installation with conda (using pip - Recommended)
 1. ```conda create -n FunID python=3.10```
 2. ```conda activate FunID```
 3. ```conda install pip```
