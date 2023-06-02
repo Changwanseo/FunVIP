@@ -51,10 +51,7 @@ def pipe_module_tree_interpretation(
         try:
             Tree(tree_name, format=2)
         except:
-            for FI in funinfo_list:
-                print(FI.original_id)
-                print(FI.datatype)
-            print(f"[DEVELOPMENTAL ERROR] Failed on tree {tree_name}")
+            logging.error(f"[DEVELOPMENTAL ERROR] Failed on importing tree {tree_name}")
             raise Exception
     else:
         logging.error(f"Cannot find {tree_name}")
