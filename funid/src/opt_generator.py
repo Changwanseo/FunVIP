@@ -10,6 +10,7 @@ def opt_generator(V, opt, path, step):
     if step == "alignment":
         for group in V.dict_dataset:
             for gene in V.dict_dataset[group]:
+                # For concatenated gene matrix, alignment should be done by each gene matrix and then concatenated
                 if gene != "concatenated":
                     # thread assignment
                     if opt.verbose < 3:

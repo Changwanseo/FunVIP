@@ -83,7 +83,7 @@ class FunID_var:
         self.rslt_tree = []
 
         # multigene_list
-        self.multigene_list = None
+        self.multigene_list = []
 
     def __repr__(self):
         out_dict = {}

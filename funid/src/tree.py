@@ -1,5 +1,6 @@
 from funid.src import ext, hasher
 from funid.src.opt_generator import opt_generator
+from copy import deepcopy
 import multiprocessing as mp
 import logging
 import shutil
@@ -14,58 +15,122 @@ def pipe_tree(V, path, opt, model_dict):
     for file in [f for f in os.listdir(path.sys_path) if f.endswith(".nwk")]:
         os.remove(f"{path.sys_path}/{file}")
 
-    # Single Gene
     fasttree_opt = []  # for multiprocessing on fasttree
-    for group in V.dict_dataset:
-        for gene in V.dict_dataset[group]:
-            # draw tree only when query sequence exists
-            if (
-                len(V.dict_dataset[group][gene].list_qr_FI) > 0
-                or opt.queryonly is False
-            ):
-                # draw tree only when outgroup sequence exists
-                if len(V.dict_dataset[group][gene].list_og_FI) > 0:
-                    # If not trimming use this
-                    if opt.method.tree.lower() == "raxml":
-                        ext.RAxML(
-                            fasta=f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
-                            out=f"{opt.runname}_{group}_{gene}.nwk",
-                            hash_dict=tree_hash_dict,
-                            path=path,
-                            thread=opt.thread,
-                            bootstrap=opt.bootstrap,
-                            model=model_dict[group][gene],
-                        )
 
-                    elif opt.method.tree.lower() == "iqtree":
-                        ext.IQTREE(
-                            fasta=f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
-                            out=f"{opt.runname}_{group}_{gene}.nwk",
-                            hash_dict=tree_hash_dict,
-                            path=path,
-                            thread=opt.thread,
-                            bootstrap=opt.bootstrap,
-                            model=model_dict[group][gene],
-                        )
+    tree_dataset = deepcopy(V.dict_dataset)
 
-                    # if fasttree, append to opt
-                    else:
-                        if not (opt.method.tree.lower() == "fasttree"):
-                            logging.warning(
-                                "Tree construction method not selected, working for default opt, FastTree"
-                            )
-                        fasttree_opt.append(
-                            (
-                                f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
-                                f"{opt.runname}_{group}_{gene}.nwk",
-                                tree_hash_dict,
-                                path,
-                                model_dict[group][gene],
-                            )
-                        )
+    # Before drawing tree, finalize datasets
+    for group in tree_dataset:
+        for gene in tree_dataset[group]:
+            # draw tree only when query sequence exists if queryonly is True
+            # draw tree only when outgroup sequence exists
+            if len(tree_dataset[group][gene].list_qr_FI) == 0 and opt.queryonly is True:
+                logging.warning(
+                    f"Passing tree construction of {group} {gene} dataset because no query included"
+                )
+                tree_dataset[group].pop(gene, None)
+            elif tree_dataset[group][gene].list_og_FI == 0:
+                logging.warning(
+                    f"Passing tree construction of {group} {gene} dataset because no outgroup available"
+                )
+                tree_dataset[group].pop(gene, None)
+
+    # To indicate single genes for each group
+    singlegene_dict = {}
+
+    # Draw phylogenetic trees for each dataset
+    for group in tree_dataset:
+        singlegene_flag = 0
+        singlegene = ""
+        # For single gene, we don't have to draw tree multiple times
+        if len(tree_dataset[group].keys()) == 2:
+            singlegene_flag = 1
+            singlegene = list(set(tree_dataset[group].keys()) - {"concatenated"})[0]
+            singlegene_dict[group] = deepcopy(singlegene)
+
+        for gene in tree_dataset[group]:
+            if gene == "concatenated" and singlegene_flag == 1:
+                logging.info(
+                    f"Passing tree construction of {group} {gene} because single gene detected. Will copy from concatenated"
+                )
+            elif gene != "concatenated":
+                # If not trimming use this
+                if opt.method.tree.lower() == "raxml":
+                    ext.RAxML(
+                        fasta=f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
+                        out=f"{opt.runname}_{group}_{gene}.nwk",
+                        hash_dict=tree_hash_dict,
+                        path=path,
+                        thread=opt.thread,
+                        bootstrap=opt.bootstrap,
+                        model=model_dict[group][gene],
+                    )
+
+                elif opt.method.tree.lower() == "iqtree":
+                    ext.IQTREE(
+                        fasta=f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
+                        out=f"{opt.runname}_{group}_{gene}.nwk",
+                        hash_dict=tree_hash_dict,
+                        path=path,
+                        thread=opt.thread,
+                        bootstrap=opt.bootstrap,
+                        model=model_dict[group][gene],
+                    )
+
+                # if fasttree, append to opt
                 else:
-                    logging.warning(
-                        f"Passing tree construction of {group} {gene} dataset because no outgroup available"
+                    if not (opt.method.tree.lower() == "fasttree"):
+                        logging.warning(
+                            "Tree construction method not selected, working for default opt, FastTree"
+                        )
+                    fasttree_opt.append(
+                        (
+                            f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
+                            f"{opt.runname}_{group}_{gene}.nwk",
+                            tree_hash_dict,
+                            path,
+                            model_dict[group][gene],
+                        )
+                    )
+            # For concatenated datasets, use partition files
+            else:
+                if opt.method.tree.lower() == "raxml":
+                    ext.RAxML(
+                        fasta=f"{path.out_alignment}/{opt.runname}_{group}_{gene}.fasta",
+                        out=f"{opt.runname}_{group}_{gene}.nwk",
+                        hash_dict=tree_hash_dict,
+                        path=path,
+                        thread=opt.thread,
+                        bootstrap=opt.bootstrap,
+                        partition=f"{path.out_alignment}/{opt.runname}_{group}.partition",
+                        model=model_dict[group][gene],
+                    )
+
+                elif opt.method.tree.lower() == "iqtree":
+                    ext.IQTREE(
+                        fasta=f"{path.out_alignment}/{opt.runname}_{group}_{gene}.fasta",
+                        out=f"{opt.runname}_{group}_{gene}.nwk",
+                        hash_dict=tree_hash_dict,
+                        path=path,
+                        thread=opt.thread,
+                        bootstrap=opt.bootstrap,
+                        partition=f"{path.out_alignment}/{opt.runname}_{group}.partition",
+                        model=model_dict[group][gene],
+                    )
+
+                else:
+                    if not (opt.method.tree.lower() == "fasttree"):
+                        logging.warning(
+                            "Tree method not selected, working for default opt, FastTree"
+                        )
+                    fasttree_opt.append(
+                        (
+                            f"{path.out_alignment}/{opt.runname}_{group}_{gene}.fasta",
+                            f"{opt.runname}_{group}_{gene}.nwk",
+                            tree_hash_dict,
+                            path,
+                            model_dict[group][gene],
+                        )
                     )
 
     # for fasttree, perform multiprocessing
@@ -83,6 +148,19 @@ def pipe_tree(V, path, opt, model_dict):
             for option in fasttree_opt:
                 fasttree_result.append(ext.FastTree(*option))
 
+    for group in singlegene_dict:
+        # copy concatenated result to single gene
+        shutil.copy(
+            f"{path.out_tree}/{opt.runname}_{group}_{singlegene_dict[group]}.nwk",
+            f"{path.out_tree}/{opt.runname}_{group}_concatenated.nwk",
+        )
+
+        shutil.copy(
+            f"{path.out_tree}/hash_{opt.runname}_{group}_{singlegene_dict[group]}.nwk",
+            f"{path.out_tree}/hash_{opt.runname}_{group}_concatenated.nwk",
+        )
+
+    """
     # MultiGene tree
     fasttree_concatenated_opt = []
     for group in V.multigene_list:
@@ -141,30 +219,28 @@ def pipe_tree(V, path, opt, model_dict):
             fasttree_concatenated_result = []
             for option in fasttree_concatenated_opt:
                 fasttree_concatenated_result.append(ext.FastTree(*option))
+    """
 
     # decode alignments for each gene after building tree
-    for group in V.dict_dataset:
-        for gene in V.dict_dataset[group]:
+    for group in tree_dataset:
+        for gene in tree_dataset[group]:
             # draw tree only when query sequence exists
-            if (
-                len(V.dict_dataset[group][gene].list_qr_FI) > 0
-                or opt.queryonly is False
-            ):
-                os.rename(
-                    f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
-                    f"{path.out_alignment}/{opt.runname}_hash_MAFFT_{group}_{gene}.fasta",
-                )
+            if len(tree_dataset[group][gene].list_qr_FI) > 0 or opt.queryonly is False:
+                # Concatenated MAFFT file does not exists
+                if gene != "concatenated":
+                    os.rename(
+                        f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
+                        f"{path.out_alignment}/{opt.runname}_hash_MAFFT_{group}_{gene}.fasta",
+                    )
+                    hasher.decode(
+                        tree_hash_dict,
+                        f"{path.out_alignment}/{opt.runname}_hash_MAFFT_{group}_{gene}.fasta",
+                        f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
+                    )
 
                 os.rename(
                     f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
                     f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_{gene}.fasta",
-                )
-
-                # decoding
-                hasher.decode(
-                    tree_hash_dict,
-                    f"{path.out_alignment}/{opt.runname}_hash_MAFFT_{group}_{gene}.fasta",
-                    f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
                 )
 
                 hasher.decode(
@@ -174,7 +250,8 @@ def pipe_tree(V, path, opt, model_dict):
                 )
 
     # decode concatenated fasta after building tree
-    for group in V.dict_dataset:
+    """
+    for group in tree_dataset:
         try:
             os.rename(
                 f"{path.out_alignment}/{opt.runname}_{group}_concatenated.fasta",
@@ -188,5 +265,6 @@ def pipe_tree(V, path, opt, model_dict):
             )
         except:
             pass
+    """
 
     return V, path, opt

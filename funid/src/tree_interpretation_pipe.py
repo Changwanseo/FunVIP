@@ -57,7 +57,7 @@ def pipe_module_tree_interpretation(
             print(f"[DEVELOPMENTAL ERROR] Failed on tree {tree_name}")
             raise Exception
     else:
-        logging.warning(f"Cannot find {tree_name}")
+        logging.error(f"Cannot find {tree_name}")
         raise Exception
 
     # initialize before analysis
