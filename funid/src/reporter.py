@@ -9,7 +9,7 @@ from funid.src.tool import index_step
 from funid.src.save import save_df
 
 # For version reporting
-__version__ = "0.3.8"
+__version__ = "0.3.9"
 
 
 ### Temporary report for tree_interpretation_pipe
@@ -397,7 +397,6 @@ class Report:
                 f.write(f"CACHEDB:                {opt.cachedb}\n")
                 f.write(f"USECACHE:               {opt.usecache}\n")
                 f.write(f"MATRIXFORMAT:           {opt.matrixformat}\n")
-                f.write(f"NOSEARCHMATRIX:         {opt.nosearchmatrix}\n")
                 f.write(f"NOSEARCHRESULT:         {opt.nosearchresult}\n")
                 f.write(f"METHOD:                 \n")
                 f.write(f" - SEARCH:              {opt.method.search}\n")

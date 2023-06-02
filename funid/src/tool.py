@@ -37,9 +37,20 @@ def manage_unicode(string, column="", row=""):
         string.encode("ascii")
         return string
     except:
+        if row != "":
+            row_string = f"{row}th row "
+        else:
+            row_string = ""
+
+        if column != "":
+            column_string = f"in {column} column, "
+        else:
+            column_string = ""
+
         logging.warning(
-            f"Illegal unicode character found in {column} column, {row}th row : {string}. Trying flexible solve"
+            f"Illegal unicode character found {column_string}{row_string}: {string}. Trying flexible solve"
         )
+
         try:
             return unidecode(string)
         except:

@@ -9,7 +9,6 @@ from funid.src import search, hasher
 
 
 def combine_alignment(V, opt, path):
-    multigene_list = []
     for group in V.dict_dataset:
         if "concatenated" in V.dict_dataset[group]:
             # get alignment length
@@ -79,18 +78,10 @@ def combine_alignment(V, opt, path):
                 "fasta",
             )
 
-            SeqIO.write(
-                concatenate_list,
-                f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_concatenated.fasta",
-                "fasta",
-            )
-
         else:
             logging.warning(
                 f"For {group}, no more than genes were detected. Passing combining alignment"
             )
-
-    V.multigene_list = multigene_list
 
     return V
 

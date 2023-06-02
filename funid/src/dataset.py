@@ -83,7 +83,7 @@ class FunID_var:
         self.rslt_tree = []
 
         # multigene_list
-        self.multigene_list = None
+        self.multigene_list = []
 
     def __repr__(self):
         out_dict = {}
@@ -402,7 +402,7 @@ class FunID_var:
                     vectors = [
                         np.fromiter(
                             re.sub(r"[^0]", "1", re.sub(r"[\-]", "0", str(seq.seq))),
-                            dtype=np.int,
+                            dtype=np.int32,
                         )
                         for seq in seq_list
                     ]

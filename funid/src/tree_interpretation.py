@@ -307,7 +307,7 @@ class Tree_information:
         self.t.resolve_polytomy()
 
         for outgroup in self.outgroup:
-            print(f"Finding outgroup {outgroup} ({outgroup.hash}) in {self.tree_name}")
+            print(f"[INFO] Rerooting {outgroup} ({outgroup.hash}) in {self.tree_name}")
             for leaf in self.t:
                 if outgroup.hash in leaf.name:
                     outgroup_leaves.append(leaf)

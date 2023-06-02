@@ -316,11 +316,6 @@ class CommandParser:
             help="Default format for search matrix files, [csv, xlsx, parquet, feather], default : csv",
         )
         group_save.add_argument(
-            "--nosearchmatrix",
-            action="store_true",
-            help="Do not save blast/mmseqs search matrix, use when dataset gets too big and generates IO bottleneck",
-        )
-        group_save.add_argument(
             "--nosearchresult",
             action="store_true",
             help="Do not save blast/mmseqs search matrix, use when dataset gets too big and generates IO bottleneck",

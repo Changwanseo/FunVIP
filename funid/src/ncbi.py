@@ -1,7 +1,5 @@
 from Bio import Entrez
 from Bio import SeqIO
-from Bio import pairwise2
-from Bio.pairwise2 import format_alignment
 from Bio.Blast.Applications import NcbiblastnCommandline
 from Bio.Blast import NCBIXML
 from Bio.Seq import Seq
@@ -24,7 +22,6 @@ import shutil
 
 
 def Downloadbyacclist(Email, list_ID, out):
-
     if len(list_ID) == 0:
         return []
 
@@ -52,14 +49,15 @@ def Downloadbyacclist(Email, list_ID, out):
     record_list = []
 
     for i in range(int((len(list_ID) - 1) / cut) + 1):
-
         # last chunk
         if i * cut + cut > len(list_ID):
             # Mes(i)
             ID_string = ",".join(list_ID[i * cut :])
             sleep(0.3)
             cnt += len(list_ID[i * cut :])
-            logging.info(f"{cnt}/{cnt_all} {100*cnt/cnt_all}% {time.time()-start_time}s")
+            logging.info(
+                f"{cnt}/{cnt_all} {100*cnt/cnt_all}% {time.time()-start_time}s"
+            )
 
             try:
                 print(ID_string)

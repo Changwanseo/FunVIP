@@ -30,12 +30,10 @@ def module_alignment(
 
     # to prevent reversed sequence making error
     fasta_list = list(SeqIO.parse(out_fasta, "fasta"))
-
     for seq in fasta_list:
         if seq.description.startswith("_R_"):
             seq.id = ""
             seq.description = seq.description[3:]
-
     SeqIO.write(fasta_list, out_fasta, "fasta")
 
     # Fix unexpected spaces on mafft

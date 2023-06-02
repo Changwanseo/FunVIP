@@ -1,5 +1,5 @@
 {% set name = "FunID" %}
-{% set version = "0.3.8.1" %}
+{% set version = "0.3.9" %}
 
 package:
   name: {{ name|lower }}
@@ -7,7 +7,7 @@ package:
 
 source:
   url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/FunID-{{ version }}.tar.gz
-  sha256: f9b59bd8748d11dfd8ba4198a566fb721ba10db03690e01778f1ba52b45328e2
+  sha256: a958c9bc07eaa31f1e565724e69a08325587fd88cc7e39e1f40f8f90eb49db78
 
 build:
   skip: true  # [py>=311 or py2k]
@@ -28,7 +28,7 @@ requirements:
     - ete3 ==3.1.2
     - cython
     - dendropy
-    - genmine >=1.0.8
+    - genmine >=1.0.10
     - lxml
     - matplotlib-base ==3.5.1
     - numpy ==1.22.3
