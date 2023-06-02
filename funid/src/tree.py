@@ -168,67 +168,6 @@ def pipe_tree(V, path, opt, model_dict):
             f"{path.out_tree}/hash_{opt.runname}_{group}_concatenated.nwk",
         )
 
-    """
-    # MultiGene tree
-    fasttree_concatenated_opt = []
-    for group in V.multigene_list:
-        if opt.method.tree.lower() == "raxml":
-            ext.RAxML(
-                f"{path.out_alignment}/{opt.runname}_{group}_concatenated.fasta",
-                f"{opt.runname}_{group}_concatenated.nwk",
-                tree_hash_dict,
-                path,
-                thread=opt.thread,
-                bootstrap=opt.bootstrap,
-                partition=f"{path.out_alignment}/{opt.runname}_{group}.partition",
-                model=model_dict[group][gene],
-            )
-
-        elif opt.method.tree.lower() == "iqtree":
-            ext.IQTREE(
-                f"{path.out_alignment}/{opt.runname}_{group}_concatenated.fasta",
-                f"{opt.runname}_{group}_concatenated.nwk",
-                tree_hash_dict,
-                path,
-                thread=opt.thread,
-                bootstrap=opt.bootstrap,
-                partition=f"{path.out_alignment}/{opt.runname}_{group}.partition",
-                model=model_dict[group][gene],
-            )
-
-        else:
-            if not (opt.method.tree.lower() == "fasttree"):
-                logging.warning(
-                    "Tree method not selected, working for default opt, FastTree"
-                )
-            fasttree_concatenated_opt.append(
-                (
-                    f"{path.out_alignment}/{opt.runname}_{group}_concatenated.fasta",
-                    f"{opt.runname}_{group}_concatenated.nwk",
-                    tree_hash_dict,
-                    path,
-                    model_dict[group][gene],
-                )
-            )
-
-    # for fasttree, perform multiprocessing
-    if opt.method.tree.lower() == "fasttree":
-        # run multiprocessing start
-        if opt.verbose < 3:
-            p = mp.Pool(opt.thread)
-            fasttree_concatenated_result = p.starmap(
-                ext.FastTree, fasttree_concatenated_opt
-            )
-            p.close()
-            p.join()
-
-        else:
-            # non-multithreading mode for debugging
-            fasttree_concatenated_result = []
-            for option in fasttree_concatenated_opt:
-                fasttree_concatenated_result.append(ext.FastTree(*option))
-    """
-
     # decode alignments for each gene after building tree
     for group in tree_dataset:
         for gene in tree_dataset[group]:
@@ -256,23 +195,5 @@ def pipe_tree(V, path, opt, model_dict):
                     f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_{gene}.fasta",
                     f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
                 )
-
-    # decode concatenated fasta after building tree
-    """
-    for group in tree_dataset:
-        try:
-            os.rename(
-                f"{path.out_alignment}/{opt.runname}_{group}_concatenated.fasta",
-                f"{path.out_alignment}/{opt.runname}_hash_{group}_concatenated.fasta",
-            )
-
-            hasher.decode(
-                tree_hash_dict,
-                f"{path.out_alignment}/{opt.runname}_hash_{group}_concatenated.fasta",
-                f"{path.out_alignment}/{opt.runname}_{group}_concatenated.fasta",
-            )
-        except:
-            pass
-    """
 
     return V, path, opt
