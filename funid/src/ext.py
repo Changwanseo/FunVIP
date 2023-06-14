@@ -239,6 +239,8 @@ def RAxML(
 
     if platform == "win32":
         CMD = f"{path.sys_path}/external/RAxML_Windows/raxmlHPC-PTHREADS-AVX2.exe -s {fasta} -n {out} -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
+    elif platform == "darwin":
+        CMD = f"raxmlHPC-PTHREADS -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
     else:
         CMD = f"raxmlHPC-PTHREADS-AVX -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
 

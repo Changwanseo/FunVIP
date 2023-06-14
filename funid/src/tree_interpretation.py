@@ -1074,7 +1074,7 @@ class Tree_information:
                     text_type = "hash"
 
             # relocate text position little bit for better visualization
-            text.set("y", f'{int(text.get("y"))-2}')
+            text.set("y", f'{int(float(text.get("y")))-2}')
 
             if text_type == "taxon":
                 genus = get_genus_species(text.text, genus_list=genus_list)[0]
