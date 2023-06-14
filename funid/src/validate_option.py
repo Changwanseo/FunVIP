@@ -210,7 +210,7 @@ class Option:
             # Cluster options
             elif key.lower() in ("cluster-cutoff"):
                 self.cluster.evalue = parser_dict[key]
-            elif key.lower() in ("evalue"):
+            elif key.lower() in ("evalue", "cluster-evalue"):
                 self.cluster.evalue = parser_dict[key]
             elif key.lower() in ("wordsize"):
                 self.cluster.wordsize = parser_dict[key]

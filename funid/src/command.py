@@ -162,9 +162,10 @@ class CommandParser:
             help="Maximum letters to be shown in single line of tree annotation. Default: 48",
             type=int,
         )
+
         group_visualize.add_argument(
             "--backgroundcolor",
-            help="List of background colors to be shown in tree, default: #f4f4f4, #c6c6c6",
+            help='List of background colors to be shown in tree, default: #f4f4f4, #c6c6c6. Input should be used with quotes, delimit with spaces and recommended to be used as hex codes. To remove background, use --background "#FFFFFF" "#FFFFFF" ',
             nargs="*",
             type=str,
         )
