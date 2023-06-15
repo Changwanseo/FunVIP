@@ -92,7 +92,13 @@ def makeblastdb(fasta, db, path):
     else:
         CMD = f"makeblastdb -in '{fasta}' -blastdb_version 4 -title '{db}' -dbtype nucl"
         logging.info(CMD)
-        Run = subprocess.call(CMD, shell=True)
+        return_code = subprocess.call(CMD, shell=True)
+
+        if return_code != 0:
+            logging.error(f"[ERROR] Make blast_db failed!!")
+            install_flag = 1
+
+
         # Change db names
         shutil.move(fasta + ".nsq", db + ".nsq")
         shutil.move(fasta + ".nin", db + ".nin")

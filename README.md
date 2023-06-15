@@ -54,9 +54,10 @@ If you are using linux system please follow "Additional information for Linux"
 1. ```CONDA_SUBDIR=osx-64 conda create -n FunID python=3.10```
 2. ```conda activate FunID```
 3. ```conda config --env --set subdir osx-64```
-4. ```pip install FunID```
-5. ```conda install -c anaconda -c bioconda pyqt raxml iqtree mmseqs2 blast mafft trimal gblocks fasttree```
-6. run ```FunID --test Penicillium ``` to check installation
+4. ```conda install pyqt```
+5. ```pip install FunID```
+6. ```conda install -c anaconda -c bioconda raxml iqtree mmseqs2 blast>=2.12 mafft trimal gblocks fasttree```
+7. run ```FunID --test Penicillium ``` to check installation
 
 
 
