@@ -939,50 +939,55 @@ class Tree_information:
                     )
                 taxon_string_list.append(taxon_string)
 
-                taxon_text = TextFace(
-                    taxon_string,
-                    fsize=self.opt.visualize.fsize,
-                    ftype=self.opt.visualize.ftype,
-                    fgcolor=collapse_info.color,
-                )
-
-                space_text = TextFace(
-                    "  ",
-                    fsize=self.opt.visualize.fsize,
-                    ftype=self.opt.visualize.ftype,
-                    fgcolor=collapse_info.color,
-                )
-
-                # hash list for further analysis
-                string_hash_list = [x[0] for x in collapse_info.leaf_list]
-
-                # order by translated
-                string_hash_list.sort(key=lambda x: self.funinfo_dict[x].original_id)
-
-                id_string = divide_by_max_len(
-                    ",tmpseperator, ".join(string_hash_list),
-                    self.opt.visualize.maxwordlength,
-                )
-
-                id_text = TextFace(
-                    id_string,
-                    fsize=self.opt.visualize.fsize,
-                    ftype=self.opt.visualize.ftype,
-                )
-
-                if collapse_info.collapse_type == "triangle":
-                    rectangle = RectFace(
-                        width=collapse_info.width,
-                        height=collapse_info.height,
+                for c in clade:
+                    taxon_text = TextFace(
+                        taxon_string,
+                        fsize=self.opt.visualize.fsize,
+                        ftype=self.opt.visualize.ftype,
                         fgcolor=collapse_info.color,
-                        bgcolor=collapse_info.color,
                     )
-                    clade.add_face(rectangle, 1, position="branch-right")
 
-                clade.add_face(space_text, 2, position="branch-right")
-                clade.add_face(taxon_text, 3, position="branch-right")
-                clade.add_face(space_text, 4, position="branch-right")
-                clade.add_face(id_text, 5, position="branch-right")
+                    space_text = TextFace(
+                        "  ",
+                        fsize=self.opt.visualize.fsize,
+                        ftype=self.opt.visualize.ftype,
+                        fgcolor=collapse_info.color,
+                    )
+
+                    # hash list for further analysis
+                    string_hash_list = [x[0] for x in collapse_info.leaf_list]
+
+                    # order by translated
+                    string_hash_list.sort(
+                        key=lambda x: self.funinfo_dict[x].original_id
+                    )
+
+                    id_string = divide_by_max_len(
+                        ",tmpseperator, ".join(string_hash_list),
+                        self.opt.visualize.maxwordlength,
+                    )
+
+                    id_text = TextFace(
+                        id_string,
+                        fsize=self.opt.visualize.fsize,
+                        ftype=self.opt.visualize.ftype,
+                    )
+
+                    """
+                    if collapse_info.collapse_type == "triangle":
+                        rectangle = RectFace(
+                            width=collapse_info.width,
+                            height=collapse_info.height,
+                            fgcolor=collapse_info.color,
+                            bgcolor=collapse_info.color,
+                        )
+                        clade.add_face(rectangle, 1, position="branch-right")
+                    """
+
+                    c.add_face(space_text, 2, position="branch-right")
+                    c.add_face(taxon_text, 3, position="branch-right")
+                    c.add_face(space_text, 4, position="branch-right")
+                    c.add_face(id_text, 5, position="branch-right")
 
                 # get all tip names of the current working clade
                 collapse_leaf_name_list = [x[0] for x in collapse_info.leaf_list]
@@ -994,15 +999,16 @@ class Tree_information:
                 ) and any(
                     x in self.outgroup_leaf_name_list for x in collapse_leaf_name_list
                 ):
-                    clade.img_style["bgcolor"] = self.opt.visualize.outgroupcolor
-                    clade.img_style["draw_descendants"] = False
+                    # clade.img_style["bgcolor"] = self.opt.visualize.outgroupcolor
+                    # clade.img_style["draw_descendants"] = False
+                    pass
 
                 else:
-                    clade.img_style["bgcolor"] = self.get_bgcolor()
+                    # clade.img_style["bgcolor"] = self.get_bgcolor()
                     # change background color for next clade
                     self.bgstate += 1
 
-                    clade.img_style["draw_descendants"] = False
+                    # clade.img_style["draw_descendants"] = False
 
         # show branch support above 70%
         for node in self.t.traverse():
