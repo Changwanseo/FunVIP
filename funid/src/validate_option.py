@@ -698,12 +698,12 @@ class Option:
             list_warning.append(
                 f"Type for memory should be in format of 'nG' such as '16G', but {self.memory} was given. Using maximum system memory"
             )
-            self.memory = f"{int(psutil.virual_memory().total / (1024 ** 3))}G"
+            self.memory = f"{int(psutil.virtual_memory().total / (1024 ** 3))}G"
         elif not self.memory.endswith("G"):
             list_warning.append(
                 f"Type for memory should be in format of 'nG' such as '16G', but {self.memory} was given. Using maximum system memory"
             )
-            self.memory = f"{int(psutil.virual_memory().total / (1024 ** 3))}G"
+            self.memory = f"{int(psutil.virtual_memory().total / (1024 ** 3))}G"
         else:
             try:
                 float(self.memory[:-1])
@@ -711,7 +711,7 @@ class Option:
                 list_warning.append(
                     f"Type for memory should be in format of 'nG' such as '16G', but {self.memory} was given. Using maximum system memory"
                 )
-                self.memory = f"{int(psutil.virual_memory().total / (1024 ** 3))}G"
+                self.memory = f"{int(psutil.virtual_memory().total / (1024 ** 3))}G"
 
         if float(self.memory[:-1]) < 4:
             list_warning.append(

@@ -293,7 +293,7 @@ def IQTREE(
     out,
     hash_dict,
     path,
-    memory=f"{max(2, int(psutil.virual_memory().total / (1024**3)))}G",
+    memory=f"{max(2, int(psutil.virtual_memory().total / (1024**3)))}G",
     thread=1,
     bootstrap=1000,
     partition=None,
@@ -307,9 +307,9 @@ def IQTREE(
         bootstrap = 1000
 
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/iqtree-2.1.3-Windows/bin/iqtree2.exe -s {fasta} -B {bootstrap} -T {thread} -m {memory} {model}"
+        CMD = f"{path.sys_path}/external/iqtree-2.1.3-Windows/bin/iqtree2.exe -s {fasta} -B {bootstrap} -T {thread} -mem {memory} {model}"
     else:
-        CMD = f"iqtree -s {fasta} -B {bootstrap} -T {thread} -m {memory} {model}"
+        CMD = f"iqtree -s {fasta} -B {bootstrap} -T {thread} -mem {memory} {model}"
 
     if not (partition is None):
         CMD += f" -q {partition}"
@@ -322,7 +322,9 @@ def IQTREE(
         else:
             shutil.move(f"{partition}.contree", f"{path.tmp}/{out}")
     except:
-        logging.error("[Warning] IQTREE FAILED")
+        logging.error(
+            "IQTREE FAILED. Maybe due to memory problem. If you used modeltest, use modeltest-ng instead"
+        )
 
     file = out.split("/")[-1]
     save_tree(

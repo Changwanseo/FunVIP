@@ -66,8 +66,8 @@ class CommandParser:
         group_run.add_argument(
             "--memory",
             "-m",
-            help="Max memory limit, default : system maximum",
-            type=int,
+            help="Max memory limit in 'nG' form, ex: '16G', should be more than 4G, default : system maximum",
+            type=str,
         )
         group_run.add_argument(
             "--outdir", help="Out file location, default : current directory", type=str

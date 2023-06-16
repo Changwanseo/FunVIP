@@ -14,7 +14,7 @@ cmd_translator_modelfinder_fasttree = {
     "JC+G4": "-gamma",
     "GTR+G4": "-gtr -gamma",
 }
-cmd_translator_modeltestng_raxml = {
+cmd_translator_modelfinder_raxml = {
     "JC": "--JC",
     "JC+G4": "--JC",
     "JC+I": "--JC",
@@ -105,12 +105,10 @@ cmd_translator_modeltestng_raxml = {
 
 
 def parse_model(modeltest_file, opt, path):
-
     model_list = []
     model_cmd = "no model found"
 
     if opt.method.modeltest == "iqtree":
-
         # Check iqtree - iqtree pair has misentered here
         if opt.method.tree == "iqtree":
             logging.error(
@@ -179,7 +177,6 @@ def parse_model(modeltest_file, opt, path):
             raise Exception
 
     elif opt.method.modeltest == "modeltest-ng":
-
         ### Testing block ###
         # Parse files
 
@@ -280,7 +277,6 @@ def cleanup(modeltest_file):
 
 # main function
 def modeltest(V, path, opt) -> dict:
-
     group_dict = V.dict_dataset
     model_dict = copy.deepcopy(group_dict)
 
@@ -321,7 +317,6 @@ def modeltest(V, path, opt) -> dict:
                 )
             elif opt.method.modeltest.lower() == "iqtree":
                 if not (opt.method.tree == "iqtree"):
-
                     # Run IQTREE ModelFinder
                     ext.ModelFinder(
                         fasta=f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
