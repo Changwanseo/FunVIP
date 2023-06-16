@@ -19,7 +19,13 @@ if platform == "darwin":
         author_email="wan101010@snu.ac.kr",
         url="https://github.com/Changwanseo/FunID",
         python_requires="<3.11, >3.8",
-        packages=["funid", "funid.src", "funid.data", "funid.test_dataset", "funid.preset"],
+        packages=[
+            "funid",
+            "funid.src",
+            "funid.data",
+            "funid.test_dataset",
+            "funid.preset",
+        ],
         install_requires=[
             "biopython==1.78",
             "ete3==3.1.2",
@@ -32,6 +38,7 @@ if platform == "darwin":
             "openpyxl==3.0.9",
             "pandas==1.4.2",
             "plotly==5.9.0",
+            "psutil",
             "PyQt5>=5.9.2",
             "pyyaml",
             "sip>=4.19.4",
@@ -62,7 +69,13 @@ else:
         author_email="wan101010@snu.ac.kr",
         url="https://github.com/Changwanseo/FunID",
         python_requires="<3.11, >3.8",
-        packages=["funid", "funid.src", "funid.data", "funid.test_dataset", "funid.preset"],
+        packages=[
+            "funid",
+            "funid.src",
+            "funid.data",
+            "funid.test_dataset",
+            "funid.preset",
+        ],
         install_requires=[
             "biopython==1.78",
             "ete3==3.1.2",
@@ -75,6 +88,7 @@ else:
             "openpyxl==3.0.9",
             "pandas==1.4.2",
             "plotly==5.9.0",
+            "psutil",
             "pyyaml",
             "sip>=4.19.4",
             "scikit-learn==1.0.2",
@@ -95,8 +109,6 @@ else:
         include_package_data=True,
         license="GPL3",
     )
-
-
 
 
 def run_tests():

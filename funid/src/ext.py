@@ -4,6 +4,7 @@ from Bio import SeqIO
 import logging
 import os, subprocess
 import shutil
+import psutil
 from copy import deepcopy
 from pathlib import Path
 from funid.src.save import save_tree
@@ -97,7 +98,6 @@ def makeblastdb(fasta, db, path):
         if return_code != 0:
             logging.error(f"[ERROR] Make blast_db failed!!")
             install_flag = 1
-
 
         # Change db names
         shutil.move(fasta + ".nsq", db + ".nsq")
@@ -289,7 +289,15 @@ def FastTree(fasta, out, hash_dict, path, model=""):
 
 
 def IQTREE(
-    fasta, out, hash_dict, path, thread=1, bootstrap=1000, partition=None, model=""
+    fasta,
+    out,
+    hash_dict,
+    path,
+    memory=f"{max(2, int(psutil.virual_memory().total / (1024**3)))}G",
+    thread=1,
+    bootstrap=1000,
+    partition=None,
+    model="",
 ):
     if model == "skip":
         model = ""
@@ -299,9 +307,9 @@ def IQTREE(
         bootstrap = 1000
 
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/iqtree-2.1.3-Windows/bin/iqtree2.exe -s {fasta} -B {bootstrap} -T {thread} {model}"
+        CMD = f"{path.sys_path}/external/iqtree-2.1.3-Windows/bin/iqtree2.exe -s {fasta} -B {bootstrap} -T {thread} -m {memory} {model}"
     else:
-        CMD = f"iqtree -s {fasta} -B {bootstrap} -T {thread} {model}"
+        CMD = f"iqtree -s {fasta} -B {bootstrap} -T {thread} -m {memory} {model}"
 
     if not (partition is None):
         CMD += f" -q {partition}"
