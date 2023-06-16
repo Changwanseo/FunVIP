@@ -217,10 +217,10 @@ def ModelFinder(fasta, opt, path, thread):
         raise Exception
 
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/iqtree-2.1.3-Windows/bin/iqtree2.exe --seqtype DNA -s {fasta} {model_term} -merit {opt.criterion} -T {thread}"
+        CMD = f"{path.sys_path}/external/iqtree-2.1.3-Windows/bin/iqtree2.exe --seqtype DNA -s {fasta} {model_term} -merit {opt.criterion} -T {thread} -mem {opt.memory}"
     else:
         # not final
-        CMD = f"iqtree --seqtype DNA -s '{fasta}' {model_term} -merit {opt.criterion} -T {thread}"
+        CMD = f"iqtree --seqtype DNA -s '{fasta}' {model_term} -merit {opt.criterion} -T {thread} -mem {opt.memory}"
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
 

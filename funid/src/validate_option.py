@@ -6,6 +6,7 @@ import yaml
 import builtins
 import datetime
 import re
+import psutil
 from funid.src.logics import isvalidcolor
 from funid.src.tool import check_avx
 
@@ -66,6 +67,7 @@ class Option:
         self.api = ""
         self.test = None
         self.thread = "auto"
+        self.memory = f"{int(psutil.virtual_memory().total / (1024 ** 3))}G"
         self.outdir = None
         self.runname = None
         self.mode = "identification"
