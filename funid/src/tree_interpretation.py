@@ -954,6 +954,13 @@ class Tree_information:
                         fgcolor=collapse_info.color,
                     )
 
+                    id_text = TextFace(
+                        c.name,
+                        fsize=self.opt.visualize.fsize,
+                        ftype=self.opt.visualize.ftype,
+                    )
+
+                    """
                     # hash list for further analysis
                     string_hash_list = [x[0] for x in collapse_info.leaf_list]
 
@@ -966,13 +973,7 @@ class Tree_information:
                         ",tmpseperator, ".join(string_hash_list),
                         self.opt.visualize.maxwordlength,
                     )
-
-                    id_text = TextFace(
-                        id_string,
-                        fsize=self.opt.visualize.fsize,
-                        ftype=self.opt.visualize.ftype,
-                    )
-
+                    """
                     """
                     if collapse_info.collapse_type == "triangle":
                         rectangle = RectFace(
@@ -992,6 +993,7 @@ class Tree_information:
                 # get all tip names of the current working clade
                 collapse_leaf_name_list = [x[0] for x in collapse_info.leaf_list]
 
+                """
                 # check if current working clade includes only outgroup sequences
                 if all(
                     x in self.outgroup_leaf_name_list or x in collapse_info.query_list
@@ -1009,6 +1011,7 @@ class Tree_information:
                     self.bgstate += 1
 
                     # clade.img_style["draw_descendants"] = False
+                """
 
         # show branch support above 70%
         for node in self.t.traverse():
@@ -1045,6 +1048,7 @@ class Tree_information:
         _group = list(tree_xml.iter("{http://www.w3.org/2000/svg}g"))
         group_list = list(_group[0].findall("{http://www.w3.org/2000/svg}g"))
 
+        """
         # in tree_xml change all rectangles to polygon (trigangle)
         for group in group_list:
             if len(list(group.findall("{http://www.w3.org/2000/svg}rect"))) == 1:
@@ -1058,6 +1062,7 @@ class Tree_information:
                         "points",
                         f'{rect.get("width")},0 0,{int(rect.get("height"))/2} {rect.get("width")},{rect.get("height")}',
                     )
+        """
 
         # for taxons, gather all texts
         text_list = list(tree_xml.iter("{http://www.w3.org/2000/svg}text"))
