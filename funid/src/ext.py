@@ -16,23 +16,8 @@ from funid.src.tool import mkdir
 def blast(query, db, out, path, opt):
     path_blast = Path(f"{path.sys_path}/external/BLAST_Windows/bin/blastn.exe")
 
-    # To prevent makeblastdb error in windows, run it on temporary directory and move it
+    # quotations make errors on windows platform
     if platform == "win32":
-        """
-        # Save original path
-        ori_path = deepcopy(os.getcwd())
-        blast_path = f"{path.tmp}\\blast\\"
-        # remove temporary path if exists
-        if os.path.exists(blastdb_path):
-            shutil.rmtree(blastdb_path)
-        # make new temp blast directory
-        mkdir(blast_path)
-        os.chdir(blast_path)
-
-        # Move makeblastdb.exe and destination file to temporate directory
-        shutil.copy(fasta, blast_path)
-        """
-
         CMD = f"{path_blast} -out {out} -query {query} -outfmt 6 -db {db} -word_size {opt.cluster.wordsize} -evalue {opt.cluster.evalue} -num_threads {opt.thread}"
     else:
         CMD = f"blastn -out '{out}' -query '{query}' -outfmt 6 -db '{db}' -word_size {opt.cluster.wordsize} -evalue {opt.cluster.evalue} -num_threads {opt.thread}"
@@ -307,12 +292,15 @@ def IQTREE(
         bootstrap = 1000
 
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/iqtree-2.1.3-Windows/bin/iqtree2.exe -s {fasta} -B {bootstrap} -T {thread} -mem {memory} {model}"
+        CMD = f"{path.sys_path}/external/iqtree-2.1.3-Windows/bin/iqtree2.exe -s {fasta} -B {bootstrap} -T {thread} {model}"
     else:
-        CMD = f"iqtree -s {fasta} -B {bootstrap} -T {thread} -mem {memory} {model}"
+        CMD = f"iqtree -s {fasta} -B {bootstrap} -T {thread} {model}"
 
+    # Partitioned analysis cannot be used with memory
     if not (partition is None):
         CMD += f" -q {partition}"
+    else:
+        CMD += f" -mem {memory}"
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
@@ -323,7 +311,7 @@ def IQTREE(
             shutil.move(f"{partition}.contree", f"{path.tmp}/{out}")
     except:
         logging.error(
-            "IQTREE FAILED. Maybe due to memory problem. If you used modeltest, use modeltest-ng instead"
+            "IQTREE FAILED. Maybe due to memory problem if partitioned analysis included."
         )
 
     file = out.split("/")[-1]
