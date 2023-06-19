@@ -1,5 +1,5 @@
 {% set name = "FunID" %}
-{% set version = "0.3.9" %}
+{% set version = "0.3.10" %}
 
 package:
   name: {{ name|lower }}
@@ -7,7 +7,7 @@ package:
 
 source:
   url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/FunID-{{ version }}.tar.gz
-  sha256: a958c9bc07eaa31f1e565724e69a08325587fd88cc7e39e1f40f8f90eb49db78
+  sha256: b933b4936d6715580bb9fe3ec5ecc1aa402d8220fa88c991fbcaf6c49d245a6d
 
 build:
   skip: true  # [py>=311 or py2k]
@@ -35,7 +35,7 @@ requirements:
     - openpyxl ==3.0.9
     - pandas ==1.4.2
     - plotly ==5.9.0
-    - pyqt >=5.9.2
+    - psutil
     - pyyaml
     - sip >=4.19.4
     - scikit-learn ==1.0.2
