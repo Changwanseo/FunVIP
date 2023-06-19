@@ -4,8 +4,8 @@ from sys import platform
 import subprocess
 
 name = "FunID"
-__version__ = "0.3.10"
-release = "0.3.10.0.0"
+__version__ = "0.3.10.1"
+release = "0.3.10.1.0"
 
 
 ## Default setup options
@@ -89,6 +89,7 @@ else:
             "pandas==1.4.2",
             "plotly==5.9.0",
             "psutil",
+            "PyQt5",
             "pyyaml",
             "sip>=4.19.4",
             "scikit-learn==1.0.2",

@@ -971,6 +971,7 @@ class Option:
             "modeltest-ng": "modeltest-ng",
             "jmodeltest": "modeltest-ng",
             "iqtree": "iqtree",
+            "modelfinder": "iqtree",
             "none": "none",
         }
 
