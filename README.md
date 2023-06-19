@@ -48,7 +48,7 @@ If you are using linux system please follow "Additional information for Linux"
 * Currently, FunID is one-step installed only in Windows
 * to use in linux please run this command additionally
 
-```conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 blast mafft trimal gblocks fasttree```
+```conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 blast=>2.12 mafft trimal gblocks fasttree```
 
 ## Experimental - Installation for apple silicon (M1, M2)
 1. ```CONDA_SUBDIR=osx-64 conda create -n FunID python=3.10```
@@ -56,7 +56,7 @@ If you are using linux system please follow "Additional information for Linux"
 3. ```conda config --env --set subdir osx-64```
 4. ```conda install pyqt```
 5. ```pip install FunID```
-6. ```conda install -c anaconda -c bioconda raxml iqtree mmseqs2 blast>=2.12 mafft trimal gblocks fasttree```
+6. ```conda install -c bioconda raxml iqtree mmseqs2 "blast>=2.12" mafft trimal gblocks fasttree```
 7. run ```FunID --test Penicillium ``` to check installation
 
 
