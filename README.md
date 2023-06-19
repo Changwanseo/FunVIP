@@ -37,9 +37,8 @@ If this one fails, use next one
 ## Installation with conda (using pip - Recommended)
 1. ```conda create -n FunID python=3.10```
 2. ```conda activate FunID```
-3. ```conda install pip```
-4. ```pip install FunID```
-5. run ```FunID --test Penicillium ``` to check installation
+3. ```pip install FunID```
+4. run ```FunID --test Penicillium ``` to check installation
 If you are using linux system please follow "Additional information for Linux"
 * For mac system, this installation probably work, but we couldn't test it because we don't have any mac device. We're looking for feedbacks in mac
 * For upgrade use this command
@@ -49,7 +48,17 @@ If you are using linux system please follow "Additional information for Linux"
 * Currently, FunID is one-step installed only in Windows
 * to use in linux please run this command additionally
 
-```conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 blast mafft trimal gblocks fasttree```
+```conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 blast=>2.12 mafft trimal gblocks fasttree```
+
+## Experimental - Installation for apple silicon (M1, M2)
+1. ```CONDA_SUBDIR=osx-64 conda create -n FunID python=3.10```
+2. ```conda activate FunID```
+3. ```conda config --env --set subdir osx-64```
+4. ```conda install pyqt```
+5. ```pip install FunID```
+6. ```conda install -c bioconda raxml iqtree mmseqs2 "blast>=2.12" mafft trimal gblocks fasttree```
+7. run ```FunID --test Penicillium ``` to check installation
+
 
 
 ## Installation from source

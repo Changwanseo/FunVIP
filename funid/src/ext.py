@@ -4,6 +4,7 @@ from Bio import SeqIO
 import logging
 import os, subprocess
 import shutil
+import psutil
 from copy import deepcopy
 from pathlib import Path
 from funid.src.save import save_tree
@@ -15,23 +16,8 @@ from funid.src.tool import mkdir
 def blast(query, db, out, path, opt):
     path_blast = Path(f"{path.sys_path}/external/BLAST_Windows/bin/blastn.exe")
 
-    # To prevent makeblastdb error in windows, run it on temporary directory and move it
+    # quotations make errors on windows platform
     if platform == "win32":
-        """
-        # Save original path
-        ori_path = deepcopy(os.getcwd())
-        blast_path = f"{path.tmp}\\blast\\"
-        # remove temporary path if exists
-        if os.path.exists(blastdb_path):
-            shutil.rmtree(blastdb_path)
-        # make new temp blast directory
-        mkdir(blast_path)
-        os.chdir(blast_path)
-
-        # Move makeblastdb.exe and destination file to temporate directory
-        shutil.copy(fasta, blast_path)
-        """
-
         CMD = f"{path_blast} -out {out} -query {query} -outfmt 6 -db {db} -word_size {opt.cluster.wordsize} -evalue {opt.cluster.evalue} -num_threads {opt.thread}"
     else:
         CMD = f"blastn -out '{out}' -query '{query}' -outfmt 6 -db '{db}' -word_size {opt.cluster.wordsize} -evalue {opt.cluster.evalue} -num_threads {opt.thread}"
@@ -92,7 +78,12 @@ def makeblastdb(fasta, db, path):
     else:
         CMD = f"makeblastdb -in '{fasta}' -blastdb_version 4 -title '{db}' -dbtype nucl"
         logging.info(CMD)
-        Run = subprocess.call(CMD, shell=True)
+        return_code = subprocess.call(CMD, shell=True)
+
+        if return_code != 0:
+            logging.error(f"[ERROR] Make blast_db failed!!")
+            install_flag = 1
+
         # Change db names
         shutil.move(fasta + ".nsq", db + ".nsq")
         shutil.move(fasta + ".nin", db + ".nin")
@@ -211,10 +202,10 @@ def ModelFinder(fasta, opt, path, thread):
         raise Exception
 
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/iqtree-2.1.3-Windows/bin/iqtree2.exe --seqtype DNA -s {fasta} {model_term} -merit {opt.criterion} -T {thread}"
+        CMD = f"{path.sys_path}/external/iqtree-2.1.3-Windows/bin/iqtree2.exe --seqtype DNA -s {fasta} {model_term} -merit {opt.criterion} -T {thread} -mem {opt.memory}"
     else:
         # not final
-        CMD = f"iqtree --seqtype DNA -s '{fasta}' {model_term} -merit {opt.criterion} -T {thread}"
+        CMD = f"iqtree --seqtype DNA -s '{fasta}' {model_term} -merit {opt.criterion} -T {thread} -mem {opt.memory}"
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
 
@@ -239,6 +230,8 @@ def RAxML(
 
     if platform == "win32":
         CMD = f"{path.sys_path}/external/RAxML_Windows/raxmlHPC-PTHREADS-AVX2.exe -s {fasta} -n {out} -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
+    elif platform == "darwin":
+        CMD = f"raxmlHPC-PTHREADS -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
     else:
         CMD = f"raxmlHPC-PTHREADS-AVX -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
 
@@ -281,7 +274,15 @@ def FastTree(fasta, out, hash_dict, path, model=""):
 
 
 def IQTREE(
-    fasta, out, hash_dict, path, thread=1, bootstrap=1000, partition=None, model=""
+    fasta,
+    out,
+    hash_dict,
+    path,
+    memory=f"{max(2, int(psutil.virtual_memory().total / (1024**3)))}G",
+    thread=1,
+    bootstrap=1000,
+    partition=None,
+    model="",
 ):
     if model == "skip":
         model = ""
@@ -295,8 +296,11 @@ def IQTREE(
     else:
         CMD = f"iqtree -s {fasta} -B {bootstrap} -T {thread} {model}"
 
+    # Partitioned analysis cannot be used with memory
     if not (partition is None):
         CMD += f" -q {partition}"
+    else:
+        CMD += f" -mem {memory}"
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
@@ -306,7 +310,9 @@ def IQTREE(
         else:
             shutil.move(f"{partition}.contree", f"{path.tmp}/{out}")
     except:
-        logging.error("[Warning] IQTREE FAILED")
+        logging.error(
+            "IQTREE FAILED. Maybe due to memory problem if partitioned analysis included."
+        )
 
     file = out.split("/")[-1]
     save_tree(

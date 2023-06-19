@@ -162,14 +162,25 @@ class Path:
             # "mafft": "mafft --help",
             # FastTree check fails when run with nohup
             # "Fasttree": "FastTree",
-            check_commands = {
-                "RAxML": "raxmlHPC-PTHREADS-AVX -h",
-                "IQTREE": "iqtree -h",
-                "Modeltest-NG": "modeltest-ng --help",
-                "MMseqs2": "mmseqs -h",
-                "BLASTn": "blastn -help",
-                "Trimal": "trimal -h",
-            }
+
+            if sys.platform == "darwin":
+                check_commands = {
+                    "RAxML": "raxmlHPC-PTHREADS -h",
+                    "IQTREE": "iqtree -h",
+                    "MMseqs2": "mmseqs -h",
+                    "BLASTn": "blastn -help",
+                    "Trimal": "trimal -h",
+                }
+            else:
+                check_commands = {
+                    "RAxML": "raxmlHPC-PTHREADS-AVX -h",
+                    "Modeltest-NG": "modeltest-ng --help",
+                    "IQTREE": "iqtree -h",
+                    "MMseqs2": "mmseqs -h",
+                    "BLASTn": "blastn -help",
+                    "Trimal": "trimal -h",
+                }
+
             for program in check_commands:
                 cmd = check_commands[program]
                 # Quietly call each programs
@@ -181,9 +192,15 @@ class Path:
                     install_flag = 1
 
             if install_flag == 1:
-                print(
-                    f"[ERROR] Some of the dependencies not installed. Use \n conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 blast mafft trimal gblocks fasttree \nto install dependencies"
-                )
+                if sys.platform == "darwin":
+                    print(
+                        f"[ERROR] Some of the dependencies not installed. Use \n conda install -c anaconda -c bioconda pyqt raxml iqtree mmseqs2 blast mafft trimal gblocks fasttree \nto install dependencies"
+                    )
+
+                else:
+                    print(
+                        f"[ERROR] Some of the dependencies not installed. Use \n conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 blast mafft trimal gblocks fasttree \nto install dependencies"
+                    )
                 raise Exception
 
         # Location for list of genus file

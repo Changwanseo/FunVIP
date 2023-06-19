@@ -6,6 +6,7 @@ import yaml
 import builtins
 import datetime
 import re
+import psutil
 from funid.src.logics import isvalidcolor
 from funid.src.tool import check_avx
 
@@ -66,6 +67,7 @@ class Option:
         self.api = ""
         self.test = None
         self.thread = "auto"
+        self.memory = f"{int(psutil.virtual_memory().total / (1024 ** 3))}G"
         self.outdir = None
         self.runname = None
         self.mode = "identification"
@@ -128,6 +130,8 @@ class Option:
                 self.api = parser_dict[key]
             elif key.lower() in ("thread"):
                 self.thread = parser_dict[key]
+            elif key.lower() in ("memory"):
+                self.memory = parser_dict[key]
             elif key.lower() in ("outdir"):
                 self.outdir = parser_dict[key]
             elif key.lower() in ("runname"):
@@ -210,7 +214,7 @@ class Option:
             # Cluster options
             elif key.lower() in ("cluster-cutoff"):
                 self.cluster.evalue = parser_dict[key]
-            elif key.lower() in ("evalue"):
+            elif key.lower() in ("evalue", "cluster-evalue"):
                 self.cluster.evalue = parser_dict[key]
             elif key.lower() in ("wordsize"):
                 self.cluster.wordsize = parser_dict[key]
@@ -271,6 +275,12 @@ class Option:
         try:
             if not parser.thread is None:
                 self.thread = parser.thread
+        except:
+            pass
+
+        try:
+            if not parser.memory is None:
+                self.memory = parser.memory
         except:
             pass
 
@@ -675,6 +685,45 @@ class Option:
             )
             self.thread = os.cpu_count()
 
+        # memory
+        # Check if memory is in valid format
+        # memory should be in XXG format like '16G'
+        # If memory is over system memory adjust it to maximum
+        # If memory is less than 4G, adjust it to 4G
+        if type(self.memory) is int or type(self.memory) is float:
+            list_warning.append(
+                f"Type for memory should be in format of 'nG' such as '16G', but {self.memory} was given. Considering {self.memory} as gigabytes"
+            )
+            self.memory = f"{int(self.memory)}G"
+
+        elif not type(self.memory) is str:
+            list_warning.append(
+                f"Type for memory should be in format of 'nG' such as '16G', but {self.memory} was given. Using maximum system memory"
+            )
+            self.memory = f"{int(psutil.virtual_memory().total / (1024 ** 3))}G"
+        elif not self.memory.endswith("G"):
+            list_warning.append(
+                f"Type for memory should be in format of 'nG' such as '16G', but {self.memory} was given. Using maximum system memory"
+            )
+            self.memory = f"{int(psutil.virtual_memory().total / (1024 ** 3))}G"
+        else:
+            try:
+                float(self.memory[:-1])
+            except:
+                list_warning.append(
+                    f"Type for memory should be in format of 'nG' such as '16G', but {self.memory} was given. Using maximum system memory"
+                )
+                self.memory = f"{int(psutil.virtual_memory().total / (1024 ** 3))}G"
+
+        if float(self.memory[:-1]) < 4:
+            list_warning.append(
+                f"At least 4G of memory required for FunID. Try using 4G"
+            )
+            if psutil.virtual_memory().total / (1024**3) < 4:
+                list_error.append(f"Less than 4G of memory (RAM) detected ! Aborted")
+            else:
+                self.memory = "4G"
+
         # outdir
         # Check if outdirectory is valid path
         # If outdir does not exists, try making directory
@@ -922,6 +971,7 @@ class Option:
             "modeltest-ng": "modeltest-ng",
             "jmodeltest": "modeltest-ng",
             "iqtree": "iqtree",
+            "modelfinder": "iqtree",
             "none": "none",
         }
 
