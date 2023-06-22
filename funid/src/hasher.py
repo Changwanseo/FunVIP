@@ -70,9 +70,14 @@ def decode_df(hash_dict: dict, df: pd.DataFrame) -> pd.DataFrame:
 
     hash_dict = dict((re.escape(k), v) for k, v in hash_dict.items())
 
+    print(hash_dict)
+    print(df)
+
     df_return = copy.deepcopy(df)
 
     for column in df.columns:
+        print(column)
+        print(df_return[column])
         df_return[column] = df_return[column].map(lambda x: hash_dict.get(x, x))
 
     return df_return

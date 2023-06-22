@@ -153,9 +153,11 @@ def cluster(FI, df_search, V, path, opt):
         # reset index to easily get maximum
         df_search.reset_index(inplace=True, drop=True)
         # get result stasifies over cutoff
+        """
         cutoff_df = df_search[
             df_search["bitscore"] > df_search["bitscore"][0] * opt.cluster.cutoff
         ]
+        """
 
         del df_search
         gc.collect()

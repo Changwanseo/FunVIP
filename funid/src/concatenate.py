@@ -1,11 +1,13 @@
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
-
+import itertools
 import logging
 from functools import reduce
 import pandas as pd
+from copy import deepcopy
 from funid.src import search, hasher
+import numpy as np
 
 
 def combine_alignment(V, opt, path):
@@ -89,10 +91,15 @@ def combine_alignment(V, opt, path):
 # for concatenating blast result to get single bitscore among results
 def concatenate_df(V, path, opt):
     logging.info("Concatenating search results")
-    df_list = [V.dict_gene_SR[gene] for gene in V.dict_gene_SR]
 
-    print(V.dict_gene_SR)
-    print(df_list)
+    gene_list = []
+    df_list = []
+    for gene in V.dict_gene_SR.keys():
+        # Leave non-empty dataframes
+        if isinstance(V.dict_gene_SR[gene], pd.DataFrame):
+            gene_list.append(gene)
+            df = deepcopy(V.dict_gene_SR[gene].set_index(["qseqid", "sseqid"]))
+            df_list.append(df)
 
     if len(df_list) <= 0:
         logging.warning(f"Stop concatenating because same or less than 0 gene exists")
@@ -102,9 +109,115 @@ def concatenate_df(V, path, opt):
         # drop unused columns
         cnt = 0
 
-        # initializing because search result for specific gene may not exists
+        # Change biscore names
+        for n, df in enumerate(df_list):
+            gene = gene_list[n]
+            df[f"{gene}_bitscore"] = df["bitscore"]
+            df[f"{gene}_subject_group"] = df["subject_group"]
+
+        # Concatenate multiple dataframes
+        df_multigene_regression_ori = pd.concat(df_list, axis=1)
+
+        # Drop unnecessary columns
+        df_multigene_regression_ori.drop(
+            columns=[
+                "pident",
+                "length",
+                "mismatch",
+                "gaps",
+                "qstart",
+                "qend",
+                "sstart",
+                "send",
+                "evalue",
+                "bitscore",
+                "subject_group",
+            ],
+            inplace=True,
+        )
+
+        # Work on subject_group
+        def same_merge(x, list_col):
+            values = x[list_col].dropna()
+            if values.empty:
+                raise Exception
+            return values.iloc[0]
+
+        df_multigene_regression_ori[
+            "subject_group"
+        ] = df_multigene_regression_ori.apply(
+            lambda x: same_merge(x, [f"{gene}_subject_group" for gene in gene_list]),
+            axis=1,
+        )
+
+        # For regression, leave genes with all genes existing
+        df_multigene_regression = df_multigene_regression_ori
+
+        for gene in gene_list:
+            df_multigene_regression = df_multigene_regression[
+                df_multigene_regression[f"{gene}_bitscore"].notna()
+            ]
+
+        # Count the number of entries. If not enough number exists, add terms with one NaN
+        num = 0
+        fail_flag = 0
+        while len(df_multigene_regression) < 3:
+            print(
+                f"Failed to find enough normalization point with {len(gene_list)-num} genes."
+            )
+            num += 1
+            df_multigene_regression_all = []
+            if num < len(gene_list):
+                for leave_genes in itertools.combinations(gene_list, num):
+                    for gene in gene_list:
+                        if not gene in leave_genes:
+                            df_multigene_regression_all.append(
+                                df_multigene_regression_ori[
+                                    df_multigene_regression[f"{gene}_bitscore"].notna()
+                                ]
+                            )
+                df_multigene_regression = pd.concat(df_multigene_regression_all)
+            else:
+                fail_flag = 1
+                break
+
+        df_multigene_regression.reset_index().to_excel("Test.xlsx", index=False)
+
+        # Get normalization parameters for all genes
+        norm_param_dict = {}
+        for gene in gene_list:
+            norm_param_dict[gene] = {}
+            values = df_multigene_regression[f"{gene}_bitscore"][
+                df_multigene_regression[f"{gene}_bitscore"].notna()
+            ]
+            norm_param_dict[gene]["mean"] = values.mean()
+            norm_param_dict[gene]["std"] = values.std()
+
+        # Return to original multigene, or normalize
+        # multiply 100 to use with previous offset options
+        for gene in gene_list:
+            df_multigene_regression_ori[f"{gene}_bitscore"] = (
+                (
+                    df_multigene_regression_ori[f"{gene}_bitscore"]
+                    - norm_param_dict[gene]["mean"]
+                )
+                / norm_param_dict[gene]["std"]
+                * 100
+            )
+
+        # Get average from multigene matrix
+        df_multigene_regression_ori["bitscore"] = df_multigene_regression_ori[
+            [f"{gene}_bitscore" for gene in gene_list]
+        ].mean(axis=1)
+
+        V.cSR = df_multigene_regression_ori.reset_index()
+        V.cSR.reset_index().to_excel("TestTest.xlsx", index=False)
+
+        """
+
         while 1:
             if isinstance(df_list[cnt], pd.DataFrame):
+                # If non-empty dataframe selected,
                 if not (df_list[cnt].empty):
                     V.cSR = df_list[cnt]
                     V.cSR.drop(
@@ -183,12 +296,13 @@ def concatenate_df(V, path, opt):
                         columns=drop_list,
                         inplace=True,
                     )
+    """
 
     # Save it
     # decode df is not working well here
     if opt.nosearchresult is False:
         search.save_df(
-            hasher.decode_df(V.dict_id_hash, V.cSR),
+            hasher.decode_df(hash_dict=V.dict_id_hash, df=V.cSR),
             f"{path.out_matrix}/{opt.runname}_BLAST_result_concatenated.{opt.matrixformat}",
             fmt=opt.matrixformat,
         )

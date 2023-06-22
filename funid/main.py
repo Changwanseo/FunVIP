@@ -78,7 +78,7 @@ def main():
     # R includes all reporting objects such as warnings, errors, statistics
     R = reporter.Report()
 
-    # Reload previous session if --continue selected
+    # Reload previous session from shelve if --continue selected
     if opt.continue_from_previous is True:
         var = save.load_session(opt, savefile=path.save)
         if "V" in var:

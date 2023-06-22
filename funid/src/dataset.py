@@ -131,6 +131,7 @@ class FunID_var:
 
     # generate dataset by group and gene
     def generate_dataset(self, opt):
+        # Format : dict_funinfo = {group: {gene : [FI]}}
         dict_funinfo = {}
 
         for group in self.list_group:
@@ -139,7 +140,8 @@ class FunID_var:
 
             # For queryonly case
             if opt.queryonly is True:
-                group_flag = False  # whether to run this group
+                # whether to run this group
+                group_flag = False
                 for gene in self.list_db_gene:
                     logging.debug(
                         f"Searching dataset {group} {gene} includes query sequences"
@@ -154,11 +156,12 @@ class FunID_var:
                         )
                     ]
 
-                    # do not manage db when query only mode and query does not exists
+                    # do not manage db when --queryonly True (--all False) and query does not exists
                     if len(list_qr) > 0:
                         group_flag = True
 
-                if group_flag:  # if decided to run this group
+                # if decided to run this group
+                if group_flag is True:
                     logging.info(f"Decided to construct dataset on {group}")
                     for gene in self.list_db_gene:
                         list_qr = [
