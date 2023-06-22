@@ -159,6 +159,9 @@ def cluster(FI, df_search, V, path, opt):
         ]
         """
 
+        # NEED DEVELOPMENT
+        cutoff_df = df_search
+
         del df_search
         gc.collect()
 
