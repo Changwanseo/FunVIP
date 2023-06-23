@@ -31,6 +31,7 @@ def check_gene_availability(V, opt):
     return available_gene, unavailable_gene
 
 
+# return list of original group of given funinfo
 def get_naive_group(V):
     return list(
         set([funinfo.group for funinfo in V.list_FI if type(funinfo.group) == str])
@@ -122,11 +123,6 @@ def assign_gene(result_dict, V, cutoff=0.99):
 
 # cluster each of Funinfo object and assign group
 def cluster(FI, df_search, V, path, opt):
-    # import tracemalloc
-
-    # tracemalloc.start(10)
-    # time1 = tracemalloc.take_snapshot()
-
     list_group = deepcopy(V.list_group)
 
     # delete V to reduce memory assumption
@@ -153,15 +149,11 @@ def cluster(FI, df_search, V, path, opt):
         # reset index to easily get maximum
         df_search.reset_index(inplace=True, drop=True)
         # get result stasifies over cutoff
-        """
         cutoff_df = df_search[
             df_search["bitscore"] > df_search["bitscore"][0] * opt.cluster.cutoff
         ]
-        """
 
-        # NEED DEVELOPMENT
-        cutoff_df = df_search
-
+        # Garbage collection
         del df_search
         gc.collect()
 
@@ -176,11 +168,11 @@ def cluster(FI, df_search, V, path, opt):
             # if no group matched, warn it
             elif group_count == 0:
                 logging.warning(
-                    f" Query seq in {FI.id} cannot be assigned to group. Check sequence"
+                    f"Query seq in {FI.id} cannot be assigned to group. Check sequence"
                 )
             elif group_count >= 2:
                 logging.warning(
-                    f" Query seq in {FI.id} has multiple matches to group, {list_group}."
+                    f"Query seq in {FI.id} has multiple matches to group, {list_group}."
                 )
                 FI.adjusted_group = list_group[0]
             else:
@@ -193,13 +185,7 @@ def cluster(FI, df_search, V, path, opt):
         else:
             if not (FI.adjusted_group == ""):
                 if not (FI.adjusted_group in list_group):
-                    logging.warning(f" Clustering result colliding in {FI.id}")
-
-        # return funinfo object with adjusted group, and selected group
-        # time2 = tracemalloc.take_snapshot()
-        # stats = time2.compare_to(time1, "lineno")
-        # for stat in stats[:3]:
-        #    print(stat)
+                    logging.warning(f"Clustering result colliding in {FI.id}")
 
         return FI, list_group[0]
 
@@ -207,13 +193,10 @@ def cluster(FI, df_search, V, path, opt):
 # Append outgroup to given group-gene dataset by search matrix
 def append_outgroup(V, df_search, gene, group, path, opt):
     logging.info(f"Appending outgroup on group: {group}, Gene: {gene}")
-
     list_FI = deepcopy(V.list_FI)
-
-    # In multiprocessing, delete V for memory
+    # In multiprocessing, delete V to reduce memory consumption
     del V
     gc.collect()
-
     # ready for by sseqid hash, which group to append
     # this time, append adjusted group
     group_dict = {}
@@ -224,77 +207,64 @@ def append_outgroup(V, df_search, gene, group, path, opt):
         funinfo_dict[funinfo.hash] = funinfo
 
     # For non-concatenated analysis
-
     # if gene != "concatenated":
-    if 1:
-        # generate minimal bitscore cutoff that does not overlaps to query-query bitscore value range
+    # generate minimal bitscore cutoff that does not overlaps to query-query bitscore value range
 
-        ## For getting inner group
-        cutoff_set_df = df_search[df_search["subject_group"] == group]
-        try:
-            # offset will prevent selecting outgroup too close to ingroup
-            bitscore_cutoff = max(
-                1, min(cutoff_set_df["bitscore"]) - opt.cluster.outgroupoffset
-            )
-        except:
-            bitscore_cutoff = 999999  # use infinite if failed
+    ## For getting inner group
+    cutoff_set_df = df_search[df_search["subject_group"] == group]
+    try:
+        # offset will prevent selecting outgroup too close to ingroup
+        bitscore_cutoff = max(
+            1, min(cutoff_set_df["bitscore"]) - opt.cluster.outgroupoffset
+        )
+    except:
+        bitscore_cutoff = 999999  # use infinite if failed
 
-        ## get result stasifies over cutoff
-        # outgroup should be outside of ingroup
+    ## get result stasifies over cutoff
+    # outgroup should be outside of ingroup
 
-        # logging.debug(df_search)
-        # logging.debug(
-        #    f"Outgroup count for group {group} | gene {gene}: {df_search.groupby(['subject_group']).count()}"
-        # )
+    logging.debug(df_search)
+    logging.debug(
+        f"Outgroup count for group {group} | gene {gene}: {df_search.groupby(['subject_group']).count()}"
+    )
 
-        cutoff_df = df_search[df_search["bitscore"] < bitscore_cutoff]
+    cutoff_df = df_search[df_search["bitscore"] < bitscore_cutoff]
 
-        # logging.debug(f"Bitscore cutoff: {bitscore_cutoff}")
-        # logging.debug(
-        #    f"Outgroup count for group {group} | gene {gene}: {cutoff_df.groupby(['subject_group']).count()}"
-        # )
+    logging.debug(f"Bitscore cutoff: {bitscore_cutoff}")
+    logging.debug(
+        f"Outgroup count for group {group} | gene {gene}: {cutoff_df.groupby(['subject_group']).count()}"
+    )
 
-        # Remove malformat result
-        cutoff_df = cutoff_df[cutoff_df["bitscore"] > 0]
+    # Remove malformat result
+    cutoff_df = cutoff_df[cutoff_df["bitscore"] > 0]
 
-        # logging.debug(f"Removing minus bitscore or 0 value")
-        # logging.debug(
-        #    f"Outgroup count for group {group} | gene {gene}: {cutoff_df.groupby(['subject_group']).count()}"
-        # )
+    logging.debug(f"Removing minus bitscore or 0 value")
+    logging.debug(
+        f"Outgroup count for group {group} | gene {gene}: {cutoff_df.groupby(['subject_group']).count()}"
+    )
 
-        # split that same group to include all to alignment, and left other groups for outgroup selection
-        cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
+    # split that same group to include all to alignment, and left other groups for outgroup selection
+    cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
 
-        # logging.debug(f"Removing ingroup")
-        # logging.debug(
-        #    f"Outgroup count for group {group} | gene {gene}: {cutoff_df.groupby(['subject_group']).count()}"
-        # )
+    logging.debug(f"Removing ingroup")
+    logging.debug(
+        f"Outgroup count for group {group} | gene {gene}: {cutoff_df.groupby(['subject_group']).count()}"
+    )
 
-        # If no or fewer than designated number of outgroup matches to condition, use flexible criteria
-        if cutoff_df.groupby(["subject_group"]).count().empty:
-            logging.warning(
-                f"Not enough outgroup sequences matched for group {group} | gene {gene}. There might be outlier sequence that does not matches to group. Trying flexible cutoff"
-            )
-            cutoff_df = df_search[df_search["bitscore"] > 0]
-            cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
-
-        elif (
-            cutoff_df.groupby(["subject_group"]).count()["sseqid"].max()
-            < opt.maxoutgroup
-        ):
-            logging.warning(
-                f"Not enough outgroup sequences matched for group {group} | gene {gene}. There might be outlier sequence that does not matches to group. Trying flexible cutoff"
-            )
-            cutoff_df = df_search[df_search["bitscore"] > 0]
-            cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
-
-    # in concatenated dataset, upper method makes problem when gene dataset were biased. using old method instead
-    else:
+    # If no or fewer than designated number of outgroup matches to condition, use flexible criteria
+    if cutoff_df.groupby(["subject_group"]).count().empty:
+        logging.warning(
+            f"Not enough outgroup sequences matched for group {group} | gene {gene}. There might be outlier sequence that does not matches to group. Trying flexible cutoff"
+        )
         cutoff_df = df_search[df_search["bitscore"] > 0]
         cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
 
-    # cutoff_df = df_search[df_search["bitscore"] > 0]
-    # cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
+    elif cutoff_df.groupby(["subject_group"]).count()["sseqid"].max() < opt.maxoutgroup:
+        logging.warning(
+            f"Not enough outgroup sequences matched for group {group} | gene {gene}. There might be outlier sequence that does not matches to group. Trying flexible cutoff"
+        )
+        cutoff_df = df_search[df_search["bitscore"] > 0]
+        cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
 
     # Garbage collection for lower memory consumption in this process
     del df_search
@@ -458,10 +428,6 @@ def group_cluster_opt_generator(V, opt, path):
 
 # opts ready for multithreading in outgroup append
 def outgroup_append_opt_generator(V, path, opt):
-    from time import time
-
-    time1 = time()
-
     opt_append_outgroup = []
 
     #### Pararellize this part
@@ -497,10 +463,6 @@ def outgroup_append_opt_generator(V, path, opt):
                 logging.warning(
                     f"{group} / concatenated dataset exists, but cannot append outgroup due to no corresponding search result"
                 )
-
-    time2 = time()
-
-    logging.debug(f"{time2-time1}s consumed in outgroup_append_opt_generator")
 
     return opt_append_outgroup
 

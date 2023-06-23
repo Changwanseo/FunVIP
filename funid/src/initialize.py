@@ -136,6 +136,7 @@ def check(
 
 # Change it to FunIDPath
 # Class with all path
+# Use print instead of logging here, because logging has not been defined here
 class Path:
     def __init__(self, root):
         # For universal data used in every run
