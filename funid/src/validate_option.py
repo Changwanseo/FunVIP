@@ -75,7 +75,7 @@ class Option:
         self.criterion = "BIC"
         self.step = ""
         self.level = "genus"
-        self.queryonly = False
+        self.queryonly = True
         self.confident = True
         self.verbose = 2
         self.maxoutgroup = 3
@@ -144,8 +144,11 @@ class Option:
                 self.step = parser_dict[key]
             elif key.lower() in ("level"):
                 self.level = parser_dict[key]
-            elif key.lower() in ("queryonly"):
-                self.queryonly = parser_dict[key]
+            elif key.lower() in ("queryonly", "all"):
+                if key.lower() == "queryonly":
+                    self.queryonly = parser_dict[key]
+                elif key.lower() == "all":
+                    self.queryonly = ~parser_dicy[key]
             elif key.lower() in ("verbose"):
                 self.verbose = parser_dict[key]
             elif key.lower() in ("maxoutgroup"):
@@ -322,8 +325,8 @@ class Option:
             pass
 
         try:
-            if parser.queryonly is True:
-                self.queryonly = parser.queryonly
+            if parser.all is True:
+                self.queryonly = not (parser.all)
         except:
             pass
 
@@ -872,10 +875,10 @@ class Option:
 
         if self.query:
             if len(self.query) == 0:
-                list_warning.append(f"No query detected, ignoring --queryonly")
+                list_warning.append(f"No query detected, activating --all")
                 self.queryonly = False
         else:
-            list_warning.append(f"No query detected, ignoring --queryonly")
+            list_warning.append(f"No query detected, activating --all")
             self.queryonly = False
 
         # confident
@@ -886,7 +889,7 @@ class Option:
                 self.confident = True
             else:
                 list_warning.append(
-                    f"Option --confident can be only used when --queryonly is True. Ignoring it"
+                    f"Option --confident can be only used without --all. Ignoring it"
                 )
                 self.confident = False
         else:

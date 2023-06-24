@@ -136,6 +136,7 @@ def check(
 
 # Change it to FunIDPath
 # Class with all path
+# Use print instead of logging here, because logging has not been defined here
 class Path:
     def __init__(self, root):
         # For universal data used in every run
@@ -194,12 +195,12 @@ class Path:
             if install_flag == 1:
                 if sys.platform == "darwin":
                     print(
-                        f"[ERROR] Some of the dependencies not installed. Use \n conda install -c anaconda -c bioconda pyqt raxml iqtree mmseqs2 blast mafft trimal gblocks fasttree \nto install dependencies"
+                        f"[ERROR] Some of the dependencies not installed. Use \n conda install -c bioconda raxml iqtree mmseqs2 blast=2.12 mafft trimal gblocks fasttree \nto install dependencies"
                     )
 
                 else:
                     print(
-                        f"[ERROR] Some of the dependencies not installed. Use \n conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 blast mafft trimal gblocks fasttree \nto install dependencies"
+                        f"[ERROR] Some of the dependencies not installed. Use \n conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 blast=2.12 mafft trimal gblocks fasttree \nto install dependencies"
                     )
                 raise Exception
 

@@ -4,8 +4,8 @@ from sys import platform
 import subprocess
 
 name = "FunID"
-__version__ = "0.3.10.1"
-release = "0.3.10.1.0"
+__version__ = "0.3.11.0"
+release = "0.3.11.0.0"
 
 
 ## Default setup options
@@ -43,6 +43,7 @@ if platform == "darwin":
             "pyyaml",
             "sip>=4.19.4",
             "scikit-learn==1.0.2",
+            "scipy",
             "tabulate",
             "unidecode==1.2.0",
             "xlrd==2.0.1",
@@ -93,6 +94,7 @@ else:
             "pyyaml",
             "sip>=4.19.4",
             "scikit-learn==1.0.2",
+            "scipy",
             "tabulate",
             "unidecode==1.2.0",
             "xlrd==2.0.1",

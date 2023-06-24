@@ -78,7 +78,7 @@ def main():
     # R includes all reporting objects such as warnings, errors, statistics
     R = reporter.Report()
 
-    # Reload previous session if --continue selected
+    # Reload previous session from shelve if --continue selected
     if opt.continue_from_previous is True:
         var = save.load_session(opt, savefile=path.save)
         if "V" in var:
@@ -155,11 +155,6 @@ def main():
 
         # Both gene and group was assigned, dataset was confirmed
         V.generate_dataset(opt)
-
-        for group in V.dict_dataset:
-            for gene in V.dict_dataset[group]:
-                for FI in V.dict_dataset[group][gene].list_qr_FI:
-                    print(f"{group} {gene} {FI.hash} {FI.id}")
 
         # Appending outgroup
         logging.info("Appending outgroup")

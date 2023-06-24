@@ -99,9 +99,9 @@ class CommandParser:
             type=str,
         )
         group_run.add_argument(
-            "--queryonly",
+            "--all",
             action="store_true",
-            help="Only phylogenetic analysis on query sequences, default : True",
+            help="Run FunID for all database sequences, regardless of corrresponding sequences exists in query, default : False",
         )
         group_run.add_argument(
             "--confident",

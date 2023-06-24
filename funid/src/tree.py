@@ -23,15 +23,8 @@ def pipe_tree(V, path, opt, model_dict):
     remove_dataset = []
     for group in tree_dataset:
         for gene in tree_dataset[group]:
-            # draw tree only when query sequence exists if queryonly is True
             # draw tree only when outgroup sequence exists
-            if len(tree_dataset[group][gene].list_qr_FI) == 0 and opt.queryonly is True:
-                logging.warning(
-                    f"Passing tree construction of {group} {gene} dataset because no query included"
-                )
-                remove_dataset.append((group, gene))
-                # tree_dataset[group].pop(gene, None)
-            elif tree_dataset[group][gene].list_og_FI == 0:
+            if tree_dataset[group][gene].list_og_FI == 0:
                 logging.warning(
                     f"Passing tree construction of {group} {gene} dataset because no outgroup available"
                 )
@@ -86,11 +79,11 @@ def pipe_tree(V, path, opt, model_dict):
                         model=model_dict[group][gene],
                     )
 
-                # if fasttree, append to opt
+                # if fasttree, append to opt to perform multiprocessing by each tree
                 else:
                     if not (opt.method.tree.lower() == "fasttree"):
                         logging.warning(
-                            "Tree construction method not selected, working for default opt, FastTree"
+                            "Tree construction method not selected, working for default option, FastTree"
                         )
                     fasttree_opt.append(
                         (
@@ -131,7 +124,7 @@ def pipe_tree(V, path, opt, model_dict):
                 else:
                     if not (opt.method.tree.lower() == "fasttree"):
                         logging.warning(
-                            "Tree method not selected, working for default opt, FastTree"
+                            "Tree method not selected, working for default option, FastTree"
                         )
                     fasttree_opt.append(
                         (
@@ -158,6 +151,7 @@ def pipe_tree(V, path, opt, model_dict):
             for option in fasttree_opt:
                 fasttree_result.append(ext.FastTree(*option))
 
+    print(singlegene_dict)
     for group in singlegene_dict:
         # copy concatenated result to single gene
         shutil.copy(

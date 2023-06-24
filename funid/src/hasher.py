@@ -5,10 +5,8 @@ import copy
 import pandas as pd
 
 
+# Remove all newick illegal strings
 def newick_legal(string: str) -> str:
-    """
-    Remove all newick illegal strings
-    """
     newick_illegal = ["(", ")", "{", "}", "[", "]", ":", ";", "'", '"', ",", "."]
     for i in newick_illegal:
         string = string.replace(i, "")
@@ -19,10 +17,8 @@ def newick_legal(string: str) -> str:
     return str(string)
 
 
+# Encode funinfo_list and return hash dict
 def encode(funinfo_list: list, newick: bool = False) -> dict:
-    """
-    Encode funinfo_list and return hash dict
-    """
     hash_dict = {}
 
     if newick is False:
@@ -42,11 +38,8 @@ def encode(funinfo_list: list, newick: bool = False) -> dict:
     return hash_dict
 
 
+# Decode given file with given hash_dict
 def decode(hash_dict: dict, file: str, out: str, newick: bool = True) -> None:
-    """
-    Decode given file with given hash_dict
-    """
-
     with open(file, "rt") as fp:
         line = fp.read()
         if newick == True:
@@ -63,11 +56,8 @@ def decode(hash_dict: dict, file: str, out: str, newick: bool = True) -> None:
             fw.write(line)
 
 
+# Decode given dataframe with given hash_dict
 def decode_df(hash_dict: dict, df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Decode given dataframe with given hash_dict
-    """
-
     hash_dict = dict((re.escape(k), v) for k, v in hash_dict.items())
 
     df_return = copy.deepcopy(df)
