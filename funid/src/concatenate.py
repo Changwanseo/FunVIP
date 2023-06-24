@@ -7,6 +7,7 @@ from functools import reduce
 import pandas as pd
 from copy import deepcopy
 from funid.src import search, hasher
+from scipy.optimize import minimize
 import numpy as np
 import shutil
 
@@ -148,6 +149,9 @@ def concatenate_df(V, path, opt):
         return V
 
     else:
+        # For multigene analysis, some genes can be missing
+        # Directly adding those values can make troubles if some of the genes are missing
+        # Therefore, add predicted values to fill them with linear regression
         # drop unused columns
         cnt = 0
 
@@ -157,10 +161,10 @@ def concatenate_df(V, path, opt):
             df[f"{gene}_bitscore"] = df["bitscore"]
             df[f"{gene}_subject_group"] = df["subject_group"]
 
-        # Concatenate multiple dataframes
+        # Concatenate dataframes from multiple genes
         df_multigene_regression_ori = pd.concat(df_list, axis=1)
 
-        # Drop unnecessary columns
+        # Drop unnecessary columns for processing
         df_multigene_regression_ori.drop(
             columns=[
                 "pident",
@@ -178,7 +182,7 @@ def concatenate_df(V, path, opt):
             inplace=True,
         )
 
-        # Work on subject_group
+        # Column name managing on subject_group
         def same_merge(x, list_col):
             values = x[list_col].dropna()
             if values.empty:
@@ -192,7 +196,10 @@ def concatenate_df(V, path, opt):
             axis=1,
         )
 
-        # For regression, leave genes with all genes existing
+        # For debugging
+        df_multigene_regression_ori.reset_index().to_excel("Test.xlsx")
+
+        # For regression, leave anchor points with all genes existing
         df_multigene_regression = df_multigene_regression_ori
 
         for gene in gene_list:
@@ -200,6 +207,146 @@ def concatenate_df(V, path, opt):
                 df_multigene_regression[f"{gene}_bitscore"].notna()
             ]
 
+        # Perform regression
+        # Get regression line
+        def distance_to_line(line, pts, l0=None, p0=None):
+            """
+            (C0 - X0) / K0 = (C1 -X1) / X1 = (C2 - X2) / X2 = K
+
+            line = (C0, C1, C2)
+            pts = [(X0, X1, X2), (Y0, Y1, Y2) ... ]
+            p0 = (K0, K1, K2)
+
+            line defined between l0 and line
+            points defined between p0 and pts
+
+            This function calcuates following vector distance
+            D = (P - (P.dot.u) * u).length
+            """
+            # line origin other than (0,0,0,..)
+            if l0 is not None:
+                line = line - l0
+            # points origin other than (0,0,0,..)
+            if p0 is not None:
+                pts = pts - p0
+
+            # dot product
+
+            dp = np.dot(pts, line)
+            # dot product value divided by normalized vector of line
+            # np.linalg.norm(line) : size of the line vector
+            # pp should be orthographic projected length of the dot
+            pp = dp / np.linalg.norm(line)
+            # norm value of point
+            # length from p0 to point
+            pn = np.linalg.norm(pts, axis=1)
+
+            return np.sqrt(np.clip(pn**2 - pp**2, a_min=1e-10, a_max=None))
+
+        # Optimization function
+        def optimize_regression_line(points):
+            n = points.shape[1]  # Dimensionality of the points
+
+            # Define the objective function to minimize (R-squared)
+            def objective(x):
+                K = x[:n]
+                C = x[n:]
+                # print(f"C: {C}, K: {K}")
+                distances = distance_to_line(l0=C, line=K, pts=points)
+                # print(distances)
+                rms = np.sqrt(np.mean(distances**2))
+                # print(f"rms: {rms}")
+                return rms
+
+            # Initial guess for C and K values
+            # If C and K are same, it causes initialization error
+            x0 = np.zeros(2 * n)
+            x0[:n] = 1
+
+            # print(x0)
+
+            result = minimize(objective, x0)
+
+            # Extract the optimized C and K values
+            C_optimized = result.x[n:]
+            K_optimized = result.x[:n]
+
+            return (
+                C_optimized,
+                K_optimized,
+            )
+
+        np_bitscore = df_multigene_regression[
+            [f"{gene}_bitscore" for gene in gene_list]
+        ].to_numpy()
+        # get coefficient and gradient with regression
+        coeff, grad = optimize_regression_line(np_bitscore)
+
+        # fill empty blast results for each gene with regression
+        # This might be accelerated by using "apply", but coded manually initially because of logical complexity
+
+        # Reset df before filling it
+        def calculate_prediction(row, gene_list, coeff, grad):
+            # Calculate linear_constant of the strain
+            linear_constant = []
+            for k, gene in enumerate(gene_list):
+                if not np.isnan(row[f"{gene}_bitscore"]):
+                    #  (coeff - value) / gradient = linear constant
+                    linear_constant.append(
+                        (coeff[k] - row[f"{gene}_bitscore"]) / grad[k]
+                    )
+
+            # Predict unknown BLAST value
+            for k, gene in enumerate(gene_list):
+                if np.isnan(row[f"{gene}_bitscore"]):
+                    #  prediction value  = coeff - linear constant * gradient
+                    prediction = coeff[k] - np.mean(linear_constant) * grad[k]
+                    row[f"{gene}_bitscore"] = prediction
+            return row
+
+        df_multigene_regression = df_multigene_regression_ori.copy()
+
+        def apply_prediction(row, gene_list, coeff, grad):
+            row = calculate_prediction(row, gene_list, coeff, grad)
+            return row
+
+        df_multigene_regression = df_multigene_regression.apply(
+            apply_prediction, args=(gene_list, coeff, grad), axis=1
+        )
+
+        """
+        df_multigene_regression = df_multigene_regression_ori
+        for n, subject_group in enumerate(df_multigene_regression_ori["subject_group"]):
+            for i, gene in enumerate(gene_list):
+                if np.isnan(df_multigene_regression_ori[f"{gene}_bitscore"][n]):
+                    # Collect mean linear constant from regression
+                    linear_constant = []
+                    for k, other_gene in enumerate(gene_list):
+                        if not (gene == other_gene):
+                            if not (
+                                np.isnan(
+                                    df_multigene_regression_ori[
+                                        f"{other_gene}_bitscore"
+                                    ][n]
+                                )
+                            ):
+                                linear_constant.append(
+                                    (
+                                        coeff[k]
+                                        - df_multigene_regression_ori[
+                                            f"{other_gene}_bitscore"
+                                        ][n]
+                                    )
+                                    / grad[k]
+                                )
+                    # Predict original one and fill NaN to df_multigene_regression
+                    prediction = coeff[i] - np.mean(linear_constant) * grad[i]
+                    df_multigene_regression[f"{gene}_bitscore"][n] = prediction
+
+                    print(f"Filled {gene} {n} with {prediction}")
+        """
+
+        """
         # Count the number of entries. If not enough number exists, add terms with one NaN
         num = 0
         fail_flag = 0
@@ -223,6 +370,10 @@ def concatenate_df(V, path, opt):
                 fail_flag = 1
                 break
 
+        raise Exception
+        """
+
+        """
         # Get normalization parameters for all genes
         norm_param_dict = {}
         for gene in gene_list:
@@ -248,12 +399,20 @@ def concatenate_df(V, path, opt):
                 + 2
             ) * 100
 
+
         # Get average from multigene matrix
         df_multigene_regression_ori["bitscore"] = df_multigene_regression_ori[
             [f"{gene}_bitscore" for gene in gene_list]
         ].mean(axis=1)
+        """
 
-        V.cSR = df_multigene_regression_ori.reset_index()
+        # Get summation and save to concatenated search result
+        df_multigene_regression["bitscore"] = df_multigene_regression[
+            [f"{gene}_bitscore" for gene in gene_list]
+        ].mean(axis=1)
+        V.cSR = df_multigene_regression.reset_index()
+
+        V.cSR.to_excel("Test.xlsx")
 
     # Save it
     # decode df is not working well here
