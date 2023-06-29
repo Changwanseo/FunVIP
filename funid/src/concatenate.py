@@ -196,9 +196,6 @@ def concatenate_df(V, path, opt):
             axis=1,
         )
 
-        # For debugging
-        df_multigene_regression_ori.reset_index().to_excel("Test.xlsx")
-
         # For regression, leave anchor points with all genes existing
         df_multigene_regression = df_multigene_regression_ori
 
@@ -319,8 +316,6 @@ def concatenate_df(V, path, opt):
             [f"{gene}_bitscore" for gene in gene_list]
         ].mean(axis=1)
         V.cSR = df_multigene_regression.reset_index()
-
-        V.cSR.to_excel("Test.xlsx")
 
     # Save it
     # decode df is not working well here
