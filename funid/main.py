@@ -267,6 +267,10 @@ def main():
         step = "report"
         logging.info("REPORT")
 
+        for _hash in V.dict_hash_FI:
+            FI = V.dict_hash_FI[_hash]
+            print(f"{FI.hash} {FI.id} {FI.final_species}")
+
         # Reporting
         V.homogenize_dataset()
 

@@ -8,7 +8,7 @@ import re
 import json
 
 
-# Datasets are group of sequences with same genes for analysis, including query, database and outgroup
+### Datasets are group of sequences with same genes for analysis, including query, database and outgroup
 # Each of the dataset varialbe
 class Dataset:
     def __init__(self, gene, group, list_qr, list_db, list_og):
@@ -24,7 +24,8 @@ class Dataset:
         self.list_og_FI = list_og
 
 
-# FunID all dataset variables bundle
+### FunID all dataset variables bundle
+# Called as "V" in main pipeline
 class FunID_var:
     def __init__(self):
         # dataset class to manage datasets used for run
@@ -58,6 +59,9 @@ class FunID_var:
         self.list_qr_gene = []
         # old group list
         self.list_group = []
+        # group dict ->  {group:set(genus1, genus2, ... ) format}
+        # used in synchronizing to check if the genus is main interest of the group
+        self.dict_group = {}
 
         # Search result datasets
         # {gene : search df}, old df_dict
@@ -107,6 +111,13 @@ class FunID_var:
             for FI in list_qr + list_db + list_og:
                 FI.bygene_species[gene] = FI.ori_species
 
+        # Update dict_group
+        if not group in self.dict_group:
+            self.dict_group[group] = set()
+
+        for FI in list_db:
+            self.dict_group[group].add(FI.genus)
+
     def remove_dataset(self, group, gene):
         if not (group) in self.dict_dataset:
             logging.warning(
@@ -122,12 +133,58 @@ class FunID_var:
             if len(self.dict_dataset[group]) == 0:
                 del self.dict_dataset[group]
 
+    # Check if given dict_dataset[group][gene] exists
     def exist_dataset(self, group, gene):
         try:
             self.dict_dataset[group][gene]
             return True
         except:
             return False
+
+    # Check if dict_group has been properly generated
+    def check_dict_group(self, opt):
+        # If level is lower than genus, check if each group includes only one genus
+        if opt.level in ["subseries", "series", "subsection", "section", "genus"]:
+            for group in self.dict_group:
+                if len(self.dict_group[group]) > 1:
+                    logging.warning(
+                        f"{opt.level} {group} includes more than one genus, {self.dict_group[group]}.\n",
+                        f"This may cause unusual behaviour in synchronizing",
+                    )
+
+        # If level is higher than genus, check if each genus belongs to more than one group
+        elif opt.level in [
+            "subtribe",
+            "tribe",
+            "subfamily",
+            "family",
+            "suborder",
+            "order",
+            "subclass",
+            "class",
+            "subdivision",
+            "division",
+            "subphylum",
+            "phylum",
+            "subkingdom",
+            "kingdom",
+        ]:
+            reverse_dict = {}
+            for group in self.dict_group:
+                for genus in self.dict_group[group]:
+                    reverse_dict[genus] = set()
+                reverse_dict[genus].add(group)
+
+            for genus in reverse_dict:
+                if len(reverse_dict[genus]) > 1:
+                    logging.warning(
+                        f"genus {group} belongs to more than one {opt.level}, {reverse_dict[genus]}.\n",
+                        f"This may cause unusual behaviour in synchronizing",
+                    )
+
+        else:
+            logging.error(f"DEVELOPMENTAL ERROR, UNEXPECTED LEVEL {opt.level} selected")
+            raise Exception
 
     # generate dataset by group and gene
     def generate_dataset(self, opt):
@@ -183,6 +240,7 @@ class FunID_var:
                                 and FI.adjusted_group == group
                             )
                         ]
+
                         self.add_dataset(group, gene, list_qr, list_db, [])
 
                 else:
@@ -241,6 +299,8 @@ class FunID_var:
                     if (FI.datatype == "db" and FI.adjusted_group == group)
                 ]
                 self.add_dataset(group, "concatenated", list_qr, list_db, [])
+
+        self.check_dict_group(opt)
 
     # homogenize list_dataset and dicts from multiple results
     def homogenize_dataset(self):
