@@ -178,7 +178,9 @@ def synchronize(V, path, tree_info_list):
                         for _hash in hash_list:
                             if not (_hash) in hash_taxon_dict:
                                 hash_taxon_dict[_hash] = (taxon, n + 1)
-                            else:
+                            elif _hash in hash_taxon_dict and hash_taxon_dict[
+                                _hash
+                            ] != (taxon, n + 1):
                                 print(
                                     f"{_hash} collided while putting in hash_taxon_dict"
                                 )
@@ -193,7 +195,9 @@ def synchronize(V, path, tree_info_list):
                                     (taxon[0], "sp."),
                                     sp_cnt_dict[taxon[0]],
                                 )
-                            else:
+                            elif _hash in hash_taxon_dict and hash_taxon_dict[
+                                _hash
+                            ] != (taxon, n + 1):
                                 print(
                                     f"{_hash} collided while putting in hash_taxon_dict"
                                 )
@@ -201,6 +205,7 @@ def synchronize(V, path, tree_info_list):
                         sp_cnt_dict[taxon[0]] += 1
 
     # Next, taxa that doesn't belongs to any of the group
+    # concatenated first
     for group in tree_info_dict:
         if "concatenated" in tree_info_dict[group]:
             tree_info = tree_info_dict[group]["concatenated"]
@@ -215,10 +220,35 @@ def synchronize(V, path, tree_info_list):
                         for _hash in hash_list:
                             if not (_hash in hash_taxon_dict):
                                 hash_taxon_dict[_hash] = (taxon, n + 1)
-                            else:
-                                print(
+                            elif _hash in hash_taxon_dict and hash_taxon_dict[
+                                _hash
+                            ] != (taxon, n + 1):
+                                logging.debug(
                                     f"{_hash} collided while putting in hash_taxon_dict. Tried to put {(taxon, n+1)}, but existing {hash_taxon_dict[_hash]}"
                                 )
+
+    # Then, non-concatenated
+    for group in tree_info_dict:
+        for gene in tree_info_dict[group]:
+            if gene != "concatenated":
+                tree_info = tree_info_dict[group]["concatenated"]
+                # Get list of hash in interest
+                valid_hash_list = valid_hash_dict[group]
+                for taxon in tree_info.collapse_dict:
+                    clade_list = tree_info.collapse_dict[taxon]
+                    for n, clade in enumerate(clade_list):
+                        hash_list = [leaf[0] for leaf in clade.leaf_list]
+                        # If the hash has not been counted in any of the tree,
+                        if not (any(_h in valid_hash_list for _h in hash_list)):
+                            for _hash in hash_list:
+                                if not (_hash in hash_taxon_dict):
+                                    hash_taxon_dict[_hash] = (taxon, n + 1)
+                                elif _hash in hash_taxon_dict and hash_taxon_dict[
+                                    _hash
+                                ] != (taxon, n + 1):
+                                    logging.debug(
+                                        f"{_hash} collided while putting in hash_taxon_dict. Tried to put {(taxon, n+1)}, but existing {hash_taxon_dict[_hash]}"
+                                    )
 
                                 # print(group, _hash, taxon, n + 1)
 
@@ -234,21 +264,34 @@ def synchronize(V, path, tree_info_list):
     def get_new_taxon(hash_list, hash_taxon_dict):
         taxon_candidates = set()
         for _hash in hash_list:
-            taxon_candidates.add(hash_taxon_dict[_hash])
+            if _hash in hash_taxon_dict:
+                taxon_candidates.add(hash_taxon_dict[_hash])
+            else:
+                logging.warning(
+                    f"{_hash} does not seems to be analyzed from concatenated dataset"
+                )
 
         list_taxon_candidates = sorted(list(taxon_candidates))
         genus = "/".join(t[0][0] for t in list_taxon_candidates)
         species_list = []
+
+        clade_cnt_set = set()
         for t in list_taxon_candidates:
             # If the taxon is unique
             if not (t[0], 2) in hash_taxon_dict.values():
                 species_list.append(t[0][1])
             else:
                 species_list.append(f"{t[0][1]} {t[1]}")
+            clade_cnt_set.add(t[1])
 
         species = "/".join([s for s in species_list])
 
-        return (genus, species)
+        if len(clade_cnt_set) == 1:
+            clade_cnt = list(clade_cnt_set)[0]
+        else:
+            clade_cnt = 0
+
+        return (genus, species), clade_cnt
 
     # Now update from concatenated
     # Remove original taxon, and add by clade taxon
@@ -263,7 +306,9 @@ def synchronize(V, path, tree_info_list):
                 remove_list.append(taxon)
                 for clade in clade_list:
                     hash_list = [leaf[0] for leaf in clade.leaf_list]
-                    new_taxon = get_new_taxon(hash_list, hash_taxon_dict)
+                    new_taxon, clade_cnt = get_new_taxon(hash_list, hash_taxon_dict)
+                    clade.taxon = new_taxon
+                    clade.clade_cnt = clade_cnt
                     if not (new_taxon in add_list):
                         add_list[new_taxon] = [clade]
                     else:
@@ -563,7 +608,9 @@ def pipe_module_tree_visualization(
 ):
     group = tree_info.group
     gene = tree_info.gene
-    genus_list = V.tup_genus
+    genus_list = list(V.tup_genus)
+    genus_list.append("AMBIGUOUSGENUS")
+    genus_list = tuple(genus_list)
 
     # Collapse tree branches for visualization
     taxon_string_list = tree_info.collapse_tree()

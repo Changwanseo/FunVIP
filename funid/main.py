@@ -279,7 +279,6 @@ def main():
 
         time_end = time()
         logging.info(f"FunID ended in {time_end - time_start}")
-        print(f"FunID ended in {time_end - time_start}")
 
         try:
             logging.info(f"Time setup : {time_setup-time_start}s")

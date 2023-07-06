@@ -26,7 +26,6 @@ class Option:
     class Visualize_Option:
         def __init__(self):
             self.bscutoff = 70
-            self.fullgenus = False
             self.highlight = "#aa0000"
             self.heightmultiplier = 6
             self.maxwordlength = 48
@@ -195,8 +194,6 @@ class Option:
                 self.visualize.bscutoff = parser_dict[key]
             elif key.lower() in ("bootstrapcutoff"):
                 self.visualize.bscutoff = parser_dict[key]
-            elif key.lower() in ("fullgenus"):
-                self.visualize.fullgenus = parser_dict[key]
             elif key.lower() in ("highlight"):
                 self.visualize.highlight = parser_dict[key]
             elif key.lower() in ("heightmultiplier"):
@@ -369,12 +366,6 @@ class Option:
         try:
             if not parser.bscutoff is None:
                 self.visualize.bscutoff = parser.bscutoff
-        except:
-            pass
-
-        try:
-            if parser.fullgenus is True:
-                self.visualize.fullgenus = parser.fullgenus
         except:
             pass
 
@@ -1045,16 +1036,6 @@ class Option:
 
             except:
                 list_error.append(f"--bscutoff should be integer")
-
-        # fullgenus
-        # If fullgenus is not None, give True, else, give False
-        if self.visualize.fullgenus:
-            if self.visualize.fullgenus is True:
-                self.visualize.fullgenus = True
-            else:
-                self.visualize.fullgenus = False
-        else:
-            self.visualize.fullgenus = False
 
         # highlight
         # highlight should be availabe svg colors or unicode

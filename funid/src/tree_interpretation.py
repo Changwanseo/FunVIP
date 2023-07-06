@@ -441,7 +441,7 @@ class Tree_information:
         genus_dict = self.genus_count(gene, clade)
 
         if len(genus_dict) >= 2:  # if genus is not clear
-            return "Ambiguousgenus"
+            return "AMBIGUOUSGENUS "
         elif len(genus_dict) == 1:
             return list(genus_dict.keys())[0]
         else:
@@ -1083,14 +1083,6 @@ class Tree_information:
                 rest = (
                     text.text.replace(genus, "").replace(species, "").replace(" ", "")
                 )
-
-                # shorten genus to one
-                if self.opt.visualize.fullgenus is False:
-                    genus = (
-                        get_genus_species(text.text, genus_list=genus_list)[0][:1] + "."
-                    )
-                else:
-                    genus = get_genus_species(text.text, genus_list=genus_list)[0]
 
                 # split genus, species, rest of parent into tspan
                 text.text = ""

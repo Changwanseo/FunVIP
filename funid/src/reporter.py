@@ -9,7 +9,7 @@ from funid.src.tool import index_step
 from funid.src.save import save_df
 
 # For version reporting
-__version__ = "0.3.11"
+__version__ = "0.3.12"
 
 
 ### Temporary report for tree_interpretation_pipe
@@ -406,7 +406,6 @@ class Report:
                 f.write(f" - TREE:                {opt.method.tree}\n")
                 f.write(f"VISUALIZE:              \n")
                 f.write(f" - BSCUTOFF:            {opt.visualize.bscutoff}\n")
-                f.write(f" - FULLGENUS:           {opt.visualize.fullgenus}\n")
                 f.write(f" - HIGHLIGHT:           {opt.visualize.highlight}\n")
                 f.write(f" - HEIGHTMULTIPLIER:    {opt.visualize.heightmultiplier}\n")
                 f.write(f" - MAXWORDLENGTH:       {opt.visualize.maxwordlength}\n")
