@@ -45,7 +45,7 @@ def pipe_module_tree_interpretation(
 
     # Tree name selection for tree construction software
     tree_name = f"{path.out_tree}/hash/hash_{opt.runname}_{group}_{gene}.nwk"
-    logging.debug(tree_name)
+    logging.debug(f"{tree_name} entered tree interpretation")
 
     # Check validity of file while importing
     if os.path.isfile(tree_name):
@@ -181,7 +181,7 @@ def synchronize(V, path, tree_info_list):
                             elif _hash in hash_taxon_dict and hash_taxon_dict[
                                 _hash
                             ] != (taxon, n + 1):
-                                print(
+                                logging.debug(
                                     f"{_hash} collided while putting in hash_taxon_dict"
                                 )
 
@@ -198,7 +198,7 @@ def synchronize(V, path, tree_info_list):
                             elif _hash in hash_taxon_dict and hash_taxon_dict[
                                 _hash
                             ] != (taxon, n + 1):
-                                print(
+                                logging.debug(
                                     f"{_hash} collided while putting in hash_taxon_dict"
                                 )
 
@@ -267,7 +267,7 @@ def synchronize(V, path, tree_info_list):
             if _hash in hash_taxon_dict:
                 taxon_candidates.add(hash_taxon_dict[_hash])
             else:
-                logging.warning(
+                logging.debug(
                     f"{_hash} does not seems to be analyzed from concatenated dataset"
                 )
 
@@ -322,279 +322,6 @@ def synchronize(V, path, tree_info_list):
             for taxon in add_list:
                 tree_info.collapse_dict[taxon] = add_list[taxon]
 
-    """
-    # By gene sp. number dictionary
-    # ex) {Penicillium: {Aspergillus: {(Penicillium, sp. 1):(Penicillium, sp. 1)}, Penicillium:{(Penicillium, sp. 1):(Penicillium, sp. 2)}}}
-    sp_convert_dict = {}
-    sp_cnt_dict = {}
-    # Make one hash - set of available concatenated taxon dict pair
-    # {HS0HE : {(Penicillium sp. 1), (Penicillium sp. 2)}}
-    hash_dict = {}
-
-    # for genus in tree_info_dict:
-
-    for genus in tree_info_dict.keys():
-        # initialize gene sp. dictionary
-        if not (genus in sp_convert_dict):
-            sp_convert_dict[genus] = {}  # conversion pair
-            sp_cnt_dict[genus] = 1  # sp. nov. number counter
-
-        # sp. numbers should be counted by genus
-        for group in sorted(list(tree_info_dict[genus].keys())):
-            # Number counts for each taxa are generated, according to their main group
-            if genus in V.dict_group[group]:
-                sp_convert_dict[genus][group] = {}
-                logging.debug(f"Synchronizing sp. number of {genus}, {group}")
-
-                # Now concatenated analysis gets mandatory
-                # However, some genera can only exist in certain gene analysis - they are not correlated to synchronizing
-                if not ("concatenated" in tree_info_dict[genus][group]):
-                    logging.info(
-                        f"No concatenated dataset for {genus}, {group}. Passing synchronizing"
-                    )
-                else:
-                    # Start with concatenated to define standard sp numbers
-                    tree_info = tree_info_dict[genus][group]["concatenated"]
-                    for taxon in tree_info.collapse_dict.keys():
-                        ## sp. nov taxa
-                        # Get sp. nov taxon
-                        if taxon[0] == genus and re.fullmatch(r"sp. [0-9]+", taxon[1]):
-                            logging.debug(f"sp. checking : {taxon[1]}")
-                            # Save sp. nov renaming pair to dict
-                            sp_convert_dict[genus][group][taxon] = (
-                                taxon[0],
-                                f"sp. {sp_cnt_dict[genus]}",
-                            )
-                            # Increase sp. nov number counter
-                            sp_cnt_dict[genus] += 1
-
-                            # Add given sp. taxons, generate {hash: taxon} dict
-                            # leaf[0] should be hash
-                            for leaf in tree_info.collapse_dict[taxon][0].leaf_list:
-                                if not (leaf[0]) in hash_dict:
-                                    hash_dict[leaf[0]] = {
-                                        sp_convert_dict[genus][group][taxon]
-                                    }
-                                else:
-                                    hash_dict[leaf[0]].add(
-                                        sp_convert_dict[genus][group][taxon]
-                                    )
-                        ## non sp. nov taxa
-                        # Else, just add to hash_dict to get available taxon list for hash
-                        elif taxon[0] == genus:
-                            for leaf in tree_info.collapse_dict[taxon][0].leaf_list:
-                                if not (leaf[0]) in hash_dict:
-                                    hash_dict[leaf[0]] = {taxon}
-                                else:
-                                    hash_dict[leaf[0]].add(taxon)
-
-                    ## Update tree_info.collapse_dict with cnt_sp_adder
-                    # Perform in two steps in order to take collapse_dict safe
-                    # First, pop original name and add with tmp
-                    tmp_taxon_list = []
-
-                    for taxon in sp_convert_dict[genus][group].keys():
-                        tmp_taxon = (
-                            taxon[0],
-                            f"tmp {sp_convert_dict[genus][group][taxon][1]}",
-                        )
-                        tree_info.collapse_dict[
-                            tmp_taxon
-                        ] = tree_info.collapse_dict.pop(taxon)
-                        tmp_taxon_list.append(tmp_taxon)
-
-                    # Then, remove tmp
-                    for taxon in tmp_taxon_list:
-                        tree_info.collapse_dict[
-                            (
-                                taxon[0],
-                                taxon[1][4:],
-                            )
-                        ] = tree_info.collapse_dict.pop(taxon)
-
-                    # Update taxon
-                    for taxon in tree_info.collapse_dict:
-                        for n, collapse_info in enumerate(
-                            tree_info.collapse_dict[taxon]
-                        ):
-                            collapse_info.taxon = taxon
-                            if len(tree_info.collapse_dict[taxon]) == 1:
-                                collapse_info.clade_cnt = 0
-                            else:
-                                collapse_info.clade_cnt = n + 1
-
-                    ### CONCATENATED PART DONE
-                    # Now solve other genes
-                    for gene in tree_info_dict[genus][group]:
-                        if gene != "concatenated":
-                            # bygene_taxon_dict : {Penicillium citrinum : {(Penicillium, sp. 1), (Penicillium, sp. 2), (Penicillium, citrinum)}}}
-                            # bygene_taxon_string_dict : {Penicillium citrinum : (Penicillium, citrinum/sp.1/sp.2)}
-                            bygene_taxon_dict = {}
-                            bygene_taxon_string_dict = {}
-
-                            # Grab the gene tree
-                            tree_info = tree_info_dict[genus][group][gene]
-
-                            # Synchronize bygene taxon name to concatenated
-                            # logging.debug(f"Collapse_dict: {tree_info.collapse_dict}")
-                            for taxon in tree_info.collapse_dict:
-                                if taxon[0] == genus:
-                                    # Get all hash of designated taxon leaf
-                                    clade = tree_info.collapse_dict[taxon][0]
-
-                                    try:
-                                        pass
-                                        # print(clade.leaf_list)
-                                    except:
-                                        logging.debug(
-                                            f"Collapse_dict: {tree_info.collapse_dict}"
-                                        )
-                                        raise Exception
-
-                                    hash_list = [leaf[0] for leaf in clade.leaf_list]
-
-                                    # Name of the collapsed clade should include all taxon names of hash
-                                    for _hash in hash_list:
-                                        if _hash in hash_dict:
-                                            # Only work with related taxon
-                                            if not taxon in bygene_taxon_dict:
-                                                bygene_taxon_dict[taxon] = set()
-
-                                            bygene_taxon_dict[
-                                                taxon
-                                            ] = bygene_taxon_dict[taxon].union(
-                                                hash_dict[_hash]
-                                            )
-
-                            # Make bygene_taxon_dict to string
-                            # Only work with current genus
-                            for taxon in bygene_taxon_dict:
-                                # get sp. and non sp. taxons
-                                sp_list = [
-                                    _taxon
-                                    for _taxon in bygene_taxon_dict[taxon]
-                                    if _taxon[0] == genus
-                                    and re.fullmatch(r"sp. [0-9]+", _taxon[1])
-                                ]
-
-                                nonsp_list = [
-                                    _taxon
-                                    for _taxon in bygene_taxon_dict[taxon]
-                                    if _taxon[0] == genus
-                                    and not (re.fullmatch(r"sp. [0-9]+", _taxon[1]))
-                                ]
-
-                                # Make all taxon into one tuple
-                                sp_species_epithet_list = sorted(
-                                    [x[1] for x in sp_list]
-                                )
-                                nonsp_species_epithet_list = sorted(
-                                    x[1] for x in nonsp_list
-                                )
-
-                                # Sort by nonsp - sp order
-                                sp_string = "/".join(
-                                    nonsp_species_epithet_list + sp_species_epithet_list
-                                )
-
-                                # Remove unexpected slashes when species epithet is empty
-                                sp_string.replace("//", "/")
-                                if sp_string.startswith("/"):
-                                    sp_string = sp_string[1:]
-                                if sp_string.endswith("/"):
-                                    sp_string = sp_string[:-1]
-
-                                bygene_taxon_string_dict[taxon] = (genus, sp_string)
-
-                            ## Update tree_info.collapse_dict with designated name
-                            # Perform in two steps in order to take collapse_dict safe
-
-                            ## Update tree_info.collapse_dict with cnt_sp_adder
-                            # Perform in two steps in order to take collapse_dict safe
-                            # First, pop original name and add with tmp
-                            change_taxon_list = [
-                                taxon
-                                for taxon in tree_info.collapse_dict.keys()
-                                if (
-                                    taxon[0] == genus
-                                    and taxon in tree_info.collapse_dict
-                                    and taxon in bygene_taxon_string_dict
-                                )
-                            ]
-                            tmp_taxon_list = []
-
-                            for taxon in change_taxon_list:
-                                tmp_taxon = (
-                                    taxon[0],
-                                    f"tmp {bygene_taxon_string_dict[taxon][1]}",
-                                )
-                                if not (tmp_taxon in tree_info.collapse_dict):
-                                    tree_info.collapse_dict[
-                                        tmp_taxon
-                                    ] = tree_info.collapse_dict.pop(taxon)
-                                    tmp_taxon_list.append(tmp_taxon)
-                                else:
-                                    tree_info.collapse_dict[
-                                        tmp_taxon
-                                    ] += tree_info.collapse_dict[taxon]
-                                    tree_info.collapse_dict.pop(taxon)
-
-                            for taxon in tmp_taxon_list:
-                                tree_info.collapse_dict[
-                                    (taxon[0], taxon[1][4:])
-                                ] = tree_info.collapse_dict.pop(taxon)
-
-                            # Update taxon
-                            for taxon in tree_info.collapse_dict:
-                                for n, collapse_info in enumerate(
-                                    tree_info.collapse_dict[taxon]
-                                ):
-                                    collapse_info.taxon = taxon
-                                    if len(tree_info.collapse_dict[taxon]) == 1:
-                                        collapse_info.clade_cnt = 0
-                                    else:
-                                        collapse_info.clade_cnt = n + 1
-
-    # Working for unintendly included groups
-    for genus in tree_info_dict.keys():
-        for group in sorted(list(tree_info_dict[genus].keys())):
-            # In this time, concatenated does not matter
-            for gene in tree_info_dict[genus][group]:
-                changes = []
-                tree_info = tree_info_dict[genus][group][gene]
-                for taxon in tree_info.collapse_dict.keys():
-                    if taxon[0] != genus:
-                        print(
-                            f"Line 392 debugging! genus {genus} group {group} gene {gene} taxon {taxon}"
-                        )
-                        for clade in tree_info.collapse_dict[taxon]:
-                            hash_list = [leaf[0] for leaf in clade.leaf_list]
-                            # Name of the collapsed clade should include all taxon names of hash
-                            hash_taxon_set = set()
-                            for _hash in hash_list:
-                                if _hash in hash_dict:
-                                    print(hash_dict[_hash])
-                                    hash_taxon_set = hash_taxon_set.union(
-                                        hash_dict[_hash]
-                                    )
-
-                        # Change the name of taxon as designated
-                        hash_taxon_list = sorted(list(hash_taxon_set))
-
-                        tmp_taxon = (
-                            "/".join([t[0] for t in hash_taxon_list]),
-                            "/".join([t[1] for t in hash_taxon_list]),
-                        )
-
-                        changes.append((tmp_taxon, taxon))
-                for change in changes:
-                    tree_info.collapse_dict[change[0]] = tree_info.collapse_dict.pop(
-                        change[1]
-                    )
-
-        pass
-    """
-
     # Return sp number fixed tree_info_list
     return tree_info_list
 
@@ -615,7 +342,7 @@ def pipe_module_tree_visualization(
     # Collapse tree branches for visualization
     taxon_string_list = tree_info.collapse_tree()
 
-    print(f"taxon_string_list | {group} {gene}:\n {taxon_string_list}\n")
+    # print(f"taxon_string_list | {group} {gene}:\n {taxon_string_list}\n")
 
     # Polish tree image
     tree_info.polish_image(
@@ -689,22 +416,43 @@ def pipe_tree_interpretation(V, path, opt):
     tree_interpretation_opt = []
     for group in V.dict_dataset:
         for gene in V.dict_dataset[group]:
-            # draw tree only when query sequence exists
-            if (
-                len(V.dict_dataset[group][gene].list_qr_FI) > 0
-                or opt.queryonly is False
-            ) and len(V.dict_dataset[group][gene].list_og_FI) > 0:
-                # Generating tree_interpretation opts for multithreading support
-                tree_interpretation_opt.append(
-                    (
-                        f"{opt.runname}_{group}_{gene}",
-                        group,
-                        gene,
-                        V,
-                        path,
-                        opt,
+            # Condition 1 : draw all trees
+            cond1 = opt.queryonly is False
+            # Condition 2 : When query included
+            cond2 = len(V.dict_dataset[group][gene].list_qr_FI) > 0
+            # Condition 3 : When any of the branches of the tree is valid in concatenated analysis
+            cond3 = (len(V.dict_dataset[group]["concatenated"].list_qr_FI) > 0) and any(
+                FI.hash
+                in [
+                    x.hash
+                    for x in V.dict_dataset[group][gene].list_qr_FI
+                    + V.dict_dataset[group][gene].list_db_FI
+                    + V.dict_dataset[group][gene].list_og_FI
+                ]
+                for FI in V.dict_dataset[group]["concatenated"].list_qr_FI
+                + V.dict_dataset[group]["concatenated"].list_db_FI
+                + V.dict_dataset[group]["concatenated"].list_og_FI
+            )
+
+            # Interpret tree when valid condition
+            if cond1 or cond2 or cond3:
+                if len(V.dict_dataset[group][gene].list_og_FI) > 0:
+                    # Generating tree_interpretation opts for multithreading support
+                    tree_interpretation_opt.append(
+                        (
+                            f"{opt.runname}_{group}_{gene}",
+                            group,
+                            gene,
+                            V,
+                            path,
+                            opt,
+                        )
                     )
-                )
+                # However, if outgroup does not exists, warn it
+                else:
+                    logging.warning(
+                        f"Failed interpreting tree {group} {gene} because no outgroup available"
+                    )
 
     ## Tree interpretation - outgroup, reconstruction(solve_flat), collapsing
     if opt.verbose < 3:
@@ -742,29 +490,5 @@ def pipe_tree_interpretation(V, path, opt):
         tree_visualization_result = [
             pipe_module_tree_visualization(*option) for option in tree_visualization_opt
         ]
-
-    ### After this
-    print("-----------------------------------------------")
-    # Collect identifiation result to V
-    for report_list in tree_visualization_result:
-        for report in report_list:
-            FI = V.dict_hash_FI[report.hash]
-            # Concatenated
-            if report.gene == "concatenated":
-                FI.final_species = report.species_assigned
-                FI.species_identifier = report.ambiguous
-                if report.flat is True:
-                    FI.flat.append("concatenated")
-                print(f"Conc {FI.hash} {FI.id} {FI.datatype} {FI.final_species}")
-            # Non concatenated
-            else:
-                FI.bygene_species[report.gene] = report.species_assigned
-                if report.flat is True:
-                    FI.flat.append(report.gene)
-                print(f"Else {FI.hash} {FI.id} {FI.datatype} {FI.final_species}")
-
-    # raise Exception
-
-    ### Before this
 
     return V, path, opt
