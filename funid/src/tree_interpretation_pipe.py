@@ -416,6 +416,7 @@ def pipe_tree_interpretation(V, path, opt):
     tree_interpretation_opt = []
     for group in V.dict_dataset:
         for gene in V.dict_dataset[group]:
+            logging.debug(f"pipe_tree_interpretation {group} {gene}")
             # Condition 1 : draw all trees
             cond1 = opt.queryonly is False
             # Condition 2 : When query included

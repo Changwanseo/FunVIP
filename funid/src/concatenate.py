@@ -311,6 +311,11 @@ def concatenate_df(V, path, opt):
             apply_prediction, args=(gene_list, coeff, grad), axis=1
         )
 
+        # Also update each gene bitscore matrix
+        # This part is needed, for multigene analysis, for example ITS, CaM and RPB2
+        # If query only exists for ITS and CaM, no blast result for RPB2 were generated
+        # So we need to fill it out with linear regression
+
         # Get summation and save to concatenated search result
         df_multigene_regression["bitscore"] = df_multigene_regression[
             [f"{gene}_bitscore" for gene in gene_list]

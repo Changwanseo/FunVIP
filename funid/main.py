@@ -122,14 +122,14 @@ def main():
         step = "search"
         logging.info("SEARCHING")
 
-        # Generate BLAST or mmseqs matrices for further analysis
+        ## Generate BLAST or mmseqs matrices for further analysis
         # Also, gene informations are updated in this step
         V = search.search_df(V, path, opt)
 
         # Concatenate search matrix among genes
         V = concatenate.concatenate_df(V, path, opt)
 
-        # Save gene update query inputs
+        # Update gene assignment of query sequence inputs
         manage_input.update_queryfile(V, path, opt)
 
         R.update_report(V=V, path=path, opt=opt, step=step)

@@ -14,6 +14,7 @@ import logging
 import gc
 from funid.src.ext import mmseqs
 
+"""
 
 def check_gene_availability(V, opt):
     available_gene = []
@@ -29,6 +30,7 @@ def check_gene_availability(V, opt):
                 unavailable_gene.append(gene)
 
     return available_gene, unavailable_gene
+"""
 
 
 # return list of original group of given funinfo
@@ -41,6 +43,7 @@ def get_naive_group(V):
 # Append query_group information column to dict_gene_SR
 def append_query_group(V):
     # For normal gene matrix
+    """
     group_dict = {}
     for FI in V.list_FI:
         group_dict[FI.hash] = FI.adjusted_group
@@ -49,11 +52,12 @@ def append_query_group(V):
         V.dict_gene_SR[gene]["query_group"] = V.dict_gene_SR[gene]["qseqid"].apply(
             lambda x: group_dict.get(x)
         )
+    """
 
     # For concatenated gene matrix
     group_dict = {}
-    for funinfo in V.list_FI:
-        group_dict[funinfo.hash] = funinfo.adjusted_group
+    for FI in V.list_FI:
+        group_dict[FI.hash] = FI.adjusted_group
 
     V.cSR["query_group"] = V.cSR["qseqid"].apply(lambda x: group_dict.get(x))
 
@@ -121,13 +125,17 @@ def assign_gene(result_dict, V, cutoff=0.99):
     return V
 
 
-# cluster each of Funinfo object and assign group
-def cluster(FI, df_search, V, path, opt):
+# cluster each of FunInfo object and assign group
+def cluster(FI, V, path, opt):
     list_group = deepcopy(V.list_group)
+
+    # Reduce search df space by selecting only FI related ones
+    df_group = V.cSR.groupby(V.cSR["qseqid"])
+    list_id = list(set(V.cSR["qseqid"]))
+    df_search = df_group.get_group(FI.hash)
 
     # delete V to reduce memory assumption
     del V
-
     gc.collect()
 
     # If no evidence available, return it
@@ -145,16 +153,18 @@ def cluster(FI, df_search, V, path, opt):
     # update group if sequence does not have group
     else:
         # sorting has peformed after split for better performance
-        df_search.sort_values(by=["bitscore"], inplace=True, ascending=False)
+        sorted_df_search = df_search.sort_values(by=["bitscore"], ascending=False)
         # reset index to easily get maximum
-        df_search.reset_index(inplace=True, drop=True)
+        sorted_df_search.reset_index(inplace=True, drop=True)
         # get result stasifies over cutoff
-        cutoff_df = df_search[
-            df_search["bitscore"] > df_search["bitscore"][0] * opt.cluster.cutoff
+        cutoff_df = sorted_df_search[
+            sorted_df_search["bitscore"]
+            > sorted_df_search["bitscore"][0] * opt.cluster.cutoff
         ]
 
         # Garbage collection
         del df_search
+        del sorted_df_search
         gc.collect()
 
         group_count = len(set(cutoff_df["subject_group"]))
@@ -190,13 +200,15 @@ def cluster(FI, df_search, V, path, opt):
         return FI, list_group[0]
 
 
-# Append outgroup to given group-gene dataset by search matrix
+### Append outgroup to given group-gene dataset by search matrix
 def append_outgroup(V, df_search, gene, group, path, opt):
     logging.info(f"Appending outgroup on group: {group}, Gene: {gene}")
     list_FI = deepcopy(V.list_FI)
+
     # In multiprocessing, delete V to reduce memory consumption
     del V
     gc.collect()
+
     # ready for by sseqid hash, which group to append
     # this time, append adjusted group
     group_dict = {}
@@ -277,49 +289,59 @@ def append_outgroup(V, df_search, gene, group, path, opt):
 
     # iterate until designated number of sequences from the most closest group selected
     # we should get outgroup from columns
+    # outgroup_dict = {group1 : [FI1, FI2, ...]}
     outgroup_dict = {}
     max_cnt = 0
     max_group = ""
 
     for n, subject_group in enumerate(cutoff_df["subject_group"]):
-        # if first sequence of the group found, make new key to dict
-        if not (subject_group) in outgroup_dict:
-            outgroup_dict[subject_group] = [funinfo_dict[cutoff_df["sseqid"][n]]]
-        # if group record already exists, append it
-        else:
-            if (
-                not (funinfo_dict[cutoff_df["sseqid"][n]])
-                in outgroup_dict[subject_group]
-            ):
-                outgroup_dict[subject_group].append(
-                    funinfo_dict[cutoff_df["sseqid"][n]]
+        # Check if outgroup sequence that we're going to use actually exists
+        # If gene is not "concatenated", the outgroup sequence should actually exists
+        # If gene is "concatenated", any of the genes should exists
+        cond1 = gene in funinfo_dict[cutoff_df["sseqid"][n]].seq
+        cond2 = (
+            gene == "concatenated"
+            and len(funinfo_dict[cutoff_df["sseqid"][n]].seq.keys()) > 0
+        )
+        if cond1 or cond2:
+            # if first sequence of the group found, make new key to dict
+            if not (subject_group) in outgroup_dict:
+                outgroup_dict[subject_group] = [funinfo_dict[cutoff_df["sseqid"][n]]]
+            # if group record already exists, append it
+            else:
+                if (
+                    not (funinfo_dict[cutoff_df["sseqid"][n]])
+                    in outgroup_dict[subject_group]
+                ):
+                    outgroup_dict[subject_group].append(
+                        funinfo_dict[cutoff_df["sseqid"][n]]
+                    )
+
+            # if enough outgroup sequences found while running
+            if len(outgroup_dict[subject_group]) >= opt.maxoutgroup:
+                text_outgroup_list = "\n ".join(
+                    [FI.id for FI in outgroup_dict[subject_group]]
+                )
+                logging.info(
+                    f"Outgroup [{subject_group}] selected to [{group}]\n {text_outgroup_list}"
                 )
 
-        # if enough outgroup sequences found while running
-        if len(outgroup_dict[subject_group]) >= opt.maxoutgroup:
-            text_outgroup_list = "\n ".join(
-                [FI.id for FI in outgroup_dict[subject_group]]
-            )
-            logging.info(
-                f"Outgroup [{subject_group}] selected to [{group}]\n {text_outgroup_list}"
-            )
+                # Get database sequences in ambiguous position
+                ambiguous_group = []
+                for _group in outgroup_dict:
+                    if _group != subject_group:
+                        ambiguous_group += outgroup_dict[_group]
 
-            # Get database sequences in ambiguous position
-            ambiguous_group = []
-            for _group in outgroup_dict:
-                if _group != subject_group:
-                    ambiguous_group += outgroup_dict[_group]
-
-            return (
-                group,
-                gene,
-                outgroup_dict[subject_group],
-                ambiguous_group,
-            )
-        else:
-            if len(outgroup_dict[subject_group]) > max_cnt:
-                max_cnt = len(outgroup_dict[subject_group])
-                max_group = subject_group
+                return (
+                    group,
+                    gene,
+                    outgroup_dict[subject_group],
+                    ambiguous_group,
+                )
+            else:
+                if len(outgroup_dict[subject_group]) > max_cnt:
+                    max_cnt = len(outgroup_dict[subject_group])
+                    max_group = subject_group
 
     logging.warning(
         f"Not enough sequences are available for outgroup number {opt.maxoutgroup} in {group}, using '{max_group}' despite of lower number"
@@ -349,10 +371,28 @@ def group_cluster_opt_generator(V, opt, path):
     # cluster(FO, df_search, V, path, opt)
     if len(V.list_qr_gene) == 0:
         logging.error(
-            "In group_cluster_option_generator, no possible query genes were selected"
+            "In group_cluster_option_generator, no available query genes were selected"
         )
         raise Exception
 
+    # For concatenated analysis
+    else:
+        # cluster group by concatenated search result
+        """
+        df_group = V.cSR.groupby(V.cSR["qseqid"])
+        list_id = list(set(V.cSR["qseqid"]))
+        for FI in V.list_FI:
+            if FI.hash in list_id:
+                df_search = df_group.get_group(FI.hash)
+            else:
+                df_search = None
+        """
+        list_id = list(set(V.cSR["qseqid"]))
+        for FI in V.list_FI:
+            if FI.hash in list_id:
+                V.opt_cluster.append((FI, V, path, opt))
+
+    """
     # For non concatenated analysis or if only one gene exists
     elif len(V.list_qr_gene) <= 1 or V.cSR is None:
         # For caching
@@ -379,7 +419,7 @@ def group_cluster_opt_generator(V, opt, path):
                 gene = list(FI.seq.keys())[0]
                 try:
                     appropriate_df = df_group_dict[gene].get_group(FI.hash)
-                    V.opt_cluster.append((FI, appropriate_df, V, path, opt))
+                    V.opt_cluster.append((FI, V, path, opt))
                 except:
                     logging.warning(
                         f"Cannot assign group to {FI} {gene}, removing from analysis"
@@ -388,7 +428,7 @@ def group_cluster_opt_generator(V, opt, path):
             # If no sequence available
             elif len(list(FI.seq.keys())) == 0:
                 appropriate_df = None
-                V.opt_cluster.append((FI, appropriate_df, V, path, opt))
+                V.opt_cluster.append((FI, V, path, opt))
 
             else:
                 # Get FI with multigene for reporting
@@ -404,24 +444,13 @@ def group_cluster_opt_generator(V, opt, path):
                         ):
                             appropriate_df = df_group_dict[gene].get_group(FI.hash)
 
-                    V.opt_cluster.append((FI, appropriate_df, V, path, opt))
+                    V.opt_cluster.append((FI, V, path, opt))
 
         if len(list_multigene_FI) > 0:
             logging.warning(
                 f"{' '.join([FI.id for FI in list_multigene_FI])} has multiple genes, but concatenation option not selected"
             )
-
-    # For concatenated analysis
-    else:
-        # cluster group by concatenated search result
-        df_group = V.cSR.groupby(V.cSR["qseqid"])
-        list_id = list(set(V.cSR["qseqid"]))
-        for FI in V.list_FI:
-            if FI.hash in list_id:
-                df_search = df_group.get_group(FI.hash)
-            else:
-                df_search = None
-            V.opt_cluster.append((FI, df_search, V, path, opt))
+    """
 
     return V
 
@@ -433,9 +462,22 @@ def outgroup_append_opt_generator(V, path, opt):
     #### Pararellize this part
     # if concatenated analysis is false
     # Assign different outgroup for each dataset
+    """
     for group in V.dict_dataset:
         for gene in V.dict_dataset[group]:
             if gene != "concatenated":
+                
+                df = V.cSR
+                df_group = df.groupby(df["query_group"])
+                df_group_ = df_group.get_group(group)
+
+
+                df = V.dict_gene_SR[gene]
+                df_group = df.groupby(df["query_group"])
+                df_group_ = df_group.get_group(group)
+                # Generating outgroup opt for multiprocessing
+                opt_append_outgroup.append((V, df_group_, gene, group, path, opt))
+
                 try:
                     df = V.dict_gene_SR[gene]
                     df_group = df.groupby(df["query_group"])
@@ -446,6 +488,7 @@ def outgroup_append_opt_generator(V, path, opt):
                     logging.warning(
                         f"{group} / {gene} dataset exists, but cannot append outgroup due to no corresponding search result"
                     )
+    """
 
     # if concatenated analysis is true
     # concatenated
@@ -474,6 +517,7 @@ def pipe_cluster(V, opt, path):
         logging.info("group clustering")
 
         # cluster opt generation for multiprocessing
+        # (FI, V, path, opt)
         V = group_cluster_opt_generator(V, opt, path)
 
         # run multiprocessing start
@@ -552,11 +596,14 @@ def pipe_append_outgroup(V, path, opt):
     # append outgroup by running result
     # (group, gene, outgroup, ambiguous_group)
     for result in result_append_outgroup:
+        # Parsing result
         group = result[0]
         gene = result[1]
         outgroup = result[2]
         ambiguous_group = result[3]
 
+        # Add outgroup and ambiguous groups to dataset
+        # Ambiguous groups are strains locating between outgroup and ingroups, so cannot be decided
         if len(outgroup) == 0 and len(ambiguous_group) == 0:
             logging.warning(
                 f"Removing {group} {gene} from analysis because outgroup cannot be selected"
