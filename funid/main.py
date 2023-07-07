@@ -189,7 +189,6 @@ def main():
         step = "trim"
         logging.info("TRIMMING")
         V, path, opt = trim.pipe_trimming(V, path, opt)
-
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 

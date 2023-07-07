@@ -272,7 +272,7 @@ def synchronize(V, path, tree_info_list):
                 )
 
         list_taxon_candidates = sorted(list(taxon_candidates))
-        genus = "/".join(t[0][0] for t in list_taxon_candidates)
+        genus = "/".join(sorted(list(set(t[0][0] for t in list_taxon_candidates))))
         species_list = []
 
         clade_cnt_set = set()

@@ -259,7 +259,7 @@ def FastTree(fasta, out, hash_dict, path, model=""):
     if platform == "win32":
         CMD = f"{path.sys_path}/external/FastTree_Windows/FastTree.exe -quiet -nt {model} -log {path.tmp}/fasttreelog -seed 1 {fasta} > {path.tmp}/{out}"
     else:
-        CMD = f"FastTree -quiet -nt {model} -log {path.tmp}/fasttreelog -seed 1 '{fasta}'   > {path.tmp}/{out}"
+        CMD = f"FastTree -quiet -nt {model} -log {path.tmp}/fasttreelog -seed 1 '{fasta}' > {path.tmp}/{out}"
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)

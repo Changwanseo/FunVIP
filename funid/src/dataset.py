@@ -23,6 +23,9 @@ class Dataset:
         # outgroup funinfo_list for this dataset
         self.list_og_FI = list_og
 
+    def __repr__(self):
+        return f"<< FunID_Dataset object >> Gene: {self.gene} | Group: {self.group} | Query: {len(self.list_qr_FI)} | DB: {len(self.list_db_FI)} | Outgroup: {len(self.list_og_FI)}\n"
+
 
 ### FunID all dataset variables bundle
 # Called as "V" in main pipeline

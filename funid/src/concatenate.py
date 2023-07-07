@@ -118,8 +118,9 @@ def combine_alignment(V, opt, path):
                     fw.write(f"DNA, {singlegene}= 1-{gene_length}\n")
 
             else:
+                logging.error(f"V.dict_dataset {group}: {V.dict_dataset[group]}")
                 logging.error(
-                    f"DEVELOPMENTAL ERROR ON COINSTRUCTING CONCATENATED ALIGNMENT FOR {group}"
+                    f"[DEVELOPMENTAL ERROR] Failed constructing concatenated alignment for {group}"
                 )
                 raise Exception
 

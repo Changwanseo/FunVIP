@@ -151,7 +151,6 @@ def pipe_tree(V, path, opt, model_dict):
             for option in fasttree_opt:
                 fasttree_result.append(ext.FastTree(*option))
 
-    print(singlegene_dict)
     for group in singlegene_dict:
         # copy concatenated result to single gene
         shutil.copy(
@@ -164,12 +163,11 @@ def pipe_tree(V, path, opt, model_dict):
             f"{path.out_tree}/hash_{opt.runname}_{group}_concatenated.nwk",
         )
 
-    # decode alignments for each gene after building tree
+    ## Decode alignments and trimmed alignments for each gene after building tree
+    # If the code has been mature enough, move this to right after modeltest
     for group in tree_dataset:
         for gene in tree_dataset[group]:
-            # draw tree only when query sequence exists
-            if len(tree_dataset[group][gene].list_qr_FI) > 0 or opt.queryonly is False:
-                # Concatenated MAFFT file does not exists
+            try:
                 if gene != "concatenated":
                     os.rename(
                         f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
@@ -190,6 +188,10 @@ def pipe_tree(V, path, opt, model_dict):
                     tree_hash_dict,
                     f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_{gene}.fasta",
                     f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
+                )
+            except:
+                logging.warning(
+                    f"Tried decoding alignments of {group} {gene} but failed"
                 )
 
     return V, path, opt
