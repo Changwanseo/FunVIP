@@ -240,7 +240,7 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
     return df
 
 
-# 3# Main search: Get blast or mmseqs dataframe results from given dataset
+### Main search: Get blast or mmseqs dataframe results from given dataset
 def search_df(V, path, opt):
     # Initialize variable for search result
     dict_search = {}

@@ -118,8 +118,9 @@ def combine_alignment(V, opt, path):
                     fw.write(f"DNA, {singlegene}= 1-{gene_length}\n")
 
             else:
+                logging.error(f"V.dict_dataset {group}: {V.dict_dataset[group]}")
                 logging.error(
-                    f"DEVELOPMENTAL ERROR ON COINSTRUCTING CONCATENATED ALIGNMENT FOR {group}"
+                    f"[DEVELOPMENTAL ERROR] Failed constructing concatenated alignment for {group}"
                 )
                 raise Exception
 
@@ -310,6 +311,11 @@ def concatenate_df(V, path, opt):
         df_multigene_regression = df_multigene_regression.apply(
             apply_prediction, args=(gene_list, coeff, grad), axis=1
         )
+
+        # Also update each gene bitscore matrix
+        # This part is needed, for multigene analysis, for example ITS, CaM and RPB2
+        # If query only exists for ITS and CaM, no blast result for RPB2 were generated
+        # So we need to fill it out with linear regression
 
         # Get summation and save to concatenated search result
         df_multigene_regression["bitscore"] = df_multigene_regression[

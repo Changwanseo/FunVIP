@@ -149,11 +149,6 @@ class CommandParser:
             type=int,
         )
         group_visualize.add_argument(
-            "--fullgenus",
-            action="store_true",
-            help="Show full genus name on tree, default : False",
-        )
-        group_visualize.add_argument(
             "--highlight",
             help="Color to highlight query sequences in tree visualization. Either in html svg recognizable string or hex code, default: #AA0000",
             type=str,
