@@ -492,4 +492,20 @@ def pipe_tree_interpretation(V, path, opt):
             pipe_module_tree_visualization(*option) for option in tree_visualization_opt
         ]
 
+    ### Collect identifiation result to V for reporting
+    for report_list in tree_visualization_result:
+        for report in report_list:
+            FI = V.dict_hash_FI[report.hash]
+            # Concatenated
+            if report.gene == "concatenated":
+                FI.final_species = report.species_assigned
+                FI.species_identifier = report.ambiguous
+                if report.flat is True:
+                    FI.flat.append("concatenated")
+            # Non concatenated
+            else:
+                FI.bygene_species[report.gene] = report.species_assigned
+                if report.flat is True:
+                    FI.flat.append(report.gene)
+
     return V, path, opt

@@ -26,27 +26,10 @@ from funid.src.logics import isnewicklegal, isuniquecolumn, isvalidcolor
 from funid.src.hasher import decode, newick_legal, hash_funinfo_list
 
 
-# newick
-NEWICK_ILLEGAL = (
-    "(",
-    '"',
-    "[",
-    ":",
-    ";",
-    "/",
-    "[",
-    "]",
-    "{",
-    "}",
-    "(",
-    ")",
-    ",",
-    "]",
-    "+",
-    '"',
-    ")",
-    " ",
-)
+## newick illegal characters
+# fmt: off
+NEWICK_ILLEGAL = ("(",'"',"[",":",";","/","[","]","{","}","(",")",",","]","+",'"',")"," ",)
+# fmt: on
 
 
 # default funinfo class

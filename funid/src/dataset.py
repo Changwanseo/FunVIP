@@ -305,7 +305,7 @@ class FunID_var:
 
         self.check_dict_group(opt)
 
-    # homogenize list_dataset and dicts from multiple results
+    # homogenize list_dataset and dict_hash_FI from multiple results
     def homogenize_dataset(self):
         for FI in self.list_FI:
             if FI.hash in self.dict_hash_FI:
