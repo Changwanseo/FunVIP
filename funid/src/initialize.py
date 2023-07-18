@@ -223,6 +223,9 @@ class Path:
             self.root = f"{opt.outdir}/{opt.runname}"
             mkdir(self.root)
 
+        # Change path to absolute to prevent RAxML error
+        self.root = os.path.abspath(self.root)
+
         # Logging directory
         self.log = f"{self.root}/log.txt"
         self.extlog = f"{self.root}/log"  # for saving external program logs
