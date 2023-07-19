@@ -146,6 +146,7 @@ class Report:
         # set_gene.discard("concatenated") try if without discarding works
 
         # Collect result from each hash
+
         for _hash in V.dict_hash_FI:
             FI = V.dict_hash_FI[_hash]
 
@@ -176,16 +177,18 @@ class Report:
 
                     # Collect identification result for each gene analysis
                     inconsistent_flag = 0
+
                     for gene in set_gene:
                         # Check if data analysis had performed for specific FI, group, gene combination
                         if (
                             gene in FI.bygene_species
-                            and gene in FI.seq
+                            and len(FI.seq[gene]) > 0
                             and gene in V.dict_dataset[FI.adjusted_group]
                         ):
                             self.result[f"{gene.upper()}_ASSIGNED"].append(
                                 FI.bygene_species[gene]
                             )
+                            # Check inconsistent identification across genes
                             if not (
                                 any(
                                     _sp in FI.final_species
