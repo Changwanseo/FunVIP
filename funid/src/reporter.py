@@ -180,6 +180,7 @@ class Report:
                         # Check if data analysis had performed for specific FI, group, gene combination
                         if (
                             gene in FI.bygene_species
+                            and gene in FI.seq
                             and gene in V.dict_dataset[FI.adjusted_group]
                         ):
                             self.result[f"{gene.upper()}_ASSIGNED"].append(
