@@ -9,7 +9,7 @@ from funid.src.tool import index_step
 from funid.src.save import save_df
 
 # For version reporting
-__version__ = "0.3.12.1"
+__version__ = "0.3.13"
 
 
 ### Temporary report for tree_interpretation_pipe
@@ -146,6 +146,7 @@ class Report:
         # set_gene.discard("concatenated") try if without discarding works
 
         # Collect result from each hash
+
         for _hash in V.dict_hash_FI:
             FI = V.dict_hash_FI[_hash]
 
@@ -156,7 +157,7 @@ class Report:
                     key in V.dict_dataset[FI.adjusted_group] for key in FI.seq.keys()
                 ):
                     # Default results
-                    self.result["ID"].append(FI.id)
+                    self.result["ID"].append(FI.original_id)
                     self.result["HASH"].append(FI.hash)
                     self.result["DATATYPE"].append(FI.datatype)
 
@@ -176,15 +177,18 @@ class Report:
 
                     # Collect identification result for each gene analysis
                     inconsistent_flag = 0
+
                     for gene in set_gene:
                         # Check if data analysis had performed for specific FI, group, gene combination
                         if (
                             gene in FI.bygene_species
+                            and len(FI.seq[gene]) > 0
                             and gene in V.dict_dataset[FI.adjusted_group]
                         ):
                             self.result[f"{gene.upper()}_ASSIGNED"].append(
                                 FI.bygene_species[gene]
                             )
+                            # Check inconsistent identification across genes
                             if not (
                                 any(
                                     _sp in FI.final_species

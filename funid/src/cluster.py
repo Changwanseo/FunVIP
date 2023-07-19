@@ -15,11 +15,9 @@ import gc
 from funid.src.ext import mmseqs
 
 
-# return list of original group of given funinfo
+# return list of original group of given FI
 def get_naive_group(V):
-    return list(
-        set([funinfo.group for funinfo in V.list_FI if type(funinfo.group) == str])
-    )
+    return list(set([FI.group for FI in V.list_FI if type(FI.group) == str]))
 
 
 # Append query_group information column to concatenated search result
@@ -50,12 +48,12 @@ def assign_gene(result_dict, V, cutoff=0.99):
     # split by query
     gene_result_grouped = gene_result_all.groupby(gene_result_all["qseqid"])
 
-    for funinfo in V.list_FI:
-        # for seq of funinfo
-        for n, seq in enumerate(funinfo.unclassified_seq):
+    for FI in V.list_FI:
+        # for seq of FI
+        for n, seq in enumerate(FI.unclassified_seq):
             try:
-                # get each of the dataframe for each funinfo
-                current_df = gene_result_grouped.get_group(f"{funinfo.hash}_{n}")
+                # get each of the dataframe for each FI
+                current_df = gene_result_grouped.get_group(f"{FI.hash}_{n}")
                 # sort by bitscore
                 # sorting has peformed after split for better performance
                 current_df.sort_values(by=["bitscore"], inplace=True, ascending=False)
@@ -74,20 +72,16 @@ def assign_gene(result_dict, V, cutoff=0.99):
 
             # if only 1 gene available, take it
             if gene_count == 1:
-                funinfo.update_seq(gene_list[0], seq)
-                logging.info(
-                    f" Query seq in {funinfo.id} has assigned to {gene_list[0]}."
-                )
+                FI.update_seq(gene_list[0], seq)
+                logging.info(f" Query seq in {FI.id} has assigned to {gene_list[0]}.")
             # if no gene matched, warn it
             elif gene_count == 0:
                 logging.warning(
-                    f" Query seq in {funinfo.id} cannot be assigned to any gene. Check sequence. Skipping {funinfo.id}"
+                    f" Query seq in {FI.id} cannot be assigned to any gene. Check sequence. Skipping {FI.id}"
                 )
             elif gene_count >= 2:
-                logging.warning(
-                    f" Query seq in {funinfo.id} has multiple matches to gene."
-                )
-                funinfo.update_seq(gene_list[0], seq)
+                logging.warning(f" Query seq in {FI.id} has multiple matches to gene.")
+                FI.update_seq(gene_list[0], seq)
 
             else:
                 logging.error("DEVELOPMENTAL ERROR IN GENE ASSIGN")
@@ -95,7 +89,7 @@ def assign_gene(result_dict, V, cutoff=0.99):
     return V
 
 
-# cluster each of FunInfo object and assign group
+# cluster each of FI object and assign group
 def cluster(FI, V, path, opt):
     list_group = deepcopy(V.list_group)
 
@@ -182,11 +176,11 @@ def append_outgroup(V, df_search, gene, group, path, opt):
     # ready for by sseqid hash, which group to append
     # this time, append adjusted group
     group_dict = {}
-    funinfo_dict = {}
+    FI_dict = {}
 
-    for funinfo in list_FI:
-        group_dict[funinfo.hash] = funinfo.adjusted_group
-        funinfo_dict[funinfo.hash] = funinfo
+    for FI in list_FI:
+        group_dict[FI.hash] = FI.adjusted_group
+        FI_dict[FI.hash] = FI
 
     # For non-concatenated analysis
     # if gene != "concatenated":
@@ -274,24 +268,22 @@ def append_outgroup(V, df_search, gene, group, path, opt):
         # Check if outgroup sequence that we're going to use actually exists
         # If gene is not "concatenated", the outgroup sequence should actually exists
         # If gene is "concatenated", any of the genes should exists
-        cond1 = gene in funinfo_dict[cutoff_df["sseqid"][n]].seq
+        cond1 = gene in FI_dict[cutoff_df["sseqid"][n]].seq
         cond2 = (
             gene == "concatenated"
-            and len(funinfo_dict[cutoff_df["sseqid"][n]].seq.keys()) > 0
+            and len(FI_dict[cutoff_df["sseqid"][n]].seq.keys()) > 0
         )
         if cond1 or cond2:
             # if first sequence of the group found, make new key to dict
             if not (subject_group) in outgroup_dict:
-                outgroup_dict[subject_group] = [funinfo_dict[cutoff_df["sseqid"][n]]]
+                outgroup_dict[subject_group] = [FI_dict[cutoff_df["sseqid"][n]]]
             # if group record already exists, append it
             else:
                 if (
-                    not (funinfo_dict[cutoff_df["sseqid"][n]])
+                    not (FI_dict[cutoff_df["sseqid"][n]])
                     in outgroup_dict[subject_group]
                 ):
-                    outgroup_dict[subject_group].append(
-                        funinfo_dict[cutoff_df["sseqid"][n]]
-                    )
+                    outgroup_dict[subject_group].append(FI_dict[cutoff_df["sseqid"][n]])
 
             # if enough outgroup sequences found while running
             if len(outgroup_dict[subject_group]) >= opt.maxoutgroup:

@@ -441,7 +441,7 @@ class Tree_information:
         genus_dict = self.genus_count(gene, clade)
 
         if len(genus_dict) >= 2:  # if genus is not clear
-            return "AMBIGUOUSGENUS "
+            return "AMBIGUOUSGENUS"
         elif len(genus_dict) == 1:
             return list(genus_dict.keys())[0]
         else:

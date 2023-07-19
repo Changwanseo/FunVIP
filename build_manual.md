@@ -23,7 +23,7 @@ In new conda environment
 conda create -n FunID-condabuild python=3.9
 conda activate FunID-condabuild
 conda install --yes -c conda-forge grayskull packaging
-conda install --yes conda-build conda-verify anaconda-client git urllib3
+conda install --yes conda-build conda-verify anaconda-client git urllib3=1.26.15
 grayskull pypi FunID // Check if version is as you expected during this step
 anaconda login
 conda config --set anaconda_upload no
