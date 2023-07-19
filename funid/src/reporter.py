@@ -157,7 +157,7 @@ class Report:
                     key in V.dict_dataset[FI.adjusted_group] for key in FI.seq.keys()
                 ):
                     # Default results
-                    self.result["ID"].append(FI.id)
+                    self.result["ID"].append(FI.original_id)
                     self.result["HASH"].append(FI.hash)
                     self.result["DATATYPE"].append(FI.datatype)
 
