@@ -135,7 +135,7 @@ def synchronize(V, path, tree_info_list):
     tree_info_dict = {}
     # hash : corresponding taxon
     hash_taxon_dict = {}
-    # genus : cnt
+    # genus : cnt, counting sp. numbers
     sp_cnt_dict = {}
 
     # To synchronize sp. number by genus, generate by-genus dataset
@@ -170,34 +170,46 @@ def synchronize(V, path, tree_info_list):
             # Get list of hash in interest
             valid_hash_list = valid_hash_dict[group]
             for taxon in tree_info.collapse_dict:
+                # Get all monophyletic clades from tree and make it list
                 clade_list = tree_info.collapse_dict[taxon]
                 for n, clade in enumerate(clade_list):
+                    # list of hash in clade
                     hash_list = [leaf[0] for leaf in clade.leaf_list]
                     # If any of the leaf consisting clade is included to valid_hash_list
                     if any(_h in valid_hash_list for _h in hash_list):
                         for _hash in hash_list:
                             if not (_hash) in hash_taxon_dict:
-                                hash_taxon_dict[_hash] = (taxon, n + 1)
+                                if len(clade_list) == 1:
+                                    hash_taxon_dict[_hash] = (taxon, 0)
+                                else:
+                                    hash_taxon_dict[_hash] = (taxon, n + 1)
                             elif _hash in hash_taxon_dict and hash_taxon_dict[
                                 _hash
-                            ] != (taxon, n + 1):
+                            ] != (taxon, n):
                                 logging.debug(
                                     f"{_hash} collided while putting in hash_taxon_dict"
                                 )
 
-                    # If leaf consisting with only query, that won't collide with other groups
+                    # If leaf consisting with only queries, that won't collide with other groups
+                    # This is about new species clade
                     if all(_h in query_hash_list for _h in hash_list):
+                        # If this clade is first sp. species for the genus, start counting sp. number
                         if not (taxon[0] in sp_cnt_dict):
                             sp_cnt_dict[taxon[0]] = 1
                         for _hash in hash_list:
                             if not (_hash) in hash_taxon_dict:
                                 hash_taxon_dict[_hash] = (
-                                    (taxon[0], "sp."),
-                                    sp_cnt_dict[taxon[0]],
+                                    (
+                                        taxon[0],
+                                        f"sp. {sp_cnt_dict[taxon[0]]}",
+                                    ),
+                                    0,
                                 )
-                            elif _hash in hash_taxon_dict and hash_taxon_dict[
-                                _hash
-                            ] != (taxon, n + 1):
+
+                            elif (
+                                _hash in hash_taxon_dict
+                                and hash_taxon_dict[_hash] != taxon
+                            ):
                                 logging.debug(
                                     f"{_hash} collided while putting in hash_taxon_dict"
                                 )
@@ -219,10 +231,10 @@ def synchronize(V, path, tree_info_list):
                     if not (any(_h in valid_hash_list for _h in hash_list)):
                         for _hash in hash_list:
                             if not (_hash in hash_taxon_dict):
-                                hash_taxon_dict[_hash] = (taxon, n + 1)
+                                hash_taxon_dict[_hash] = (taxon, n)
                             elif _hash in hash_taxon_dict and hash_taxon_dict[
                                 _hash
-                            ] != (taxon, n + 1):
+                            ] != (taxon, n):
                                 logging.debug(
                                     f"{_hash} collided while putting in hash_taxon_dict. Tried to put {(taxon, n+1)}, but existing {hash_taxon_dict[_hash]}"
                                 )
