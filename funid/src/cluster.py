@@ -189,7 +189,7 @@ def append_outgroup(V, df_search, gene, group, path, opt):
     ## For getting inner group
     cutoff_set_df = df_search[df_search["subject_group"] == group]
     try:
-        # offset will prevent selecting outgroup too close to ingroup
+        # offset will prevent selecting outgroup too close to ingroup, which may confuse the monophyly of outgroup
         bitscore_cutoff = max(
             1, min(cutoff_set_df["bitscore"]) - opt.cluster.outgroupoffset
         )
@@ -208,9 +208,9 @@ def append_outgroup(V, df_search, gene, group, path, opt):
 
     # For ambiugous database, mostly because of contaminated database
     ambiguous_df = df_search[df_search["bitscore"] >= bitscore_cutoff]
-    ambiguous_df = df_search[cutoff_df["subject_group"] != group]
+    ambiguous_df = ambiguous_df[ambiguous_df["subject_group"] != group]
     # Add inner ambiugities
-    ambiguous_db = [FI_dict[i] for i in enumerate(ambiguous_df["sseqid"])]
+    ambiguous_db = [FI_dict[i] for i in list(ambiguous_df["sseqid"])]
 
     # If no or fewer than designated number of outgroup matches to condition, use flexible criteria
     if cutoff_df.groupby(["subject_group"]).count().empty:
@@ -273,7 +273,7 @@ def append_outgroup(V, df_search, gene, group, path, opt):
                     f"Outgroup [{subject_group}] selected to [{group}]\n {text_outgroup_list}"
                 )
 
-                # Get database sequences in ambiguous phylogenetic position
+                # Get database sequences probably in ambiguous phylogenetic position
                 for _group in outgroup_dict:
                     if _group != subject_group:
                         ambiguous_db += outgroup_dict[_group]
@@ -298,7 +298,7 @@ def append_outgroup(V, df_search, gene, group, path, opt):
             f"Final outgroup selection for group {group} : {outgroup_dict[max_group]}"
         )
 
-        # Get database sequences in ambiguous position
+        # Get database sequences probably in ambiguous position
         for _group in outgroup_dict:
             if _group != subject_group:
                 ambiguous_db += outgroup_dict[_group]
