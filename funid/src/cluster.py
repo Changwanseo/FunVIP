@@ -206,11 +206,20 @@ def append_outgroup(V, df_search, gene, group, path, opt):
     # split that same group to include all to alignment, and leave other groups for outgroup selection
     cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
 
-    # For ambiugous database, mostly because of contaminated database
-    ambiguous_df = df_search[df_search["bitscore"] >= bitscore_cutoff]
-    ambiguous_df = ambiguous_df[ambiguous_df["subject_group"] != group]
-    # Add inner ambiugities
-    ambiguous_db = [FI_dict[i] for i in list(ambiguous_df["sseqid"])]
+    ## For ambiugous database, mostly because of contaminated database
+    # For each of the input, should use different cutoff
+    ambiguous_db = set()
+    for qseqid, _df in cutoff_set_df.groupby(["qseqid"]):
+        # Select dataframe corresponding to current qseqid
+        df_qseqid = df_search[df_search["qseqid"] == qseqid]
+        # Get the list of subjects, which is closer than furtest ingroup
+        ambiguous_df = df_qseqid[df_qseqid["bitscore"] >= min(_df["bitscore"])]
+        # Within the furthest match, get possible ingroups with ambiguous group
+        ambiguous_df = ambiguous_df[ambiguous_df["subject_group"] != group]
+        # Add inner ambiugities to ambiguous db
+        ambiguous_db.update([FI_dict[i] for i in list(ambiguous_df["sseqid"])])
+
+    ambiguous_db = list(ambiguous_db)
 
     # If no or fewer than designated number of outgroup matches to condition, use flexible criteria
     if cutoff_df.groupby(["subject_group"]).count().empty:
@@ -460,6 +469,7 @@ def pipe_append_outgroup(V, path, opt):
 
         else:
             V.dict_dataset[group][gene].list_og_FI = outgroup
+            # Add ambiguous group to FI
             V.dict_dataset[group][gene].list_db_FI += ambiguous_group
 
     groups = deepcopy(list(V.dict_dataset.keys()))

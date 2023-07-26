@@ -29,7 +29,7 @@ class Option:
             self.highlight = "#aa0000"
             self.heightmultiplier = 6
             self.maxwordlength = 48
-            self.backgroundcolor = ["#f4f4f4", "#c6c6c6"]
+            self.backgroundcolor = ["#ffcfcf", "#ffe0e0"]
             self.outgroupcolor = "#999999"
             self.ftype = "Arial"
             self.fsize = 10
