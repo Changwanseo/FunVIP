@@ -250,16 +250,13 @@ def concatenate_df(V, path, opt):
             def objective(x):
                 K = x[:n]
                 C = x[n:]
-                # print(f"C: {C}, K: {K}")
                 distances = distance_to_line(l0=C, line=K, pts=points)
-                # print(distances)
-                squared = np.mean(distances**2)
-                # print(f"rms: {rms}")
-                return squared
+                mean_squared = np.mean(distances**2)
+                return mean_squared
 
             # Initial guess for C and K values
             # If C and K are same, it causes initialization error
-            x0 = np.zeros(2 * n)
+            x0 = np.full(2 * n, 100)
             x0[:n] = 1
 
             result = minimize(objective, x0, method="Nelder-Mead")
@@ -310,7 +307,7 @@ def concatenate_df(V, path, opt):
         for n, gene in enumerate(gene_list):
             trend_line_string += f" {coeff[n]} - {gene} / {grad[n]} ="
 
-        trend_line_string += "K"
+        trend_line_string += " K"
 
         logging.info(
             f"Trend line for Linear regression, \n {trend_line_string} \n Calculated to fill blank genes"
