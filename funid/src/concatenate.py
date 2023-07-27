@@ -16,6 +16,7 @@ import shutil
 def combine_alignment(V, opt, path):
     for group in V.dict_dataset:
         if "concatenated" in V.dict_dataset[group]:
+            # If more than one locus exists
             if len(V.dict_dataset[group]) > 2:
                 # get alignment length
                 # length of each of the alignments
@@ -156,7 +157,7 @@ def concatenate_df(V, path, opt):
         # drop unused columns
         cnt = 0
 
-        # Change biscore names
+        # Change biscore names to delimitate genes
         for n, df in enumerate(df_list):
             gene = gene_list[n]
             df[f"{gene}_bitscore"] = df["bitscore"]
@@ -209,6 +210,7 @@ def concatenate_df(V, path, opt):
         # Get regression line
         def distance_to_line(line, pts, l0=None, p0=None):
             """
+            In three genes situation
             (C0 - X0) / K0 = (C1 -X1) / X1 = (C2 - X2) / X2 = K
 
             line = (C0, C1, C2)
@@ -229,7 +231,6 @@ def concatenate_df(V, path, opt):
                 pts = pts - p0
 
             # dot product
-
             dp = np.dot(pts, line)
             # dot product value divided by normalized vector of line
             # np.linalg.norm(line) : size of the line vector
@@ -252,18 +253,16 @@ def concatenate_df(V, path, opt):
                 # print(f"C: {C}, K: {K}")
                 distances = distance_to_line(l0=C, line=K, pts=points)
                 # print(distances)
-                rms = np.sqrt(np.mean(distances**2))
+                squared = np.mean(distances**2)
                 # print(f"rms: {rms}")
-                return rms
+                return squared
 
             # Initial guess for C and K values
             # If C and K are same, it causes initialization error
             x0 = np.zeros(2 * n)
             x0[:n] = 1
 
-            # print(x0)
-
-            result = minimize(objective, x0)
+            result = minimize(objective, x0, method="Nelder-Mead")
 
             # Extract the optimized C and K values
             C_optimized = result.x[n:]
@@ -273,15 +272,6 @@ def concatenate_df(V, path, opt):
                 C_optimized,
                 K_optimized,
             )
-
-        np_bitscore = df_multigene_regression[
-            [f"{gene}_bitscore" for gene in gene_list]
-        ].to_numpy()
-        # get coefficient and gradient with regression
-        coeff, grad = optimize_regression_line(np_bitscore)
-
-        # fill empty blast results for each gene with regression
-        # This might be accelerated by using "apply", but coded manually initially because of logical complexity
 
         # Reset df before filling it
         def calculate_prediction(row, gene_list, coeff, grad):
@@ -302,12 +292,33 @@ def concatenate_df(V, path, opt):
                     row[f"{gene}_bitscore"] = prediction
             return row
 
-        df_multigene_regression = df_multigene_regression_ori.copy()
-
         def apply_prediction(row, gene_list, coeff, grad):
             row = calculate_prediction(row, gene_list, coeff, grad)
             return row
 
+        # Change to numpy for faster cazlculation
+        np_bitscore = df_multigene_regression[
+            [f"{gene}_bitscore" for gene in gene_list]
+        ].to_numpy()
+
+        # get coefficient and gradient with regression
+        coeff, grad = optimize_regression_line(np_bitscore)
+
+        # Inform users about linear regression result
+        # (C0 - X0) / K0 = (C1 -X1) / X1 = (C2 - X2) / X2 = K
+        trend_line_string = ""
+        for n, gene in enumerate(gene_list):
+            trend_line_string += f" {coeff[n]} - {gene} / {grad[n]} ="
+
+        trend_line_string += "K"
+
+        logging.info(
+            f"Trend line for Linear regression, \n {trend_line_string} \n Calculated to fill blank genes"
+        )
+
+        # fill empty blast results for each gene with regression
+        # This might be accelerated by using "apply", but coded manually initially because of logical complexity
+        df_multigene_regression = df_multigene_regression_ori.copy()
         df_multigene_regression = df_multigene_regression.apply(
             apply_prediction, args=(gene_list, coeff, grad), axis=1
         )
