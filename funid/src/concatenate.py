@@ -252,11 +252,12 @@ def concatenate_df(V, path, opt):
                 C = x[n:]
                 distances = distance_to_line(p0=C, line=K, pts=points)
                 mean_squared = np.mean(distances**2)
+                logging.debug(f"Mean_squared: {mean_squared}")
                 return mean_squared
 
             # Initial guess for C and K values
             # If C and K are same, it causes initialization error
-            x0 = np.full(2 * n, 100)
+            x0 = np.full(2 * n, 1)
             x0[:n] = 1
 
             result = minimize(objective, x0)
