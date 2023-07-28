@@ -211,7 +211,7 @@ def concatenate_df(V, path, opt):
         def distance_to_line(line, pts, l0=None, p0=None):
             """
             In three genes situation
-            (C0 - X0) / K0 = (C1 -X1) / X1 = (C2 - X2) / X2 = K
+            (C0 - X0) / K0 = (C1 -X1) / K1 = (C2 - X2) / K2 = K
 
             line = (C0, C1, C2)
             pts = [(X0, X1, X2), (Y0, Y1, Y2) ... ]
@@ -250,16 +250,18 @@ def concatenate_df(V, path, opt):
             def objective(x):
                 K = x[:n]
                 C = x[n:]
-                distances = distance_to_line(l0=C, line=K, pts=points)
+                distances = distance_to_line(p0=C, line=K, pts=points)
                 mean_squared = np.mean(distances**2)
+                # rms = np.sqrt(mean_squared)
                 return mean_squared
+                # return rms
 
             # Initial guess for C and K values
             # If C and K are same, it causes initialization error
             x0 = np.full(2 * n, 100)
             x0[:n] = 1
 
-            result = minimize(objective, x0, method="Nelder-Mead")
+            result = minimize(objective, x0)
 
             # Extract the optimized C and K values
             C_optimized = result.x[n:]
@@ -275,6 +277,7 @@ def concatenate_df(V, path, opt):
             # Calculate linear_constant of the strain
             linear_constant = []
             for k, gene in enumerate(gene_list):
+                # Find putative K with the existing data
                 if not np.isnan(row[f"{gene}_bitscore"]):
                     #  (coeff - value) / gradient = linear constant
                     linear_constant.append(
@@ -310,7 +313,7 @@ def concatenate_df(V, path, opt):
         trend_line_string += " K"
 
         logging.info(
-            f"Trend line for Linear regression, \n {trend_line_string} \n Calculated to fill blank genes"
+            f"Trend line for Linear regression, \n {trend_line_string} \n Calculated to fill blank similarity search results"
         )
 
         # fill empty blast results for each gene with regression
