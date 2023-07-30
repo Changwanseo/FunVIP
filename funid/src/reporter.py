@@ -145,7 +145,20 @@ class Report:
         # Concatenated analysis will be operated seperately
         # set_gene.discard("concatenated") try if without discarding works
 
-        # Collect result from each hash
+        ## Collect result from each hash
+        # Reset self.result to prevent continue mode stacking result double for some columns
+
+        self.result["ID"] = []
+        self.result["HASH"] = []
+        self.result["DATATYPE"] = []
+        self.result["GROUP_ORIGINAL"] = []
+        self.result["GROUP_ASSIGNED"] = []
+        self.result["SPECIES_ORIGINAL"] = []
+        self.result["SPECIES_ASSIGNED"] = []
+        self.result["FLAT_BRANCH"] = []
+        self.result["INCONSISTENT"] = []
+        self.result["AMBIGUOUS"] = []
+        self.result["STATUS"] = []
 
         for _hash in V.dict_hash_FI:
             FI = V.dict_hash_FI[_hash]
@@ -236,6 +249,9 @@ class Report:
                 pass
 
         ## update query only result
+        print(self.result)
+        for key in self.result:
+            print(f"{key} : {len(self.result[key])}")
         self.query_result = pd.DataFrame(self.result)
         # Filter if queryonly is True
         if opt.queryonly is True:
