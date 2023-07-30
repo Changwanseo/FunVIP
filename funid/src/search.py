@@ -387,6 +387,7 @@ def search_df(V, path, opt):
 
         # BLAST or mmseqs search
         # This part should be changed by using former search result for faster performance
+        # No because changing database can result different bitscore, so each gene blast must be re-analyzed
         for gene in V.list_qr_gene:
             df_search = search(
                 query_fasta=f"{path.tmp}/{opt.runname}_Query_{gene}.fasta",

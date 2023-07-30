@@ -189,7 +189,7 @@ def append_outgroup(V, df_search, gene, group, path, opt):
     ## For getting inner group
     cutoff_set_df = df_search[df_search["subject_group"] == group]
     try:
-        # offset will prevent selecting outgroup too close to ingroup
+        # offset will prevent selecting outgroup too close to ingroup, which may confuse the monophyly of outgroup
         bitscore_cutoff = max(
             1, min(cutoff_set_df["bitscore"]) - opt.cluster.outgroupoffset
         )
@@ -198,40 +198,28 @@ def append_outgroup(V, df_search, gene, group, path, opt):
 
     ## get result stasifies over cutoff
     # outgroup should be outside of ingroup
-    """
-    logging.debug(df_search)
-    logging.debug(
-        f"Outgroup count for group {group} | gene {gene}: {df_search.groupby(['subject_group']).count()}"
-    )
-    """
-
     cutoff_df = df_search[df_search["bitscore"] < bitscore_cutoff]
 
-    """
-    logging.debug(f"Bitscore cutoff: {bitscore_cutoff}")
-    logging.debug(
-        f"Outgroup count for group {group} | gene {gene}: {cutoff_df.groupby(['subject_group']).count()}"
-    )
-    """
-
-    # Remove malformat result
+    # Remove malformat result, which bitscore is under 0
     cutoff_df = cutoff_df[cutoff_df["bitscore"] > 0]
 
-    """
-    logging.debug(f"Removing minus bitscore or 0 value")
-    logging.debug(
-        f"Outgroup count for group {group} | gene {gene}: {cutoff_df.groupby(['subject_group']).count()}"
-    )
-    """
-    # split that same group to include all to alignment, and left other groups for outgroup selection
+    # split that same group to include all to alignment, and leave other groups for outgroup selection
     cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
 
-    """
-    logging.debug(f"Removing ingroup")
-    logging.debug(
-        f"Outgroup count for group {group} | gene {gene}: {cutoff_df.groupby(['subject_group']).count()}"
-    )
-    """
+    ## For ambiugous database, mostly because of contaminated database
+    # For each of the input, should use different cutoff
+    ambiguous_db = set()
+    for qseqid, _df in cutoff_set_df.groupby(["qseqid"]):
+        # Select dataframe corresponding to current qseqid
+        df_qseqid = df_search[df_search["qseqid"] == qseqid]
+        # Get the list of subjects, which is closer than furtest ingroup
+        ambiguous_df = df_qseqid[df_qseqid["bitscore"] >= min(_df["bitscore"])]
+        # Within the furthest match, get possible ingroups with ambiguous group
+        ambiguous_df = ambiguous_df[ambiguous_df["subject_group"] != group]
+        # Add inner ambiugities to ambiguous db
+        ambiguous_db.update([FI_dict[i] for i in list(ambiguous_df["sseqid"])])
+
+    ambiguous_db = list(ambiguous_db)
 
     # If no or fewer than designated number of outgroup matches to condition, use flexible criteria
     if cutoff_df.groupby(["subject_group"]).count().empty:
@@ -265,19 +253,19 @@ def append_outgroup(V, df_search, gene, group, path, opt):
     max_group = ""
 
     for n, subject_group in enumerate(cutoff_df["subject_group"]):
-        # Check if outgroup sequence that we're going to use actually exists
+        ## Check if outgroup sequence that we're going to use actually exists
         # If gene is not "concatenated", the outgroup sequence should actually exists
-        # If gene is "concatenated", any of the genes should exists
         cond1 = gene in FI_dict[cutoff_df["sseqid"][n]].seq
+        # If gene is "concatenated", any of the genes should exists
         cond2 = (
             gene == "concatenated"
             and len(FI_dict[cutoff_df["sseqid"][n]].seq.keys()) > 0
         )
         if cond1 or cond2:
-            # if first sequence of the group found, make new key to dict
+            # if first sequence belonging to the group found, make new key to dict
             if not (subject_group) in outgroup_dict:
                 outgroup_dict[subject_group] = [FI_dict[cutoff_df["sseqid"][n]]]
-            # if group record already exists, append it
+            # if group key already exists in dict, append it
             else:
                 if (
                     not (FI_dict[cutoff_df["sseqid"][n]])
@@ -294,17 +282,16 @@ def append_outgroup(V, df_search, gene, group, path, opt):
                     f"Outgroup [{subject_group}] selected to [{group}]\n {text_outgroup_list}"
                 )
 
-                # Get database sequences in ambiguous position
-                ambiguous_group = []
+                # Get database sequences probably in ambiguous phylogenetic position
                 for _group in outgroup_dict:
                     if _group != subject_group:
-                        ambiguous_group += outgroup_dict[_group]
+                        ambiguous_db += outgroup_dict[_group]
 
                 return (
                     group,
                     gene,
                     outgroup_dict[subject_group],
-                    ambiguous_group,
+                    ambiguous_db,
                 )
             else:
                 if len(outgroup_dict[subject_group]) > max_cnt:
@@ -320,13 +307,12 @@ def append_outgroup(V, df_search, gene, group, path, opt):
             f"Final outgroup selection for group {group} : {outgroup_dict[max_group]}"
         )
 
-        # Get database sequences in ambiguous position
-        ambiguous_group = []
+        # Get database sequences probably in ambiguous position
         for _group in outgroup_dict:
             if _group != subject_group:
-                ambiguous_group += outgroup_dict[_group]
+                ambiguous_db += outgroup_dict[_group]
 
-        return (group, gene, outgroup_dict[max_group], ambiguous_group)
+        return (group, gene, outgroup_dict[max_group], ambiguous_db)
 
     else:
         logging.warning(
@@ -483,6 +469,7 @@ def pipe_append_outgroup(V, path, opt):
 
         else:
             V.dict_dataset[group][gene].list_og_FI = outgroup
+            # Add ambiguous group to FI
             V.dict_dataset[group][gene].list_db_FI += ambiguous_group
 
     groups = deepcopy(list(V.dict_dataset.keys()))

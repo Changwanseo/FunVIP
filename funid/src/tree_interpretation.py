@@ -22,7 +22,6 @@ import re
 import sys
 import json
 
-
 # Default zero length branch for concatenation
 CONCAT_ZERO = 0  # for better binding
 
@@ -57,13 +56,13 @@ def divide_by_max_len(string, max_len, sep=" "):
     return final_string
 
 
-# per clade information
+# Per clade information
 class Collapse_information:
     def __init__(self):
         self.query_list = []
         self.db_list = []
         self.outgroup = []
-        self.clade = ""
+        self.clade = None  # partial tree clade
         self.leaf_list = []
         self.clade_cnt = 0  # if clade with same name exists, use this as counter
         self.collapse_type = (
@@ -108,9 +107,10 @@ def concat_all(clade_tuple, root_dist):
     if len(clade_tuple) == 0:
         print("No clade input found, abort")
         raise Exception
-
+    # If one clade were input, return self
     elif len(clade_tuple) == 1:
         return clade_tuple[0].copy("newick")
+    # If two clades were input, concat it and return
     elif len(clade_tuple) == 2:
         return_clade = clade_tuple[0].copy("newick")
         return_clade = concat_clade(
@@ -120,6 +120,7 @@ def concat_all(clade_tuple, root_dist):
             clade_tuple[1].dist,
             root_dist=root_dist,
         )
+    # If more then 3 clades were input, iteratively concat
     elif len(clade_tuple) >= 3:
         return_clade = clade_tuple[0].copy("newick")
         for c in clade_tuple[1:-1]:
@@ -180,7 +181,8 @@ class Tree_information:
         self.query_list = []
         self.db_list = []
         self.outgroup = []
-        self.outgroup_leaf_name_list = []
+        self.outgroup_leaf_name_list = []  # hash list of outgroup
+        self.outgroup_group = []  # list of groups that outgroup sequences designated
         self.funinfo_dict = {}  # leaf.name (hash) : Funinfo
 
         self.sp_cnt = 1
@@ -194,7 +196,7 @@ class Tree_information:
         self.collapse_dict = {}  # { taxon name : collapse_info }
 
         self.outgroup_clade = None
-        self.bgstate = 0
+        self.bgstate = 1
         self.additional_clustering = True
         self.zero = 0.00000100000050002909
 
@@ -313,6 +315,9 @@ class Tree_information:
                     outgroup_leaves.append(leaf)
 
         self.outgroup_leaf_name_list = [leaf.name for leaf in outgroup_leaves]
+        self.outgroup_group = list(
+            set(self.funinfo_dict[leaf.name].adjusted_group for leaf in outgroup_leaves)
+        )
 
         # find smallest monophyletic clade that contains all leaves in outgroup_leaves
         # reroot with outgroup_clade
@@ -691,9 +696,11 @@ class Tree_information:
                 datatype, monophyletic = local_check_monophyletic(
                     self, child_clade, gene
                 )
+
+                # If monophyletic clade, generate collapse_info and finish
                 if monophyletic is True:
                     local_generate_collapse_information(self, child_clade, opt=opt)
-
+                # Else, do recursive tree search to divide clades
                 else:
                     self.tree_search(child_clade, gene, opt=opt)
             return
@@ -712,14 +719,9 @@ class Tree_information:
 
         @lru_cache(maxsize=10000)
         def solve_flat(clade):
-            # If clade is consists of query db or both
+            # Check if the clade is consists of query db or both
             def consist(c):
                 db, query = 0, 0
-                """
-                db = 0
-                query = 0
-                """
-
                 for leaf in c:
                     if self.decide_type(leaf.name) in ("db", "outgroup"):
                         db += 1
@@ -736,8 +738,9 @@ class Tree_information:
                 else:
                     return "both"
 
+            # Get taxon of the given clade
+            # c for clade (to remove redundancy to other variable: clade)
             def get_taxon(c, gene, mode="db"):
-                # get taxon
                 def t(leaf):
                     try:
                         return (
@@ -984,24 +987,41 @@ class Tree_information:
                 clade.add_face(space_text, 4, position="branch-right")
                 clade.add_face(id_text, 5, position="branch-right")
 
-                # get all tip names of the current working clade
+                # Get all tip names of the current working clade
                 collapse_leaf_name_list = [x[0] for x in collapse_info.leaf_list]
 
-                # check if current working clade includes only outgroup sequences
+                # Check if current working clade includes only outgroup sequences
+                """
                 if all(
                     x in self.outgroup_leaf_name_list or x in collapse_info.query_list
                     for x in collapse_leaf_name_list
                 ) and any(
                     x in self.outgroup_leaf_name_list for x in collapse_leaf_name_list
                 ):
+                """
+                # Development, color unintended outgroup in outgroup color
+                if any(
+                    self.funinfo_dict[x].adjusted_group in self.outgroup_group
+                    for x in collapse_leaf_name_list
+                ):
+                    # Change background color to outgroup color
                     clade.img_style["bgcolor"] = self.opt.visualize.outgroupcolor
+                    # Do not draw collapsed clades
                     clade.img_style["draw_descendants"] = False
 
+                # If not outgroup sequences
                 else:
-                    clade.img_style["bgcolor"] = self.get_bgcolor()
-                    # change background color for next clade
-                    self.bgstate += 1
-
+                    # If any of the sequence in clade considered to be in ingroup
+                    if any(
+                        self.funinfo_dict[x].adjusted_group == self.group
+                        for x in collapse_leaf_name_list
+                    ):
+                        # color the background
+                        clade.img_style["bgcolor"] = self.get_bgcolor()
+                        # change background color for next clade to be discrimminated
+                        # Currently disabled because it does not looks good
+                        self.bgstate += 1
+                    # Do not draw collapsed clades
                     clade.img_style["draw_descendants"] = False
 
         # show branch support above 70%
