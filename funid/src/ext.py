@@ -156,7 +156,7 @@ def Trimal(fasta, out, path, algorithm="gt", threshold=0.2):
         algorithm = f"{algorithm} {threshold}"
 
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/trimal.v1.2rev59/trimAl/bin/trimal.exe -in {fasta} -out {out} -{algorithm} -terminalonly"
+        CMD = f"{path.sys_path}/external/trimal.v1.4/trimAl/bin/trimal.exe -in {fasta} -out {out} -{algorithm} -terminalonly"
 
     else:
         CMD = f"trimal -in {fasta} -out {out} -{algorithm} -terminalonly"
