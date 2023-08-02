@@ -1,5 +1,5 @@
 {% set name = "FunID" %}
-{% set version = "0.3.14.2" %}
+{% set version = "0.3.14.3" %}
 
 package:
   name: {{ name|lower }}
@@ -7,7 +7,7 @@ package:
 
 source:
   url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/FunID-{{ version }}.tar.gz
-  sha256: 8354009833073e5eaee6eb06384fff9b8db9b60447b59b345ec6ce632628d6bb
+  sha256: a3207d35017eabd41063d9ff8029bde708927f5f17928577bc361e5e8a118a81
 
 build:
   skip: true  # [py>=311 or py2k]
@@ -63,7 +63,7 @@ about:
   license_file:
     - LICENSE
     - funid/external/mmseqs_Windows/LICENSE.md
-    - funid/external/trimal.v1.2rev59/trimAl/LICENSE
+    - funid/external/trimal.v1.4/trimAl/LICENSE
 
 extra:
   recipe-maintainers:
