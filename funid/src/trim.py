@@ -1,24 +1,64 @@
 from funid.src import ext
 from funid.src.opt_generator import opt_generator
-from Bio import SeqIO
+from Bio import AlignIO
 import multiprocessing as mp
 import os
 import logging
 import shutil
 
 
+## Trimming function of FunID
+# As most of the trimming functions affects inside of alignment
+def trimming(alignment, out, path, opt):
+    # Save alignment before running trimming
+    original_msa = AlignIO.read(alignment, "fasta")
+
+    # Running trimming
+    if opt.method.trim.lower() == "gblocks":
+        trimming_result = ext.Gblocks(fasta=alignment, out=out, path=path)
+    elif opt.method.trim.lower() == "trimal":
+        trimming_result = ext.Trimal(
+            fasta=alignment,
+            out=out,
+            path=path,
+            algorithm=opt.trimal.algorithm,
+            threshold=opt.trimal.gt,
+        )
+    else:
+        trimming_result = shutil.copy(fasta, out)
+
+    # Repair mid alignment
+    if not (opt.allow_innertrimming):
+        # Repaired trimmend alignment
+        trimmed_msa = AlignIO.read(out, "fasta")
+        removed_columns = []
+        original_length = len(original_msa[0])
+        trimmed_length = len(trimmed_msa[0])
+
+        if original_length > trimmed_length:
+            for col_index in range(original_length):
+                original_column = original_msa[:, col_index]
+                trimmed_column = trimmed_msa[:, col_index]
+                if original_column != trimmed_column:
+                    removed_columns.append(col_index)
+
+        survived = set(range(original_length)) - set(col_index)
+
+        revived_msa = original_msa[:, min(survived) : max(survived) + 1]
+        print(f"Conserved MSA: {min(survived)}:{max(survived) + 1}")
+
+        AlignIO.write(revived_msa, out, "fasta")
+
+    return trimming_result
+
+
+# Trimming pipeline of FunID
 def pipe_trimming(V, path, opt):
     trimming_opt = opt_generator(V, opt, path, step="trimming")
-
     # run multiprocessing start
     if opt.verbose < 3:
         p = mp.Pool(opt.thread)
-        if opt.method.trim.lower() == "gblocks":
-            trimming_result = p.starmap(ext.Gblocks, trimming_opt)
-        elif opt.method.trim.lower() == "trimal":
-            trimming_result = p.starmap(ext.Trimal, trimming_opt)
-        else:
-            trimming_result = p.starmap(shutil.copy, trimming_opt)
+        trimming_result = p.starmap(trimming, trimming_opt)
         p.close()
         p.join()
 
@@ -26,12 +66,7 @@ def pipe_trimming(V, path, opt):
         # non-multithreading mode for debugging
         trimming_result = []
         for option in trimming_opt:
-            if opt.method.trim.lower() == "gblocks":
-                trimming_result.append(ext.Gblocks(*option))
-            elif opt.method.trim.lower() == "trimal":
-                trimming_result.append(ext.Trimal(*option))
-            else:
-                trimming_result.append(shutil.copy(*option))
+            trimming_result.append(trimming(*option))
 
     # Remove datasets if trimming results nothing
     trim_fail = []

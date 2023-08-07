@@ -49,6 +49,7 @@ def opt_generator(V, opt, path, step):
                                 f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
                                 f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
                                 path,
+                                opt,
                             )
                         )
                     elif opt.method.trim.lower() == "trimal":
@@ -57,8 +58,7 @@ def opt_generator(V, opt, path, step):
                                 f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
                                 f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
                                 path,
-                                opt.trimal.algorithm,
-                                opt.trimal.gt,
+                                opt,
                             )
                         )
                     else:  # for just copy
@@ -66,6 +66,8 @@ def opt_generator(V, opt, path, step):
                             (
                                 f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
                                 f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
+                                path,
+                                opt,
                             )
                         )
 

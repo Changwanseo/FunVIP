@@ -72,6 +72,7 @@ class Option:
         self.mode = "identification"
         self.continue_from_previous = False
         self.criterion = "BIC"
+        self.allow_innertrimming = False
         self.step = ""
         self.level = "genus"
         self.queryonly = True
@@ -164,6 +165,8 @@ class Option:
                 self.regex = parser_dict[key]
             elif key.lower() in ("avx"):
                 self.avx = parser_dict[key]
+            elif key.lower() in ("allow-innertrimming"):
+                self.allow_innertrimming = parser_dict[key]
             elif key.lower() in ("criterion"):
                 self.criterion = parser_dict[key]
             elif key.lower() in ("cachedb"):
@@ -522,6 +525,12 @@ class Option:
         try:
             if not parser.criterion is None:
                 self.criterion = parser.criterion
+        except:
+            pass
+
+        try:
+            if not parser.allow_innertrimming is None:
+                self.allow_innertrimming = parser.allow_innertrimming
         except:
             pass
 
