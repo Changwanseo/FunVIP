@@ -157,15 +157,18 @@ def Gblocks(fasta, out, path):
                 flank_log = line
                 flank_log = (
                     flank_log.replace("Flanks:", "")
-                    .replace(" ", "")
+                    .replace("  ", " ")
                     .replace("[", "")
                     .replace("]", "")
                     .strip()
                 )
                 flank_log = flank_log.split(" ")
+                print(flank_log)
                 flank_log = [int(x) for x in flank_log]
                 start_pos = flank_log[0]
                 end_pos = flank_log[-1] - 1
+
+    # print(f"start_pos: {start_pos}, end_pos: {end_pos}")
 
     try:
         shutil.move(f"{fasta}.gb.txt", path.extlog)
