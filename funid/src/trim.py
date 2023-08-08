@@ -26,7 +26,7 @@ def trimming(alignment, out, path, opt):
             threshold=opt.trimal.gt,
         )
     else:
-        trimming_result = shutil.copy(fasta, out)
+        trimming_result = shutil.copy(alignment, out)
 
     # Repair mid alignment
     if not (opt.allow_innertrimming) and opt.method.trim.lower() in (
