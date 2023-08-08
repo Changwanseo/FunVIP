@@ -277,6 +277,12 @@ class CommandParser:
             "--trimal-gt", dest="trimal_gt", help="gt value for trimal", type=float
         )
         group_advanced.add_argument(
+            "--allow-innertrimming",
+            dest="allow_innertrimming",
+            help="Turn off FunID adjustment to not to trim inner alignment columns",
+            action="store_true",
+        )
+        group_advanced.add_argument(
             "--criterion",
             help="Modeltest criterion to use, either AIC, AICc or BIC",
             type=str,

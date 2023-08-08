@@ -262,6 +262,8 @@ class Path:
         # Alignment file directory (non-trimmed, trimmed and concatenated)
         self.out_alignment = f"{self.root}/05_Alignment"
         mkdir(self.out_alignment)
+        # Also make alignment hash directory
+        mkdir(f"{self.out_alignment}/hash")
 
         # modeltest result directory
         self.out_modeltest = f"{self.root}/06_Modeltest"
