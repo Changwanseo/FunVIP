@@ -75,7 +75,7 @@ def pipe_module_tree_interpretation(
     # Main phase
     # calculate zero distance with alignment
     tree_info.calculate_zero(
-        f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_{gene}.fasta"
+        f"{path.out_alignment}/hash/{opt.runname}_hash_trimmed_{group}_{gene}.fasta"
     )
 
     # Reroot outgroup and save original tree into image

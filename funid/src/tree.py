@@ -171,22 +171,22 @@ def pipe_tree(V, path, opt, model_dict):
                 if gene != "concatenated":
                     os.rename(
                         f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
-                        f"{path.out_alignment}/{opt.runname}_hash_MAFFT_{group}_{gene}.fasta",
+                        f"{path.out_alignment}/hash/{opt.runname}_hash_MAFFT_{group}_{gene}.fasta",
                     )
                     hasher.decode(
                         tree_hash_dict,
-                        f"{path.out_alignment}/{opt.runname}_hash_MAFFT_{group}_{gene}.fasta",
+                        f"{path.out_alignment}/hash/{opt.runname}_hash_MAFFT_{group}_{gene}.fasta",
                         f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
                     )
 
                 os.rename(
                     f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
-                    f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_{gene}.fasta",
+                    f"{path.out_alignment}/hash/{opt.runname}_hash_trimmed_{group}_{gene}.fasta",
                 )
 
                 hasher.decode(
                     tree_hash_dict,
-                    f"{path.out_alignment}/{opt.runname}_hash_trimmed_{group}_{gene}.fasta",
+                    f"{path.out_alignment}/hash/{opt.runname}_hash_trimmed_{group}_{gene}.fasta",
                     f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
                 )
             except:

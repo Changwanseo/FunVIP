@@ -137,18 +137,42 @@ def MAFFT(
 # Trimming
 def Gblocks(fasta, out, path):
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/Gblocks_Windows_0.91b/Gblocks_0.91b/Gblocks.exe {fasta} -t=d -b4=2 -b5=a -e=.gb"
+        CMD = f"{path.sys_path}/external/Gblocks_Windows_0.91b/Gblocks_0.91b/Gblocks.exe {fasta} -t=d -b4=2 -b5=a -e=.gb -p=t"
     else:
-        CMD = f"Gblocks '{fasta}' -t=d -b4=2 -b5=a -e=.gb"
+        CMD = f"Gblocks '{fasta}' -t=d -b4=2 -b5=a -e=.gb -p=t"
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
 
     try:
         shutil.move(f"{fasta}.gb", out)
-        shutil.move(f"{fasta}.gb.htm", f"{out}.html")
     except:  # when only one sequence and Gblocks failed
         shutil.move(fasta, out)
+
+    # Parse and return column statistics
+    with open(f"{fasta}.gb.txt", "r") as f:
+        lines = f.readlines()
+        for line in lines:
+            if line.startswith("Flanks:"):
+                flank_log = line
+                flank_log = (
+                    flank_log.replace("Flanks:", "")
+                    .replace(" ", "")
+                    .replace("[", "")
+                    .replace("]", "")
+                    .strip()
+                )
+                flank_log = flank_log.split(" ")
+                flank_log = [int(x) for x in flank_log]
+                start_pos = flank_log[0]
+                end_pos = flank_log[-1] - 1
+
+    try:
+        shutil.move(f"{fasta}.gb.txt", path.extlog)
+    except:
+        pass
+
+    return (start_pos, end_pos)
 
 
 def Trimal(fasta, out, path, algorithm="gt", threshold=0.2):
@@ -156,15 +180,15 @@ def Trimal(fasta, out, path, algorithm="gt", threshold=0.2):
         algorithm = f"{algorithm} {threshold}"
 
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/trimal.v1.4/trimAl/bin/trimal.exe -in {fasta} -out {out} -{algorithm} -terminalonly"
+        CMD = f"{path.sys_path}/external/trimal.v1.4/trimAl/bin/trimal.exe -in {fasta} -out {out} -{algorithm} -terminalonly -colnumbering > {out}.colnumbering"
 
     else:
-        CMD = f"trimal -in {fasta} -out {out} -{algorithm} -terminalonly"
+        CMD = f"trimal -in {fasta} -out {out} -{algorithm} -terminalonly -colnumbering > {out}.colnumbering"
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
 
-    # to remove unexpected hash
+    # to remove unexpected hash included - maybe not needed after stabilization
     fasta_list = list(SeqIO.parse(out, "fasta"))
 
     for seq in fasta_list:
@@ -173,6 +197,21 @@ def Trimal(fasta, out, path, algorithm="gt", threshold=0.2):
         seq.description = ""
 
     SeqIO.write(fasta_list, out, "fasta")
+
+    # Parse and return column statistics
+    with open(f"{out}.colnumbering", "r") as f:
+        line = f.read()
+        cols = line.replace("#ColumnsMap", "").strip().split(", ")
+        cols = [int(x) for x in cols]
+        start_pos = cols[0]
+        end_pos = cols[-1]
+
+    try:
+        shutil.move(f"{out}.colnumbering", path.extlog)
+    except:
+        pass
+
+    return (start_pos, end_pos)
 
 
 # Modeltest

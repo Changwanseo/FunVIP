@@ -1,6 +1,7 @@
 from funid.src import ext
 from funid.src.opt_generator import opt_generator
 from Bio import AlignIO
+from Bio import SeqIO
 import multiprocessing as mp
 import os
 import logging
@@ -28,25 +29,14 @@ def trimming(alignment, out, path, opt):
         trimming_result = shutil.copy(fasta, out)
 
     # Repair mid alignment
-    if not (opt.allow_innertrimming):
-        # Repaired trimmend alignment
+    if not (opt.allow_innertrimming) and opt.method.trim.lower() in (
+        "gblocks",
+        "trimal",
+    ):
+        # Repair trimmend alignment by analysis flanking region
         trimmed_msa = AlignIO.read(out, "fasta")
-        removed_columns = []
-        original_length = len(original_msa[0])
-        trimmed_length = len(trimmed_msa[0])
-
-        if original_length > trimmed_length:
-            for col_index in range(original_length):
-                original_column = original_msa[:, col_index]
-                trimmed_column = trimmed_msa[:, col_index]
-                if original_column != trimmed_column:
-                    removed_columns.append(col_index)
-
-        survived = set(range(original_length)) - set(col_index)
-
-        revived_msa = original_msa[:, min(survived) : max(survived) + 1]
-        print(f"Conserved MSA: {min(survived)}:{max(survived) + 1}")
-
+        # trimming results are in 1 based positions, and start, end included
+        revived_msa = original_msa[:, trimming_result[0] - 1 : trimming_result[1]]
         AlignIO.write(revived_msa, out, "fasta")
 
     return trimming_result
