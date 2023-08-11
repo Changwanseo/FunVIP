@@ -138,7 +138,7 @@ def synchronize(V, path, tree_info_list):
     # genus : cnt, counting sp. numbers
     sp_cnt_dict = {}
 
-    # To synchronize sp. number by genus, generate by-genus dataset
+    # To synchronize sp. number by genus, generate by-group dataset
     for tree_info in tree_info_list:
         if not (tree_info.group in tree_info_dict):
             tree_info_dict[tree_info.group] = {tree_info.gene: tree_info}
@@ -296,7 +296,38 @@ def synchronize(V, path, tree_info_list):
                 species_list.append(f"{t[0][1]} {t[1]}")
             clade_cnt_set.add(t[1])
 
-        species = "/".join([s for s in species_list])
+        # Work with species with numbers
+        dict_species = {}
+        for s in species_list:
+            splited_species = s.split(" ")
+            try:
+                # Collect with numbers
+                int(splited_species[-1])
+                if not (" ".join(splited_species[:-1]) in dict_species):
+                    dict_species[" ".join(splited_species[:-1])] = [
+                        int(splited_species[-1])
+                    ]
+                else:
+                    dict_species[" ".join(splited_species[:-1])].append(
+                        int(splited_species[-1])
+                    )
+            except:
+                dict_species[s] = [0]
+
+        species = ""
+        for key in sorted(list(dict_species.keys())):
+            if len(set(dict_species[key]) - set([0])) == 0:
+                species += key
+                species += "/"
+            else:
+                species_numbers = [
+                    str(x) for x in sorted(list(set(dict_species[key]) - set([0])))
+                ]
+                species += key
+                species += "/".join(species_numbers)
+
+        # Remove last slash
+        species = species[:-1]
 
         if len(clade_cnt_set) == 1:
             clade_cnt = list(clade_cnt_set)[0]
@@ -309,6 +340,7 @@ def synchronize(V, path, tree_info_list):
     # Remove original taxon, and add by clade taxon
     for group in tree_info_dict:
         for gene in tree_info_dict[group]:
+            print(group, gene)
             tree_info = tree_info_dict[group][gene]
             # Before taxon, after taxon update list
             remove_list = []  # [taxon1, taxon2, taxon3 ...]
@@ -333,6 +365,20 @@ def synchronize(V, path, tree_info_list):
             # Add synchronized taxon
             for taxon in add_list:
                 tree_info.collapse_dict[taxon] = add_list[taxon]
+
+            """
+            if group == "Peniophorella":
+                for taxon in add_list:
+                    print(taxon)
+            """
+            for taxon in add_list:
+                if taxon[0] == "Peniophorella" and "praetermissa" in taxon[1]:
+                    print(taxon)
+                    for collapse_info in add_list[taxon]:
+                        for leaf in collapse_info.leaf_list:
+                            V.dict_hash_FI[leaf[0]]
+
+    # raise Exception
 
     # Return sp number fixed tree_info_list
     return tree_info_list
