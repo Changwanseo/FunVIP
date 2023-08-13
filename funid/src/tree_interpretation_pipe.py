@@ -315,6 +315,7 @@ def synchronize(V, path, tree_info_list):
                 dict_species[s] = [0]
 
         species = ""
+
         for key in sorted(list(dict_species.keys())):
             if len(set(dict_species[key]) - set([0])) == 0:
                 species += key
@@ -324,10 +325,12 @@ def synchronize(V, path, tree_info_list):
                     str(x) for x in sorted(list(set(dict_species[key]) - set([0])))
                 ]
                 species += key
+                species += " "
                 species += "/".join(species_numbers)
 
         # Remove last slash
-        species = species[:-1]
+        if species.endswith("/"):
+            species = species[:-1]
 
         if len(clade_cnt_set) == 1:
             clade_cnt = list(clade_cnt_set)[0]
@@ -340,7 +343,6 @@ def synchronize(V, path, tree_info_list):
     # Remove original taxon, and add by clade taxon
     for group in tree_info_dict:
         for gene in tree_info_dict[group]:
-            print(group, gene)
             tree_info = tree_info_dict[group][gene]
             # Before taxon, after taxon update list
             remove_list = []  # [taxon1, taxon2, taxon3 ...]
@@ -365,20 +367,6 @@ def synchronize(V, path, tree_info_list):
             # Add synchronized taxon
             for taxon in add_list:
                 tree_info.collapse_dict[taxon] = add_list[taxon]
-
-            """
-            if group == "Peniophorella":
-                for taxon in add_list:
-                    print(taxon)
-            """
-            for taxon in add_list:
-                if taxon[0] == "Peniophorella" and "praetermissa" in taxon[1]:
-                    print(taxon)
-                    for collapse_info in add_list[taxon]:
-                        for leaf in collapse_info.leaf_list:
-                            V.dict_hash_FI[leaf[0]]
-
-    # raise Exception
 
     # Return sp number fixed tree_info_list
     return tree_info_list
