@@ -168,7 +168,7 @@ def Gblocks(fasta, out, path):
                 start_pos = flank_log[0]
                 end_pos = flank_log[-1] - 1
 
-    # print(f"start_pos: {start_pos}, end_pos: {end_pos}")
+    print(f"start_pos: {start_pos}, end_pos: {end_pos}")
 
     try:
         shutil.move(f"{fasta}.gb.txt", path.extlog)
@@ -214,7 +214,8 @@ def Trimal(fasta, out, path, algorithm="gt", threshold=0.2):
     except:
         pass
 
-    return (start_pos, end_pos)
+    # Trimal uses 0 based position, return with +1
+    return (start_pos + 1, end_pos + 1)
 
 
 # Modeltest
