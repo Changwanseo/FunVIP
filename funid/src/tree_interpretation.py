@@ -931,6 +931,7 @@ class Tree_information:
             # collapse_info.taxon should be taxon
             for collapse_info in self.collapse_dict[collapse_taxon]:
                 clade = collapse_info.clade
+
                 # if only one clade with same name exists
                 if len(self.collapse_dict[collapse_taxon]) == 1:
                     taxon_string = " ".join(collapse_info.taxon)
@@ -939,7 +940,7 @@ class Tree_information:
                         self.collapse_dict[collapse_taxon].index(collapse_info) + 1
                     )
                     taxon_string = (
-                        f'{" ".join(collapse_info.taxon)} {collapse_info.clade_cnt}'
+                        f'{" ".join(collapse_info.taxon)}-{collapse_info.clade_cnt}'
                     )
                 taxon_string_list.append(taxon_string)
 
