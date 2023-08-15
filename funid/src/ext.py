@@ -164,9 +164,13 @@ def Gblocks(fasta, out, path):
                 )
                 flank_log = flank_log.split(" ")
                 print(flank_log)
-                flank_log = [int(x) for x in flank_log]
-                start_pos = flank_log[0]
-                end_pos = flank_log[-1] - 1
+                try:
+                    flank_log = [int(x) for x in flank_log]
+                    start_pos = flank_log[0]
+                    end_pos = flank_log[-1] - 1
+                except:
+                    start_pos = -1
+                    end_pos = -1
 
     print(f"start_pos: {start_pos}, end_pos: {end_pos}")
 
@@ -205,9 +209,13 @@ def Trimal(fasta, out, path, algorithm="gt", threshold=0.2):
     with open(f"{out}.colnumbering", "r") as f:
         line = f.read()
         cols = line.replace("#ColumnsMap", "").strip().split(", ")
-        cols = [int(x) for x in cols]
-        start_pos = cols[0]
-        end_pos = cols[-1]
+        try:
+            cols = [int(x) for x in cols]
+            start_pos = cols[0]
+            end_pos = cols[-1]
+        except:
+            start_pos = -2
+            end_pos = -2
 
     try:
         shutil.move(f"{out}.colnumbering", path.extlog)

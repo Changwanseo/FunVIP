@@ -40,13 +40,19 @@ def trimming(alignment, out, path, opt):
             "trimal",
         )
     ):
-        # Repair trimmend alignment by analysis flanking region
-        trimmed_msa = AlignIO.read(out, "fasta")
-        logging.debug(f"Trimming region for {alignment} : {trimming_result}")
+        # Check if trimming successed
+        if trimming_result is not ((-1, -1)):
+            # Repair trimmend alignment by analysis flanking region
+            trimmed_msa = AlignIO.read(out, "fasta")
+            logging.debug(f"Trimming region for {alignment} : {trimming_result}")
 
-        # trimming results are in 1 based positions, and start, end included
-        revived_msa = original_msa[:, trimming_result[0] - 1 : trimming_result[1]]
-        AlignIO.write(revived_msa, out, "fasta")
+            # trimming results are in 1 based positions, and start, end included
+            revived_msa = original_msa[:, trimming_result[0] - 1 : trimming_result[1]]
+            AlignIO.write(revived_msa, out, "fasta")
+        else:
+            logging.warning(
+                f"Trimming {alignment} failed. Check if the alignment includes invalid sequneces"
+            )
 
     return trimming_result
 
