@@ -4,7 +4,7 @@ from funid.src import tree_interpretation
 from funid.src.tool import initialize_path, get_genus_species
 from funid.src.hasher import encode, decode
 from funid.src.reporter import Singlereport
-
+from copy import deepcopy
 import pandas as pd
 import re
 import sys, os
@@ -351,19 +351,8 @@ def synchronize(V, path, tree_info_list):
 
                                 # print(group, _hash, taxon, n + 1)
 
-    # DEBUGGING
     """
-    for _hash in sorted(list(hash_taxon_dict.keys())):
-        print(_hash, hash_taxon_dict[_hash])
-
-    raise Exception
-    """
-    print("Before")
-    for group in tree_info_dict:
-        for gene in tree_info_dict[group]:
-            if gene == "cam":
-                for key in tree_info.collapse_dict:
-                    print(key, tree_info.collapse_dict[key])
+    
 
     # Now update from concatenated
     # Remove original taxon, and add by clade taxon
@@ -426,6 +415,7 @@ def synchronize(V, path, tree_info_list):
             if gene == "cam":
                 for key in tree_info.collapse_dict:
                     print(key, tree_info.collapse_dict[key])
+    """
 
     # raise Exception
 
@@ -583,7 +573,8 @@ def pipe_tree_interpretation(V, path, opt):
             for option in tree_interpretation_opt
         ]
 
-    tree_info_list = synchronize(V, path, tree_info_list)
+    synchronized_tree_info_list = synchronize(V, path, tree_info_list)
+    tree_info_list = synchronized_tree_info_list
     # Generate visualization option to run
     tree_visualization_opt = []
     for tree_info in tree_info_list:
