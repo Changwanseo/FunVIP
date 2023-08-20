@@ -302,18 +302,18 @@ class Tree_information:
         return self.zero
 
     def reroot_outgroup(self, out):
-        # rerooting
+        # Rerooting
         # Reroot should be done first because unrooted tree may have 3 children clades
-
         outgroup_leaves = []
+
+        # Resolve polytomy before rerooting
         self.t.resolve_polytomy()
 
-        for outgroup in self.outgroup:
-            print(f"[INFO] Rerooting {outgroup} ({outgroup.hash}) in {self.tree_name}")
-            for leaf in self.t:
-                if outgroup.hash in leaf.name:
-                    outgroup_leaves.append(leaf)
-
+        # Find out if outgroup sequences exists
+        print(f"[INFO] Rerooting {self.outgroup} in {self.tree_name}")
+        for leaf in self.t:
+            if any(outgroup.hash in leaf.name for outgroup in self.outgroup):
+                outgroup_leaves.append(leaf)
         self.outgroup_leaf_name_list = [leaf.name for leaf in outgroup_leaves]
         self.outgroup_group = list(
             set(self.funinfo_dict[leaf.name].adjusted_group for leaf in outgroup_leaves)
@@ -322,6 +322,7 @@ class Tree_information:
         # find smallest monophyletic clade that contains all leaves in outgroup_leaves
         # reroot with outgroup_clade
         try:
+            # For more than one outgroups, after rerooting, get_common_ancestor of outgroup again
             if len(outgroup_leaves) >= 2:
                 self.outgroup_clade = self.t.get_common_ancestor(outgroup_leaves)
                 self.t.set_outgroup(self.outgroup_clade)
@@ -364,9 +365,9 @@ class Tree_information:
             if outgroup_flag is False:
                 # never erase this for debugging
                 print(f"[ERROR] Outgroup not selected in {self.tree_name}")
-                print(f"[ERROR] Outgroup leaves: {outgroup_leaves}")
-                print(f"[ERROR] Outgroup : {self.outgroup}")
-                print(f"[ERROR] Outgroup clade : {self.outgroup_clade}")
+                print(f"[ERROR] local variable outgroup_leaves : {outgroup_leaves}")
+                print(f"[ERROR] tree_info.outgroup : {self.outgroup}")
+                print(f"[ERROR] tree_info.outgroup_clade : {self.outgroup_clade}")
                 raise Exception
 
         self.Tree_style.ts.show_leaf_name = True
@@ -930,6 +931,7 @@ class Tree_information:
             # collapse_info.taxon should be taxon
             for collapse_info in self.collapse_dict[collapse_taxon]:
                 clade = collapse_info.clade
+
                 # if only one clade with same name exists
                 if len(self.collapse_dict[collapse_taxon]) == 1:
                     taxon_string = " ".join(collapse_info.taxon)
@@ -938,7 +940,7 @@ class Tree_information:
                         self.collapse_dict[collapse_taxon].index(collapse_info) + 1
                     )
                     taxon_string = (
-                        f'{" ".join(collapse_info.taxon)} {collapse_info.clade_cnt}'
+                        f'{" ".join(collapse_info.taxon)}-{collapse_info.clade_cnt}'
                     )
                 taxon_string_list.append(taxon_string)
 

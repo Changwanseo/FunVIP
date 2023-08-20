@@ -12,8 +12,27 @@ def pipe_tree(V, path, opt, model_dict):
     tree_hash_dict = hasher.encode(V.list_FI, newick=True)
 
     # remove tree files already exists to prevent error
-    for file in [f for f in os.listdir(path.sys_path) if f.endswith(".nwk")]:
-        os.remove(f"{path.sys_path}/{file}")
+    try:
+        for file in [f for f in os.listdir(path.out_tree) if f.endswith(".nwk")]:
+            os.remove(f"{path.out_tree}/{file}")
+    except:
+        pass
+
+    try:
+        for file in [
+            f for f in os.listdir(f"{path.out_tree}/original/") if f.endswith(".nwk")
+        ]:
+            os.remove(f"{path.out_tree}/original/{file}")
+    except:
+        pass
+
+    try:
+        for file in [
+            f for f in os.listdir(f"{path.out_tree}/hash/") if f.endswith(".nwk")
+        ]:
+            os.remove(f"{path.out_tree}/hash/{file}")
+    except:
+        pass
 
     fasttree_opt = []  # for multiprocessing on fasttree
 

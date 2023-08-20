@@ -4,7 +4,7 @@ from funid.src import tree_interpretation
 from funid.src.tool import initialize_path, get_genus_species
 from funid.src.hasher import encode, decode
 from funid.src.reporter import Singlereport
-
+from copy import deepcopy
 import pandas as pd
 import re
 import sys, os
@@ -127,10 +127,83 @@ def pipe_module_tree_interpretation(
 
 ### synchronize sp. numbers from multiple dataset
 # to use continuous sp numbers over trees
-# Seperated because this step should traverse over multiple trees, therefore cannot be done simultaniously
+# Seperated from multithreading, because this step should traverse over multiple trees, therefore cannot be done simultaniously
 def synchronize(V, path, tree_info_list):
-    ## Initialize
+    # Gets hash dict, and returns taxon name of hash_dict
+    # Generate final taxon name for synchronizing
+    def get_new_taxon(hash_list, hash_taxon_dict):
+        # Get candidate taxons from hash_taxon_dict
+        taxon_candidates = set()
+        for _hash in hash_list:
+            if _hash in hash_taxon_dict:
+                taxon_candidates.add(hash_taxon_dict[_hash])
+            else:
+                logging.debug(
+                    f"{_hash} does not seems to be analyzed from concatenated dataset"
+                )
 
+        list_taxon_candidates = sorted(list(taxon_candidates))
+
+        # Merge genus
+        genus = "/".join(sorted(list(set(t[0][0] for t in list_taxon_candidates))))
+
+        # Merge species
+        species_list = []
+
+        clade_cnt_set = set()
+        for t in list_taxon_candidates:
+            # If the taxon is unique
+            if not (t[0], 2) in hash_taxon_dict.values():
+                species_list.append(t[0][1])
+            else:
+                species_list.append(f"{t[0][1]} {t[1]}")
+            clade_cnt_set.add(t[1])
+
+        # Work with species with numbers
+        dict_species = {}
+        for s in species_list:
+            splited_species = s.split(" ")
+            try:
+                # Collect with numbers
+                int(splited_species[-1])
+                if not (" ".join(splited_species[:-1]) in dict_species):
+                    dict_species[" ".join(splited_species[:-1])] = [
+                        int(splited_species[-1])
+                    ]
+                else:
+                    dict_species[" ".join(splited_species[:-1])].append(
+                        int(splited_species[-1])
+                    )
+            except:
+                dict_species[s] = [0]
+
+        species = ""
+
+        for key in sorted(list(dict_species.keys())):
+            if len(set(dict_species[key]) - set([0])) == 0:
+                species += key
+                species += "/"
+            else:
+                species_numbers = [
+                    str(x) for x in sorted(list(set(dict_species[key]) - set([0])))
+                ]
+                species += key
+                species += " "
+                species += "/".join(species_numbers)
+
+        # Remove last slash
+        if species.endswith("/"):
+            species = species[:-1]
+
+        if len(clade_cnt_set) == 1:
+            clade_cnt = list(clade_cnt_set)[0]
+        else:
+            clade_cnt = 0
+
+        return (genus, species), clade_cnt
+        ### End of get_new_taxon
+
+    ## Initialize
     # get available groups per genus
     tree_info_dict = {}
     # hash : corresponding taxon
@@ -138,7 +211,7 @@ def synchronize(V, path, tree_info_list):
     # genus : cnt, counting sp. numbers
     sp_cnt_dict = {}
 
-    # To synchronize sp. number by genus, generate by-genus dataset
+    # To synchronize sp. number by genus, generate by-group dataset
     for tree_info in tree_info_list:
         if not (tree_info.group in tree_info_dict):
             tree_info_dict[tree_info.group] = {tree_info.gene: tree_info}
@@ -149,15 +222,17 @@ def synchronize(V, path, tree_info_list):
             raise Exception
 
     # Memoize iterative calling
+    # For each group list
     valid_hash_dict = {}
+    # DB
     for group in tree_info_dict:
         valid_hash_dict[group] = [
             _hash
             for _hash in V.dict_hash_FI
             if V.dict_hash_FI[_hash].datatype == "db"
-            and V.dict_hash_FI[_hash].group == group
+            and V.dict_hash_FI[_hash].adjusted_group == group
         ]
-
+    # Query
     query_hash_list = [
         _hash for _hash in V.dict_hash_FI if V.dict_hash_FI[_hash].datatype == "query"
     ]
@@ -166,6 +241,7 @@ def synchronize(V, path, tree_info_list):
     # In priority, count corresponding group taxa first
     for group in tree_info_dict:
         if "concatenated" in tree_info_dict[group]:
+            # Catch concatenated tree
             tree_info = tree_info_dict[group]["concatenated"]
             # Get list of hash in interest
             valid_hash_list = valid_hash_dict[group]
@@ -221,16 +297,27 @@ def synchronize(V, path, tree_info_list):
     for group in tree_info_dict:
         if "concatenated" in tree_info_dict[group]:
             tree_info = tree_info_dict[group]["concatenated"]
-            # Get list of hash in interest
-            valid_hash_list = valid_hash_dict[group]
+
+            all_hash = [
+                _hash
+                for _hash in V.dict_hash_FI
+                if V.dict_hash_FI[_hash].datatype == "db"
+                and V.dict_hash_FI[_hash].adjusted_group != group
+            ]
+
+            # Get list of hash not in interest
+            invalid_hash_list = list(set(all_hash) - set(valid_hash_dict[group]))
             for taxon in tree_info.collapse_dict:
                 clade_list = tree_info.collapse_dict[taxon]
                 for n, clade in enumerate(clade_list):
                     hash_list = [leaf[0] for leaf in clade.leaf_list]
                     # If the hash has not been counted in any of the tree,
-                    if not (any(_h in valid_hash_list for _h in hash_list)):
+                    if not (any(_h in invalid_hash_list for _h in hash_list)):
                         for _hash in hash_list:
                             if not (_hash in hash_taxon_dict):
+                                logging.debug(
+                                    f"New hash: {_hash} {_hash.adjusted_group} from {group}"
+                                )
                                 hash_taxon_dict[_hash] = (taxon, n)
                             elif _hash in hash_taxon_dict and hash_taxon_dict[
                                 _hash
@@ -264,75 +351,73 @@ def synchronize(V, path, tree_info_list):
 
                                 # print(group, _hash, taxon, n + 1)
 
-    # DEBUGGING
     """
-    for _hash in sorted(list(hash_taxon_dict.keys())):
-        print(_hash, hash_taxon_dict[_hash])
-
-    raise Exception
-    """
-
-    # Generate final taxon name for synchronizing
-    def get_new_taxon(hash_list, hash_taxon_dict):
-        taxon_candidates = set()
-        for _hash in hash_list:
-            if _hash in hash_taxon_dict:
-                taxon_candidates.add(hash_taxon_dict[_hash])
-            else:
-                logging.debug(
-                    f"{_hash} does not seems to be analyzed from concatenated dataset"
-                )
-
-        list_taxon_candidates = sorted(list(taxon_candidates))
-        genus = "/".join(sorted(list(set(t[0][0] for t in list_taxon_candidates))))
-        species_list = []
-
-        clade_cnt_set = set()
-        for t in list_taxon_candidates:
-            # If the taxon is unique
-            if not (t[0], 2) in hash_taxon_dict.values():
-                species_list.append(t[0][1])
-            else:
-                species_list.append(f"{t[0][1]} {t[1]}")
-            clade_cnt_set.add(t[1])
-
-        species = "/".join([s for s in species_list])
-
-        if len(clade_cnt_set) == 1:
-            clade_cnt = list(clade_cnt_set)[0]
-        else:
-            clade_cnt = 0
-
-        return (genus, species), clade_cnt
+    
 
     # Now update from concatenated
     # Remove original taxon, and add by clade taxon
     for group in tree_info_dict:
         for gene in tree_info_dict[group]:
-            tree_info = tree_info_dict[group][gene]
-            # Before taxon, after taxon update list
-            remove_list = []  # [taxon1, taxon2, taxon3 ...]
-            add_list = {}  # [taxon1 : [clade1], taxon2 : [clade2] ...]
-            for taxon in tree_info.collapse_dict:
-                clade_list = tree_info.collapse_dict[taxon]
-                remove_list.append(taxon)
-                for clade in clade_list:
-                    hash_list = [leaf[0] for leaf in clade.leaf_list]
-                    new_taxon, clade_cnt = get_new_taxon(hash_list, hash_taxon_dict)
-                    clade.taxon = new_taxon
-                    clade.clade_cnt = clade_cnt
-                    if not (new_taxon in add_list):
-                        add_list[new_taxon] = [clade]
-                    else:
-                        add_list[new_taxon].append(clade)
+            if gene == "concatenated":
+                tree_info = tree_info_dict[group][gene]
+                # Before taxon, after taxon update list
+                remove_list = []  # [taxon1, taxon2, taxon3 ...]
+                add_list = {}  # [taxon1 : [clade1], taxon2 : [clade2] ...]
+                for taxon in tree_info.collapse_dict:
+                    clade_list = tree_info.collapse_dict[taxon]
+                    remove_list.append(taxon)
+                    for clade in clade_list:
+                        hash_list = [leaf[0] for leaf in clade.leaf_list]
+                        new_taxon, clade_cnt = get_new_taxon(hash_list, hash_taxon_dict)
+                        clade.taxon = new_taxon
+                        clade.clade_cnt = clade_cnt
+                        if not (new_taxon in add_list):
+                            add_list[new_taxon] = [clade]
+                        else:
+                            add_list[new_taxon].append(clade)
 
-            # Remove previous taxon
-            for taxon in remove_list:
-                tree_info.collapse_dict.pop(taxon)
+                # Remove previous taxon
+                for taxon in remove_list:
+                    tree_info.collapse_dict.pop(taxon)
 
-            # Add synchronized taxon
-            for taxon in add_list:
-                tree_info.collapse_dict[taxon] = add_list[taxon]
+                # Add synchronized taxon
+                for taxon in add_list:
+                    tree_info.collapse_dict[taxon] = add_list[taxon]
+            else:
+                tree_info = tree_info_dict[group][gene]
+                # Before taxon, after taxon update list
+                remove_list = []  # [taxon1, taxon2, taxon3 ...]
+                add_list = {}  # [taxon1 : [clade1], taxon2 : [clade2] ...]
+                for taxon in tree_info.collapse_dict:
+                    clade_list = tree_info.collapse_dict[taxon]
+                    remove_list.append(taxon)
+                    for clade in clade_list:
+                        hash_list = [leaf[0] for leaf in clade.leaf_list]
+                        new_taxon, clade_cnt = get_new_taxon(hash_list, hash_taxon_dict)
+                        clade.taxon = new_taxon
+                        clade.clade_cnt = clade_cnt
+                        if not (new_taxon in add_list):
+                            add_list[new_taxon] = [clade]
+                        else:
+                            add_list[new_taxon].append(clade)
+
+                # Remove previous taxon
+                for taxon in remove_list:
+                    tree_info.collapse_dict.pop(taxon)
+
+                # Add synchronized taxon
+                for taxon in add_list:
+                    tree_info.collapse_dict[taxon] = add_list[taxon]
+
+    print("After")
+    for group in tree_info_dict:
+        for gene in tree_info_dict[group]:
+            if gene == "cam":
+                for key in tree_info.collapse_dict:
+                    print(key, tree_info.collapse_dict[key])
+    """
+
+    # raise Exception
 
     # Return sp number fixed tree_info_list
     return tree_info_list
@@ -345,6 +430,8 @@ def pipe_module_tree_visualization(
     path,
     opt,
 ):
+    ######### Fix collapse_dict.keys()
+
     group = tree_info.group
     gene = tree_info.gene
     genus_list = list(V.tup_genus)
@@ -388,11 +475,13 @@ def pipe_module_tree_visualization(
                 report = Singlereport()
                 report.id = V.dict_hash_FI[leaf[0]].original_id
                 report.hash = V.dict_hash_FI[leaf[0]].hash
-                report.update_group(group)
+                report.update_group(V.dict_hash_FI[leaf[0]].adjusted_group)
+                report.update_group_analysis(group)
                 report.update_gene(gene)
                 report.update_species_original(
                     get_genus_species(leaf[2], genus_list=genus_list)
                 )
+                # joining genus and species
                 report.update_species_assigned(" ".join(taxon))
                 # report.update_species_assigned(taxon[1])
                 report.ambiguous = collapse_info.clade_cnt
@@ -407,7 +496,8 @@ def pipe_module_tree_visualization(
                     report = Singlereport()
                     report.id = V.dict_hash_FI[leaf[0]].original_id
                     report.hash = V.dict_hash_FI[leaf[0]].hash
-                    report.update_group(group)
+                    report.update_group(V.dict_hash_FI[leaf[0]].adjusted_group)
+                    report.update_group_analysis(group)
                     report.update_gene(gene)
                     report.update_species_original(
                         get_genus_species(leaf[2], genus_list=genus_list)
@@ -483,7 +573,8 @@ def pipe_tree_interpretation(V, path, opt):
             for option in tree_interpretation_opt
         ]
 
-    tree_info_list = synchronize(V, path, tree_info_list)
+    synchronized_tree_info_list = synchronize(V, path, tree_info_list)
+    tree_info_list = synchronized_tree_info_list
     # Generate visualization option to run
     tree_visualization_opt = []
     for tree_info in tree_info_list:
@@ -505,19 +596,44 @@ def pipe_tree_interpretation(V, path, opt):
         ]
 
     ### Collect identifiation result to V for reporting
-    for report_list in tree_visualization_result:
-        for report in report_list:
-            FI = V.dict_hash_FI[report.hash]
-            # Concatenated
-            if report.gene == "concatenated":
-                FI.final_species = report.species_assigned
-                FI.species_identifier = report.ambiguous
-                if report.flat is True:
-                    FI.flat.append("concatenated")
-            # Non concatenated
+    # Merge report list
+    all_report_list = [
+        x for report_list in tree_visualization_result for x in report_list
+    ]
+
+    # hash_dict_analysis to prevent overwrite analysis from other tree
+    hash_dict_analysis = {}
+
+    # Add final identification result
+    # Concatenated first
+    for singlereport in all_report_list:
+        FI = V.dict_hash_FI[singlereport.hash]
+        # Concatenated
+        if singlereport.gene == "concatenated":
+            cond = 0
+            # If the strain has not been reported
+            if not singlereport.hash in hash_dict_analysis:
+                cond = 1
+            # If the strain has reported, but not in major tree
             else:
-                FI.bygene_species[report.gene] = report.species_assigned
-                if report.flat is True:
-                    FI.flat.append(report.gene)
+                if hash_dict_analysis[singlereport.hash] != singlereport.group:
+                    cond = 2
+
+            if cond > 0:
+                FI.final_species = singlereport.species_assigned
+                FI.species_identifier = singlereport.ambiguous
+                if singlereport.flat is True:
+                    FI.flat.append("concatenated")
+
+                hash_dict_analysis[singlereport.hash] = singlereport.group_analysis
+    # Non-concatenated
+    for singlereport in all_report_list:
+        FI = V.dict_hash_FI[singlereport.hash]
+        if singlereport.gene != "concatenated":
+            # In each gene tree, follow the group which taxon analyzed from concatenated tree
+            if hash_dict_analysis[singlereport.hash] == singlereport.group_analysis:
+                FI.bygene_species[singlereport.gene] = singlereport.species_assigned
+                if singlereport.flat is True:
+                    FI.flat.append(singlereport.gene)
 
     return V, path, opt

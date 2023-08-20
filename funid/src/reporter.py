@@ -9,7 +9,7 @@ from funid.src.tool import index_step
 from funid.src.save import save_df
 
 # For version reporting
-__version__ = "0.3.15"
+__version__ = "0.3.16"
 
 
 ### Temporary report for tree_interpretation_pipe
@@ -17,6 +17,7 @@ __version__ = "0.3.15"
 # All abnormalities should be listed here
 class Singlereport:
     def __init__(self):
+        # FI info
         self.id = ""
         self.hash = ""
         self.group = ""
@@ -24,11 +25,17 @@ class Singlereport:
         self.species_original = ""
         self.species_assigned = ""
 
+        # Analysis info
+        self.group_analysis = ""
+
         # abnormalities
         # for if ambiguous clade exists e.g. Amanita subglobosa "1", Amanita subglobosa "2"
         # 0 if none of them exists
         self.ambiguous = ""
         self.flat = False
+
+    def update_group_analysis(self, group):
+        self.group_analysis = group
 
     def update_group(self, group):
         self.group = group
