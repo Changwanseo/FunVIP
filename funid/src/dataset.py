@@ -133,8 +133,12 @@ class FunID_var:
         else:
             del self.dict_dataset[group][gene]
             # if all gene removed
-            if len(self.dict_dataset[group]) == 0:
+            # 1 for concatenated
+            if len(self.dict_dataset[group]) <= 1:
                 del self.dict_dataset[group]
+                logging.info(f"Removed {group} from dataset")
+            else:
+                logging.info(f"Removed {group} {gene} from dataset")
 
     # Check if given dict_dataset[group][gene] exists
     def exist_dataset(self, group, gene):
