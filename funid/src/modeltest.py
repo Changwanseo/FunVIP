@@ -360,6 +360,7 @@ def modeltest(V, path, opt) -> dict:
     group_dict = V.dict_dataset
     model_dict = copy.deepcopy(group_dict)
 
+    # By group and by gene
     for group in group_dict:
         for gene in group_dict[group]:
             if opt.method.modeltest.lower() == "modeltest-ng":

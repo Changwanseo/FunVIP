@@ -439,6 +439,8 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
 
             # if NCBI accessions detected in sequence part, download it
             if len(download_set) > 0:
+                print(f"{path.GenMine}")
+
                 logging.info(
                     f"Running GenMine to download {len(download_set)} sequences from GenBank"
                 )
@@ -450,7 +452,13 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                         fg.write(f"{acc.strip()}\n")
 
                 # Run GenMine
-                cmd = f"GenMine -c {path.GenMine}/Accessions.txt -o {path.GenMine} -e {opt.email}"
+                accession_path = f"{path.GenMine}/Accessions.txt"
+                # To prevent space errors in windows
+                if " " in path.GenMine:
+                    accession_path = f'"{accession_path}"'
+                    GenMine_path = f'"{path.GenMine}"'
+
+                cmd = f"GenMine -c {accession_path} -o {GenMine_path} -e {opt.email}"
                 logging.info(f"{cmd}")
                 return_code = subprocess.call(cmd, shell=True)
 

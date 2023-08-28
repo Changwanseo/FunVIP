@@ -16,8 +16,15 @@ from funid.src.tool import mkdir
 def blast(query, db, out, path, opt):
     path_blast = Path(f"{path.sys_path}/external/BLAST_Windows/bin/blastn.exe")
 
-    # quotations make errors on windows platform
+    # quotations make errors on windows platform when space does not exists
     if platform == "win32":
+        if " " in out:
+            out = f'"{out}"'
+        if " " in query:
+            query = f'"{query}"'
+        if " " in db:
+            db = f'"{db}"'
+
         CMD = f"{path_blast} -out {out} -query {query} -outfmt 6 -db {db} -word_size {opt.cluster.wordsize} -evalue {opt.cluster.evalue} -num_threads {opt.thread}"
     else:
         CMD = f"blastn -out '{out}' -query '{query}' -outfmt 6 -db '{db}' -word_size {opt.cluster.wordsize} -evalue {opt.cluster.evalue} -num_threads {opt.thread}"
@@ -31,6 +38,14 @@ def mmseqs(query, db, out, tmp, path, opt):
     path_mmseqs = f"{path.sys_path}/external/mmseqs_Windows/mmseqs.bat"
 
     if platform == "win32":
+        if " " in out:
+            out = f'"{out}"'
+        if " " in query:
+            query = f'"{query}"'
+        if " " in db:
+            db = f'"{db}"'
+        if " " in tmp:
+            tmp = f'"{tmp}"'
         CMD = f"{path_mmseqs} easy-search {query} {db} {out} {tmp} --threads {opt.thread} -k {opt.cluster.wordsize} --search-type 3 -e {opt.cluster.evalue} --dbtype 2"
     else:
         CMD = f"mmseqs easy-search '{query}' '{db}' '{out}' '{tmp}' --threads {opt.thread} -k {opt.cluster.wordsize} --search-type 3 -e {opt.cluster.evalue} --dbtype 2"
@@ -93,6 +108,12 @@ def makeblastdb(fasta, db, path):
 def makemmseqsdb(fasta, db, path):
     path_makemmseqsdb = f"{path.sys_path}/external/mmseqs_Windows/mmseqs.bat"
 
+    if " " in fasta:
+        fasta = f'"{fasta}"'
+
+    if " " in db:
+        db = f'"{db}"'
+
     if platform == "win32":
         CMD = f"{path_makemmseqsdb} createdb {fasta} {db} --createdb-mode 0 --dbtype 2"
     else:
@@ -122,6 +143,11 @@ def MAFFT(
         shutil.copy(fasta, out)
     else:
         if platform == "win32":
+            if " " in out:
+                out = f'"{out}"'
+            if " " in fasta:
+                fasta = f'"{fasta}"'
+
             CMD = f"{path.sys_path}/external/MAFFT_Windows/mafft-win/mafft.bat --thread {thread} --{algorithm} --maxiterate {maxiterate} --{adjust} --op {op} --ep {ep} --quiet {fasta} > {out}"
         else:
             CMD = f"mafft --thread {thread} --{algorithm} --maxiterate {maxiterate} --{adjust} --op {op} --ep {ep} --quiet '{fasta}' > '{out}'"
@@ -137,6 +163,8 @@ def MAFFT(
 # Trimming
 def Gblocks(fasta, out, path):
     if platform == "win32":
+        if " " in fasta:
+            fasta = f'"{fasta}"'
         CMD = f"{path.sys_path}/external/Gblocks_Windows_0.91b/Gblocks_0.91b/Gblocks.exe {fasta} -t=d -b4=2 -b5=a -e=.gb -p=t"
     else:
         CMD = f"Gblocks '{fasta}' -t=d -b4=2 -b5=a -e=.gb -p=t"
@@ -187,7 +215,16 @@ def Trimal(fasta, out, path, algorithm="gt", threshold=0.2):
         algorithm = f"{algorithm} {threshold}"
 
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/trimal.v1.4/trimAl/bin/trimal.exe -in {fasta} -out {out} -{algorithm} -terminalonly -colnumbering > {out}.colnumbering"
+        if " " in fasta:
+            fasta = f'"{fasta}"'
+        if " " in out:
+            out_dir = f'"{out}"'
+            out_colnumbering = f'"{out}.colnumbering"'
+        else:
+            out_dir = out
+            out_colnumbering = f"{out}.colnumbering"
+
+        CMD = f"{path.sys_path}/external/trimal.v1.4/trimAl/bin/trimal.exe -in {fasta} -out {out_dir} -{algorithm} -terminalonly -colnumbering > {out_colnumbering}"
 
     else:
         CMD = f"trimal -in {fasta} -out {out} -{algorithm} -terminalonly -colnumbering > {out}.colnumbering"
@@ -253,6 +290,8 @@ def ModelFinder(fasta, opt, path, thread):
         raise Exception
 
     if platform == "win32":
+        if " " in fasta:
+            fasta = f'"{fasta}"'
         CMD = f"{path.sys_path}/external/iqtree-2.1.3-Windows/bin/iqtree2.exe --seqtype DNA -s {fasta} {model_term} -merit {opt.criterion} -T {thread} -mem {opt.memory}"
     else:
         # not final
@@ -280,6 +319,11 @@ def RAxML(
     os.chdir(path.tmp)
 
     if platform == "win32":
+        if " " in fasta:
+            fasta = f'"{fasta}"'
+        if " " in out:
+            out = f'"{out}"'
+
         CMD = f"{path.sys_path}/external/RAxML_Windows/raxmlHPC-PTHREADS-AVX2.exe -s {fasta} -n {out} -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
     elif platform == "darwin":
         CMD = f"raxmlHPC-PTHREADS -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
@@ -308,7 +352,19 @@ def FastTree(fasta, out, hash_dict, path, model=""):
     if model == "skip":
         model = ""
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/FastTree_Windows/FastTree.exe -quiet -nt {model} -log {path.tmp}/fasttreelog -seed 1 {fasta} > {path.tmp}/{out}"
+        if " " in model:
+            model = f'"{model}"'
+        if " " in fasta:
+            fasta = f'"{fasta}"'
+        if " " in path.tmp:
+            path_tmp = f'"{path.tmp}/fasttreelog"'
+        else:
+            path_tmp = f"{path.tmp}/fasttreelog"
+        if " " in path.tmp or " " in out:
+            path_out = f'"{path.tmp}/{out}"'
+        else:
+            path_out = f"{path.tmp}/{out}"
+        CMD = f"{path.sys_path}/external/FastTree_Windows/FastTree.exe -quiet -nt {model} -log {path_tmp} -seed 1 {fasta} > {path_out}"
     else:
         CMD = f"FastTree -quiet -nt {model} -log {path.tmp}/fasttreelog -seed 1 '{fasta}' > {path.tmp}/{out}"
 
@@ -343,13 +399,22 @@ def IQTREE(
         bootstrap = 1000
 
     if platform == "win32":
-        CMD = f"{path.sys_path}/external/iqtree-2.1.3-Windows/bin/iqtree2.exe -s {fasta} -B {bootstrap} -T {thread} {model}"
+        if " " in fasta:
+            tmp_fasta = f'"{fasta}"'
+        else:
+            tmp_fasta = fasta
+
+        CMD = f"{path.sys_path}/external/iqtree-2.1.3-Windows/bin/iqtree2.exe -s {tmp_fasta} -B {bootstrap} -T {thread} {model}"
     else:
         CMD = f"iqtree -s {fasta} -B {bootstrap} -T {thread} {model}"
 
-    # Partitioned analysis cannot be used with memory
+    # Partitioned analysis cannot be used with memory option
     if not (partition is None):
-        CMD += f" -q {partition}"
+        if " " in partition:
+            tmp_partition = f'"{partition}"'
+        else:
+            tmp_partition = partition
+        CMD += f" -q {tmp_partition}"
     else:
         CMD += f" -mem {memory}"
 
@@ -359,7 +424,7 @@ def IQTREE(
         if partition is None:
             shutil.move(f"{fasta}.treefile", f"{path.tmp}/{out}")
         else:
-            shutil.move(f"{partition}.contree", f"{path.tmp}/{out}")
+            shutil.move(f"{partition}.treefile", f"{path.tmp}/{out}")
     except:
         logging.error(
             "IQTREE FAILED. Maybe due to memory problem if partitioned analysis included."
