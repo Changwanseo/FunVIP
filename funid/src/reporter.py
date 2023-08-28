@@ -748,7 +748,7 @@ class Report:
                 "Modeltest-NG": "0.1.7",
                 "Partitionfinder": "2.2.0.3",
                 "FastTree": "2.1.11",
-                "IQTREE2": "2.2.0.3",
+                "IQTREE2": "2.2.2.7",
                 "RAxML": "8.2.12",
             }
 

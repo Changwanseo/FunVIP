@@ -50,7 +50,11 @@ def pipe_module_tree_interpretation(
     # Check validity of file while importing
     if os.path.isfile(tree_name):
         try:
-            Tree(tree_name, format=2)
+            # If iqtree, missing supports are not shown
+            if opt.method.tree.lower() == "iqtree":
+                Tree(tree_name, format=0)
+            else:
+                Tree(tree_name, format=2)
         except:
             logging.error(f"[DEVELOPMENTAL ERROR] Failed on importing tree {tree_name}")
             raise Exception
