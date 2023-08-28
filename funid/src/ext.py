@@ -399,15 +399,17 @@ def IQTREE(
         bootstrap = 1000
 
     if platform == "win32":
+        # For working with space
         if " " in fasta:
             tmp_fasta = f'"{fasta}"'
         else:
             tmp_fasta = fasta
 
-        CMD = f"{path.sys_path}/external/iqtree-2.1.3-Windows/bin/iqtree2.exe -s {tmp_fasta} -B {bootstrap} -T {thread} {model}"
+        CMD = f"{path.sys_path}/external/iqtree-2.2.2.7-Windows/bin/iqtree2.exe -s {tmp_fasta} -B {bootstrap} -T {thread} {model}"
     else:
         CMD = f"iqtree -s {fasta} -B {bootstrap} -T {thread} {model}"
 
+    logging.info(f"partition: {partition}")
     # Partitioned analysis cannot be used with memory option
     if not (partition is None):
         if " " in partition:
@@ -422,9 +424,12 @@ def IQTREE(
     Run = subprocess.call(CMD, shell=True)
     try:
         if partition is None:
-            shutil.move(f"{fasta}.treefile", f"{path.tmp}/{out}")
+            shutil.move(f"{fasta}.contree", f"{path.tmp}/{out}")
+            print(f"DEBUG Moved {fasta}.contree to {path.tmp}/{out}")
         else:
-            shutil.move(f"{partition}.treefile", f"{path.tmp}/{out}")
+            shutil.move(f"{partition}.contree", f"{path.tmp}/{out}")
+            print(f"DEBUG Moved {partition}.contree to {path.tmp}/{out}")
+
     except:
         logging.error(
             "IQTREE FAILED. Maybe due to memory problem if partitioned analysis included."
