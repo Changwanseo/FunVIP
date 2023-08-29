@@ -457,6 +457,8 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                 if " " in path.GenMine:
                     accession_path = f'"{accession_path}"'
                     GenMine_path = f'"{path.GenMine}"'
+                else:
+                    GenMine_path = path.GenMine
 
                 cmd = f"GenMine -c {accession_path} -o {GenMine_path} -e {opt.email}"
                 logging.info(f"{cmd}")
