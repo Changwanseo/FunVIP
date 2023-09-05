@@ -347,9 +347,12 @@ def search_df(V, path, opt):
                     )
 
                 # if dataframe exists
-                if isinstance(df_search, pd.DataFrame):
-                    if not df_search.empty:
-                        dict_unclassified[gene] = df_search
+                try:
+                    if isinstance(df_search, pd.DataFrame):
+                        if not df_search.empty:
+                            dict_unclassified[gene] = df_search
+                except:
+                    pass
 
             # assign gene by search result to unassigned sequences
             V = cluster.assign_gene(dict_unclassified, V)
