@@ -196,6 +196,8 @@ def append_outgroup(V, df_search, gene, group, path, opt):
     except:
         bitscore_cutoff = 999999  # use infinite if failed
 
+    print(f"Ingroup cutoff {bitscore_cutoff} selected for group {group} gene {gene}")
+
     ## get result stasifies over cutoff
     # outgroup should be outside of ingroup
     cutoff_df = df_search[df_search["bitscore"] < bitscore_cutoff]
@@ -213,7 +215,7 @@ def append_outgroup(V, df_search, gene, group, path, opt):
         # Select dataframe corresponding to current qseqid
         df_qseqid = df_search[df_search["qseqid"] == qseqid]
         # Get the list of subjects, which is closer than furtest ingroup
-        ambiguous_df = df_qseqid[df_qseqid["bitscore"] >= min(_df["bitscore"])]
+        ambiguous_df = df_qseqid[df_qseqid["bitscore"] >= min(list(_df["bitscore"]))]
         # Within the furthest match, get possible ingroups with ambiguous group
         ambiguous_df = ambiguous_df[ambiguous_df["subject_group"] != group]
         # Add inner ambiugities to ambiguous db
@@ -283,9 +285,11 @@ def append_outgroup(V, df_search, gene, group, path, opt):
                 )
 
                 # Get database sequences probably in ambiguous phylogenetic position
+                """
                 for _group in outgroup_dict:
                     if _group != subject_group:
                         ambiguous_db += outgroup_dict[_group]
+                """
 
                 return (
                     group,
@@ -308,9 +312,11 @@ def append_outgroup(V, df_search, gene, group, path, opt):
         )
 
         # Get database sequences probably in ambiguous position
+        """
         for _group in outgroup_dict:
             if _group != subject_group:
                 ambiguous_db += outgroup_dict[_group]
+        """
 
         return (group, gene, outgroup_dict[max_group], ambiguous_db)
 
