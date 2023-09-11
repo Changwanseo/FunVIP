@@ -196,7 +196,7 @@ def append_outgroup(V, df_search, gene, group, path, opt):
     except:
         bitscore_cutoff = 999999  # use infinite if failed
 
-    print(f"Ingroup cutoff {bitscore_cutoff} selected for group {group} gene {gene}")
+    # print(f"Ingroup cutoff {bitscore_cutoff} selected for group {group} gene {gene}")
 
     ## get result stasifies over cutoff
     # outgroup should be outside of ingroup
@@ -214,9 +214,11 @@ def append_outgroup(V, df_search, gene, group, path, opt):
     for qseqid, _df in cutoff_set_df.groupby(["qseqid"]):
         # Select dataframe corresponding to current qseqid
         df_qseqid = df_search[df_search["qseqid"] == qseqid]
+        """
         print(
-            f"Ambiguous ingroup cutoff selected for group {group} gene {gene} cutoff {min(list(_df['bitscore']))}"
+            f"Ambiguous ingroup cutoff selected for query {qseqid} group {group} gene {gene} cutoff {min(list(_df['bitscore']))}"
         )
+        """
         # Get the list of subjects, which is closer than furtest ingroup
         ambiguous_df = df_qseqid[df_qseqid["bitscore"] >= min(list(_df["bitscore"]))]
         # Within the furthest match, get possible ingroups with ambiguous group
