@@ -532,6 +532,19 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
             lambda x: manage_unicode(str(x), column="ID/Accession")
         )
 
+        # Empty id check
+        for n, acc in enumerate(df["id"]):
+            empty_error = 0
+
+            if df["id"][n].strip() == "":
+                logging.warning(f"Empty id found in line {n}!")
+                empty_error += 1
+
+        if len(empty_error) > 0:
+            logging.error(
+                f"Total {len(empty_error)} ids are empty! Please check your file"
+            )
+
         # Generate funinfo by each row
         for n, acc in enumerate(df["id"]):
             # Check if each of the ids are unique
@@ -539,6 +552,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
             new_acc = True
 
             # Generate funinfo for each id
+            # Duplicate id check
             if df["id"][n] in funinfo_dict:
                 newinfo = funinfo_dict[df["id"][n]]
                 new_acc = False
