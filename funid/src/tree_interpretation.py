@@ -552,7 +552,6 @@ class Tree_information:
     # decides if the clade is monophyletic
     def is_monophyletic(self, clade, gene, taxon):
         taxon_dict = self.taxon_count(clade, gene)
-
         # if taxon dict.keys() have 0 species: all query
         if len(taxon_dict.keys()) == 0:
             for children in clade.children:
@@ -560,9 +559,8 @@ class Tree_information:
                 if children.dist > self.opt.collapsedistcutoff:
                     return False
                 # or bootstrap is to distinctive
-                elif children.support >= self.opt.collapsebscutoff:
+                elif children.support > self.opt.collapsebscutoff:
                     return False
-
             return True
         elif len(taxon_dict.keys()) == 1:
             # if taxon dict.keys() have only 1 species: group assigned
@@ -571,7 +569,7 @@ class Tree_information:
                 if self.find_majortaxon(children, gene)[1].startswith("sp."):
                     if children.dist > self.opt.collapsedistcutoff:
                         return False
-                    elif children.support >= self.opt.collapsebscutoff:
+                    elif children.support > self.opt.collapsebscutoff:
                         return False
             return True
         else:
@@ -614,14 +612,13 @@ class Tree_information:
             # decides if the clade is monophyletic
             def is_monophyletic(self, clade, gene, taxon):
                 taxon_dict = self.taxon_count(clade, gene)
-
                 # if taxon dict.keys() have 0 species: all query
                 # if any of the branch length was too long or bootstrap is to distinctive : False
                 if len(taxon_dict.keys()) == 0:
                     for children in clade.children:
                         if children.dist > self.opt.collapsedistcutoff:
                             return False
-                        elif children.support >= self.opt.collapsebscutoff:
+                        elif children.support > self.opt.collapsebscutoff:
                             return False
                     return True
 
@@ -631,7 +628,7 @@ class Tree_information:
                         if self.find_majortaxon(children, gene)[1].startswith("sp."):
                             if children.dist > self.opt.collapsedistcutoff:
                                 return False
-                            elif children.support >= self.opt.collapsebscutoff:
+                            elif children.support > self.opt.collapsebscutoff:
                                 return False
                     return True
                 else:  # more than 2 species : not monophyletic
@@ -1031,7 +1028,7 @@ class Tree_information:
             # change this part when debugging flat trees
             node.img_style["size"] = 0  # removing circles whien size is 0
 
-            if node.support > self.opt.visualize.bscutoff:
+            if node.support >= self.opt.visualize.bscutoff:
                 # node.add_face without generating extra line
                 # add_face_to_node
                 node.add_face(
@@ -1157,8 +1154,6 @@ class Tree_information:
         # fit size of tree_xml to svg
         # find svg from tree_xml
         svg = list(tree_xml.iter("{http://www.w3.org/2000/svg}svg"))[0]
-        # svg.set("width", "100%")
-        # svg.set("height", "100%")
 
         # write to svg file
         tree_xml.write(
