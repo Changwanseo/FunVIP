@@ -347,6 +347,9 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                     elif dict_extension[extension] == "feather":
                         df = pd.read_feather(table, use_threads=True)
                         flag_read_table = 1
+
+                    # To prevent nan error
+                    df = df.fillna("")
                 except:
                     logging.error(
                         f"Table {table} cannot be read as {dict_extension[extension]} file. Please check files, extensions and seperators"
@@ -533,17 +536,14 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
         )
 
         # Empty id check
+        empty_error = []
         for n, acc in enumerate(df["id"]):
-            empty_error = 0
-
-            if df["id"][n].strip() == "":
-                logging.warning(f"Empty id found in line {n}!")
-                empty_error += 1
+            if df["id"][n].strip() == "" or df["id"][n].strip() == "-":
+                empty_error.append(n)
 
         if len(empty_error) > 0:
-            logging.error(
-                f"Total {len(empty_error)} ids are empty! Please check your file"
-            )
+            logging.error(f"Empty id found in {table}, line {empty_error}!")
+            raise Exception
 
         # Generate funinfo by each row
         for n, acc in enumerate(df["id"]):
