@@ -309,7 +309,7 @@ class Tree_information:
         # Resolve polytomy before rerooting
         self.t.resolve_polytomy()
 
-        # Find out if outgroup sequences exists
+        # Check if outgroup sequences exists
         print(f"[INFO] Rerooting {self.outgroup} in {self.tree_name}")
         for leaf in self.t:
             if any(outgroup.hash in leaf.name for outgroup in self.outgroup):
@@ -337,9 +337,10 @@ class Tree_information:
                 print(f"[ERROR] no outgroup selected in {self.tree_name}")
                 raise Exception
 
+            # If number of outgroup leaves and outgroup clade does not matches, paraphyletic
             if len(outgroup_leaves) != len(self.outgroup_clade):
                 print(
-                    f"[WARNING] outgroup does not seems to be monophyletic in {self.tree_name}"
+                    f"[WARNING] outgroup seems to be paraphyletic in {self.tree_name}"
                 )
 
         except:
