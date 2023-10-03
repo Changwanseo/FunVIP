@@ -241,7 +241,7 @@ def parse_model(modeltest_file, opt, path):
             for model in model_list:
                 # if model is available model for tree method take it
                 if model in cmd_translator_modelfinder_raxml:
-                    # convert to coommands
+                    # convert to commands
                     model_cmd = cmd_translator_modelfinder_raxml[model]
                     break
 
