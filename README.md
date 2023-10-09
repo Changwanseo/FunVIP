@@ -27,14 +27,14 @@ A automatic tree-based sequence identification pipeline for fungal species
 - Conda environment (See https://www.anaconda.com/products/individual to install)
 
 
-## Installation with conda
+## Installation with conda (May not work with Linux or Mac)
 1. ```conda create -n FunID python=3.10```
 2. ```conda activate FunID```
 3. ```conda install -c cwseo FunID```
 4. run ```FunID --test Penicillium ``` to check installation
 If this one fails, use next one
 
-## Installation with conda (using pip)
+## Installation with conda (using pip - Recommended)
 1. ```conda create -n FunID python=3.10```
 2. ```conda activate FunID```
 3. ```pip install FunID```
@@ -59,9 +59,7 @@ If you are using linux system please follow "Additional information for Linux"
 6. ```conda install -c bioconda raxml iqtree mmseqs2 "blast>=2.12" mafft trimal gblocks fasttree```
 7. run ```FunID --test Penicillium ``` to check installation
 
-
-
-## Installation from source
+## Installation from source (For developers)
 * this is for developmental steps
 1. ```git clone https://github.com/Changwanseo/FunID.git```
 2. Move to ```~/FunID```
@@ -93,7 +91,8 @@ If you are using linux system please follow "Additional information for Linux"
 
 
 ## How to make database?
-  ![Fig 2 FunID interface, usage, and input example](https://github.com/Changwanseo/FunID/assets/64393882/863a78ad-b185-4f6d-81c7-96d8f17ed764)
+  ![Fig 2 FunID interface, usage, and input example](https://github.com/Changwanseo/FunID/assets/64393882/78e5dd58-a656-4395-bda9-0ee671411e2c)
+
 
 
 
@@ -124,7 +123,10 @@ tabular (```.xlsx```, ```.csv```,  ```.parquet```, ```.ftr```) form
 * ```/Tree/{section}_{gene}_original.svg ``` : Uncollapsed tree for inspection
 
 ## How does FunID work?
-![figure1 - ver3](https://github.com/Changwanseo/FunID/assets/64393882/756f5d8a-ab5b-4659-b279-a99fc967c441)
+![figure1 - ver4](https://github.com/Changwanseo/FunID/assets/64393882/6a366d32-6aaf-4d0c-8102-8c7dd5fda4c2)
+
+
+
 
 ## License
 GPL 3.0
