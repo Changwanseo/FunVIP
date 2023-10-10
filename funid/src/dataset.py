@@ -551,6 +551,16 @@ class FunID_var:
                     )
                     final_fail_list.append((group, gene))
 
+                elif (
+                    len(self.dict_dataset[group][gene].list_qr_FI)
+                    + len(self.dict_dataset[group][gene].list_db_FI)
+                    < 1
+                ):
+                    logging.warning(
+                        f"After removing invalid datasets from dataset {group} {gene}, dataset has completely removed, removing from anlaysis."
+                    )
+                    final_fail_list.append((group, gene))
+
         # Remove bad datasets
         for fail in final_fail_list:
             group = fail[0]
