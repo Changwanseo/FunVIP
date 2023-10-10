@@ -89,8 +89,10 @@ def pipe_alignment(V, path, opt):
                 )
 
             total_time_consumption = max(time_buffers.values())
-            print(f"Time buffers for {distribute_num+1} workers: {time_buffers}")
-            print(total_time_consumption)
+            logging.debug(
+                f"Time buffers for {distribute_num+1} workers: {time_buffers}"
+            )
+            logging.debug(total_time_consumption)
 
             if total_time_consumption < best_time:
                 best_thread = each_thread_num

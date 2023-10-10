@@ -12,7 +12,7 @@ import shutil
 ## Trimming function of FunID
 # As most of the trimming functions affects inside of alignment
 def trimming(alignment, out, path, opt):
-    logging.debug("Entered trimming")
+    logging.debug("Entered trimming module")
     # Save alignment before running trimming
     original_msa = AlignIO.read(alignment, "fasta")
 

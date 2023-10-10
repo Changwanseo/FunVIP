@@ -210,7 +210,8 @@ class Funinfo:
             id_ = get_id(id_, tuple(regexs))
 
         # if cannot find id by regex
-        id_ = str(id_)
+        # Even for original, new line character makes significant errors while working fasta, so remove it
+        id_ = str(id_).replace("\n", " ")
         self.original_id = id_
         id_ = newick_legal(id_)
         self.id = id_

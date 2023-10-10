@@ -428,8 +428,12 @@ class FunID_var:
     # Validate if any multiple sequence alignment has no overlapping region
     def validate_alignments(self, path, opt):
         fail_list = []
+
+        remove_dict = {}
         for group in self.dict_dataset:
+            remove_dict[group] = {}
             for gene in self.dict_dataset[group]:
+                remove_dict[group][gene] = []
                 # Check if alignment corresponding to dataset exists
                 if not (
                     os.path.isfile(
@@ -457,6 +461,8 @@ class FunID_var:
                     for seq in seq_list:
                         if len(str(seq.seq).replace("-", "")) == 0:
                             remove_hash.append(seq.id)
+
+                    remove_dict[group][gene] = remove_hash
 
                     # Remove unusable sequence and re-read it
                     ## db_list, query_list, outgroup_list might has to be changed
@@ -495,11 +501,58 @@ class FunID_var:
                 # If alignment corresponding to dataset does not exists, raise warning or error
                 pass
 
-        """
-        # Remove bad alignments
+        # Remove bad datasets
         for fail in fail_list:
             group = fail[0]
             gene = fail[1]
             self.dict_dataset[group].pop(gene)
             logging.warning(f"Alignment for {group} {gene} has removed from analysis")
-        """
+
+        # Remove removed sequences from dataset
+        for group in remove_dict:
+            for gene in remove_dict[group]:
+                if group in self.dict_dataset:
+                    if gene in self.dict_dataset[group]:
+                        for _hash in remove_dict[group][gene]:
+                            if _hash in self.dict_dataset[group][gene].list_qr_FI:
+                                self.dict_dataset[group][gene].list_qr_FI.pop(_hash)
+                                logging.warning(
+                                    f"{self.dict_hash_ID[_hash]} removed from dataset {group} {gene}. Please check the alignment and see the region is correct"
+                                )
+                            if _hash in self.dict_dataset[group][gene].list_db_FI:
+                                self.dict_dataset[group][gene].list_db_FI.pop(_hash)
+                                logging.warning(
+                                    f"{self.dict_hash_ID[_hash]} removed from dataset {group} {gene}. Please check the alignment and see the region is correct"
+                                )
+                            if _hash in self.dict_dataset[group][gene].list_og_FI:
+                                self.dict_dataset[group][gene].list_og_FI.pop(_hash)
+                                logging.warning(
+                                    f"{self.dict_hash_ID[_hash]} removed from dataset {group} {gene}. Please check the alignment and see the region is correct"
+                                )
+
+        # Finally, check again if the datasets meet criteria
+        final_fail_list = []
+        for group in self.dict_dataset:
+            for gene in self.dict_dataset[group]:
+                if (
+                    len(self.dict_dataset[group][gene].list_qr_FI)
+                    + len(self.dict_dataset[group][gene].list_db_FI)
+                    + len(self.dict_dataset[group][gene].list_og_FI)
+                    < 4
+                ):
+                    logging.warning(
+                        f"After removing invalid datasets from dataset {group} {gene}, the number of remaining sequences are under 4, removing from anlaysis."
+                    )
+                    final_fail_list.append((group, gene))
+
+                elif len(self.dict_dataset[group][gene].list_og_FI) < 1:
+                    logging.warning(
+                        f"After removing invalid datasets from dataset {group} {gene}, outgroup of the dataset has completely removed, removing from anlaysis."
+                    )
+                    final_fail_list.append((group, gene))
+
+        # Remove bad datasets
+        for fail in final_fail_list:
+            group = fail[0]
+            gene = fail[1]
+            self.dict_dataset[group].pop(gene)
