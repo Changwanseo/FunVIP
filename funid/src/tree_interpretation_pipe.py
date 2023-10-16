@@ -413,12 +413,7 @@ def synchronize(V, path, tree_info_list):
                 for taxon in add_list:
                     tree_info.collapse_dict[taxon] = add_list[taxon]
 
-    print("After")
-    for group in tree_info_dict:
-        for gene in tree_info_dict[group]:
-            if gene == "cam":
-                for key in tree_info.collapse_dict:
-                    print(key, tree_info.collapse_dict[key])
+
     """
 
     # raise Exception
@@ -520,16 +515,6 @@ def pipe_module_tree_visualization(
 def pipe_tree_interpretation(V, path, opt):
     # Generate tree_interpretation opt to run
     tree_interpretation_opt = []
-
-    print("=========================")
-    for group in V.dict_dataset:
-        print(group)
-        for gene in V.dict_dataset[group]:
-            print(gene, end=" ")
-
-        print("\n")
-
-    print("=========================")
 
     for group in V.dict_dataset:
         for gene in V.dict_dataset[group]:
