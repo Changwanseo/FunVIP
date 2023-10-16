@@ -520,6 +520,17 @@ def pipe_module_tree_visualization(
 def pipe_tree_interpretation(V, path, opt):
     # Generate tree_interpretation opt to run
     tree_interpretation_opt = []
+
+    print("=========================")
+    for group in V.dict_dataset:
+        print(group)
+        for gene in V.dict_dataset[group]:
+            print(gene, end=" ")
+
+        print("\n")
+
+    print("=========================")
+
     for group in V.dict_dataset:
         for gene in V.dict_dataset[group]:
             logging.debug(f"pipe_tree_interpretation {group} {gene}")
