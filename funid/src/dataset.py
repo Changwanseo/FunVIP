@@ -457,13 +457,40 @@ class FunID_var:
                             )
                         )
 
+                        # Remove sequences that has not been existed during alignment stage
+                        seq_id_list = [seq.id for seq in seq_list]
+                        for FI in self.dict_dataset[group][gene].list_db_FI:
+                            if not (FI.hash in seq_id_list):
+                                self.dict_dataset[group][gene].list_db_FI.remove(FI)
+
+                        for FI in self.dict_dataset[group][gene].list_qr_FI:
+                            if not (FI.hash in seq_id_list):
+                                self.dict_dataset[group][gene].list_qr_FI.remove(FI)
+
+                        for FI in self.dict_dataset[group][gene].list_og_FI:
+                            if not (FI.hash in seq_id_list):
+                                self.dict_dataset[group][gene].list_og_FI.remove(FI)
+
                         # Remove empty sequences
                         remove_hash = []
                         for seq in seq_list:
                             if len(str(seq.seq).replace("-", "")) == 0:
+                                logging.debug(
+                                    f"{group} {gene} {seq.id} : {len(str(seq.seq).replace('-', ''))}"
+                                )
                                 remove_hash.append(seq.id)
 
                         remove_dict[group][gene] = remove_hash
+
+                        """
+                        for _hash in remove_hash:
+                            if _hash in self.dict_dataset[group][gene].list_db_FI:
+                                self.dict_dataset[group][gene].list_db_FI.pop(_hash)
+                            if _hash in self.dict_dataset[group][gene].list_query_FI:
+                                self.dict_dataset[group][gene].list_query_FI.pop(_hash)
+                            if _hash in self.dict_dataset[group][gene].list_og_FI:
+                                self.dict_dataset[group][gene].list_og_FI.pop(_hash)
+                        """
 
                         # Remove unusable sequence and re-read it
                         ## db_list, query_list, outgroup_list might has to be changed
@@ -515,6 +542,9 @@ class FunID_var:
             self.dict_dataset[group].pop(gene)
             logging.warning(f"Alignment for {group} {gene} has removed from analysis")
 
+        logging.debug("Remove dict")
+        logging.debug(remove_dict)
+
         # Remove removed sequences from dataset
         for group in remove_dict:
             for gene in remove_dict[group]:
@@ -522,17 +552,23 @@ class FunID_var:
                     if gene in self.dict_dataset[group]:
                         for _hash in remove_dict[group][gene]:
                             if _hash in self.dict_dataset[group][gene].list_qr_FI:
-                                self.dict_dataset[group][gene].list_qr_FI.pop(_hash)
+                                self.dict_dataset[group][gene].list_qr_FI.remove(
+                                    self.dict_hash_FI[_hash]
+                                )
                                 logging.warning(
                                     f"{self.dict_hash_ID[_hash]} removed from dataset {group} {gene}. Please check the alignment and see the region is correct"
                                 )
                             if _hash in self.dict_dataset[group][gene].list_db_FI:
-                                self.dict_dataset[group][gene].list_db_FI.pop(_hash)
+                                self.dict_dataset[group][gene].list_db_FI.remove(
+                                    self.dict_hash_FI[_hash]
+                                )
                                 logging.warning(
                                     f"{self.dict_hash_ID[_hash]} removed from dataset {group} {gene}. Please check the alignment and see the region is correct"
                                 )
                             if _hash in self.dict_dataset[group][gene].list_og_FI:
-                                self.dict_dataset[group][gene].list_og_FI.pop(_hash)
+                                self.dict_dataset[group][gene].list_og_FI.remove(
+                                    self.dict_hash_FI[_hash]
+                                )
                                 logging.warning(
                                     f"{self.dict_hash_ID[_hash]} removed from dataset {group} {gene}. Please check the alignment and see the region is correct"
                                 )
@@ -541,6 +577,17 @@ class FunID_var:
         final_fail_list = []
         for group in self.dict_dataset:
             for gene in self.dict_dataset[group]:
+                logging.debug(f"Validating alignment for {group} {gene}")
+                logging.debug(
+                    f"list_qr_FI : {len(self.dict_dataset[group][gene].list_qr_FI)}"
+                )
+                logging.debug(
+                    f"list_db_FI : {len(self.dict_dataset[group][gene].list_db_FI)}"
+                )
+                logging.debug(
+                    f"list_og_FI : {len(self.dict_dataset[group][gene].list_og_FI)}"
+                )
+
                 if (
                     len(self.dict_dataset[group][gene].list_qr_FI)
                     + len(self.dict_dataset[group][gene].list_db_FI)

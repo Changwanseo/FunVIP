@@ -189,6 +189,8 @@ def main():
         step = "trim"
         logging.info("TRIMMING")
         V, path, opt = trim.pipe_trimming(V, path, opt)
+        # Alignment validations - whether some of the sequences does not have overlapping regions
+        V.validate_alignments(path, opt)
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
@@ -204,9 +206,6 @@ def main():
 
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
-
-        # Alignment validations - whether some of the sequences does not have overlapping regions
-        V.validate_alignments(path, opt)
 
         time_concatenate = time()
 
