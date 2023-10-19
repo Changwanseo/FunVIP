@@ -9,7 +9,7 @@ from funid.src.tool import index_step
 from funid.src.save import save_df
 
 # For version reporting
-__version__ = "0.3.18.2"
+__version__ = "0.3.18.3"
 
 
 ### Temporary report for tree_interpretation_pipe
