@@ -602,6 +602,7 @@ def pipe_tree_interpretation(V, path, opt):
     ]
 
     # hash_dict_analysis to prevent overwrite analysis from other tree
+    # hash : group_analysis
     hash_dict_analysis = {}
 
     # Add final identification result
@@ -626,14 +627,19 @@ def pipe_tree_interpretation(V, path, opt):
                     FI.flat.append("concatenated")
 
                 hash_dict_analysis[singlereport.hash] = singlereport.group_analysis
+
     # Non-concatenated
     for singlereport in all_report_list:
         FI = V.dict_hash_FI[singlereport.hash]
         if singlereport.gene != "concatenated":
-            # In each gene tree, follow the group which taxon analyzed from concatenated tree
-            if hash_dict_analysis[singlereport.hash] == singlereport.group_analysis:
-                FI.bygene_species[singlereport.gene] = singlereport.species_assigned
-                if singlereport.flat is True:
-                    FI.flat.append(singlereport.gene)
+            if singlereport.hash in hash_dict_analysis:
+                # In each gene tree, follow the group which taxon analyzed from concatenated tree
+                if hash_dict_analysis[singlereport.hash] == singlereport.group_analysis:
+                    FI.bygene_species[singlereport.gene] = singlereport.species_assigned
+                    if singlereport.flat is True:
+                        FI.flat.append(singlereport.gene)
+            else:
+                # If not found, FI would be additional database sequences outside the group added for ambiguities.
+                pass
 
     return V, path, opt

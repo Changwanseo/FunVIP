@@ -185,8 +185,6 @@ class Funinfo:
                 )
                 raise Exception
 
-        logging.debug(f"Updated color {color}")
-
     def update_datatype(self, datatype):
         flag = 0
         # Available datatypes : db, query
