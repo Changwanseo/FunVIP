@@ -164,6 +164,9 @@ class Tree_information:
     def __init__(self, tree, Tree_style, group, gene, opt):
         self.tree_name = tree  # for debugging
         self.t = Tree(tree)
+        self.t_publish = (
+            None  # for publish tree - will substitute tree_original in long_term
+        )
         self.dendro_t = dendropy.Tree.get(
             path=self.tree_name, schema="newick"
         )  # dendropy format for distance calculation

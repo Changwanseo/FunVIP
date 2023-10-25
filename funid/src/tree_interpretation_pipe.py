@@ -108,6 +108,9 @@ def pipe_module_tree_interpretation(
     # reorder tree for pretty look
     tree_info.t.ladderize(direction=1)
 
+    # save current status into save version of tree
+    tree_info.t_publish = deepcopy(tree_info.t)
+
     # Search tree and delimitate species
     tree_info.tree_search(tree_info.t, gene)
 
@@ -125,6 +128,25 @@ def pipe_module_tree_interpretation(
         f"{path.out_tree}/{opt.runname}_{group}_{gene}.nwk",
         newick=True,
     )
+
+    # print(tree_info.t_publish)
+
+    for collapse_taxon in tree_info.collapse_dict:
+        for collapse_info in tree_info.collapse_dict[collapse_taxon]:
+            clade = collapse_info.clade
+            for c in tree_info.t_publish.traverse():
+                set1 = set(l1.name for l1 in c.iter_leaves())
+                set2 = set(l2.name for l2 in clade.iter_leaves())
+                if set1 == set2:
+                    print(True)
+
+                # if any of hash in set in query list
+                # color bgcolor with given color
+                # if taxon is new species
+                # color bg color with another color
+                # change taxon order
+
+    # raise Exception
 
     return tree_info
 
