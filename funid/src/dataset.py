@@ -1,4 +1,5 @@
 from funid.src import save
+from funid.src import hasher
 from Bio import SeqIO
 import os
 import sys
@@ -426,10 +427,11 @@ class FunID_var:
                         )
 
     # Validate if any multiple sequence alignment has no overlapping region
-    def validate_alignments(self, path, opt):
+    def validate_alignments(self, V, path, opt):
         fail_list = []
 
         remove_dict = {}
+        tree_hash_dict = hasher.encode(V.list_FI, newick=True)
         for group in self.dict_dataset:
             remove_dict[group] = {}
             for gene in self.dict_dataset[group]:
@@ -527,8 +529,15 @@ class FunID_var:
                                 f"Alignment for {group} {gene} does not have any overlapping regions! Removing from analysis"
                             )
                             fail_list.append((group, gene))
+                            # for tree, use hash dict with genus and species information
+                            # Decoding process in done in tree building processes, so these alignments cannot be decoded. So decode them here
+                            hasher.decode(
+                                tree_hash_dict,
+                                f"{path.out_alignment}/hash/{opt.runname}_hash_MAFFT_{group}_{gene}.fasta",
+                                f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
+                            )
                         else:
-                            logging.info(
+                            logging.debug(
                                 f"Alignment for {group} {gene} passed validation"
                             )
 

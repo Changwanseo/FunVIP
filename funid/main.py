@@ -190,7 +190,7 @@ def main():
         logging.info("TRIMMING")
         V, path, opt = trim.pipe_trimming(V, path, opt)
         # Alignment validations - whether some of the sequences does not have overlapping regions
-        V.validate_alignments(path, opt)
+        V.validate_alignments(V=V, path=path, opt=opt)
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
