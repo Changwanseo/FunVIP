@@ -3,6 +3,7 @@ from funid.src import hasher
 from Bio import SeqIO
 import os
 import sys
+import shutil
 import numpy as np
 import logging
 import re
@@ -531,6 +532,11 @@ class FunID_var:
                             fail_list.append((group, gene))
                             # for tree, use hash dict with genus and species information
                             # Decoding process in done in tree building processes, so these alignments cannot be decoded. So decode them here
+                            shutil.move(
+                                f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
+                                f"{path.out_alignment}/hash/{opt.runname}_hash_MAFFT_{group}_{gene}.fasta",
+                            )
+
                             hasher.decode(
                                 tree_hash_dict,
                                 f"{path.out_alignment}/hash/{opt.runname}_hash_MAFFT_{group}_{gene}.fasta",

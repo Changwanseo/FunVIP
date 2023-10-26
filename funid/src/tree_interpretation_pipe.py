@@ -130,7 +130,7 @@ def pipe_module_tree_interpretation(
     )
 
     # print(tree_info.t_publish)
-
+    """
     for collapse_taxon in tree_info.collapse_dict:
         for collapse_info in tree_info.collapse_dict[collapse_taxon]:
             clade = collapse_info.clade
@@ -145,7 +145,7 @@ def pipe_module_tree_interpretation(
                 # if taxon is new species
                 # color bg color with another color
                 # change taxon order
-
+    """
     # raise Exception
 
     return tree_info
