@@ -542,6 +542,12 @@ class FunID_var:
                                 f"{path.out_alignment}/hash/{opt.runname}_hash_MAFFT_{group}_{gene}.fasta",
                                 f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
                             )
+
+                            # Move failed alignment to failed directory
+                            shutil.move(
+                                f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
+                                f"{path.out_alignment}/failed/{opt.runname}_MAFFT_{group}_{gene}.fasta",
+                            )
                         else:
                             logging.debug(
                                 f"Alignment for {group} {gene} passed validation"

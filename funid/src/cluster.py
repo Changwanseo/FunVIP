@@ -109,6 +109,7 @@ def cluster(FI, V, path, opt):
             logging.warning(f"No adjusted_group assigned to {FI}")
         FI.adjusted_group = FI.group
         return FI, None
+
     # for db sequence with group, retain it
     elif not (FI.group == "") and FI.datatype == "db":  # or type(FI.group) != str):
         FI.adjusted_group = FI.group
@@ -161,7 +162,10 @@ def cluster(FI, V, path, opt):
                 if not (FI.adjusted_group in list_group):
                     logging.warning(f"Clustering result colliding in {FI.id}")
 
-        return FI, list_group[0]
+        if len(list_group) > 0:
+            return FI, list_group[0]
+        else:
+            return FI, None
 
 
 ### Append outgroup to given group-gene dataset by search matrix

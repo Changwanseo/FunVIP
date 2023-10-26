@@ -264,6 +264,8 @@ class Path:
         mkdir(self.out_alignment)
         # Also make alignment hash directory
         mkdir(f"{self.out_alignment}/hash")
+        # For failed alignments
+        mkdir(f"{self.out_alignment}/failed")
 
         # modeltest result directory
         self.out_modeltest = f"{self.root}/06_Modeltest"
