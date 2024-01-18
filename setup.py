@@ -4,8 +4,8 @@ from sys import platform
 import subprocess
 
 name = "FunID"
-__version__ = "0.3.16"
-release = "0.3.16"
+__version__ = "0.3.18.5"
+release = "0.3.18.5"
 
 
 ## Default setup options
@@ -31,7 +31,7 @@ if platform == "darwin":
             "ete3==3.1.2",
             "Cython",
             "dendropy",
-            "GenMine>=1.0.10",
+            "GenMine>=1.0.11",
             "lxml",
             "matplotlib==3.5.1",
             "numpy==1.22.3",

@@ -185,8 +185,6 @@ class Funinfo:
                 )
                 raise Exception
 
-        logging.debug(f"Updated color {color}")
-
     def update_datatype(self, datatype):
         flag = 0
         # Available datatypes : db, query
@@ -210,7 +208,8 @@ class Funinfo:
             id_ = get_id(id_, tuple(regexs))
 
         # if cannot find id by regex
-        id_ = str(id_)
+        # Even for original, new line character makes significant errors while working fasta, so remove it
+        id_ = str(id_).replace("\n", " ")
         self.original_id = id_
         id_ = newick_legal(id_)
         self.id = id_
@@ -347,6 +346,9 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                     elif dict_extension[extension] == "feather":
                         df = pd.read_feather(table, use_threads=True)
                         flag_read_table = 1
+
+                    # To prevent nan error
+                    df = df.fillna("")
                 except:
                     logging.error(
                         f"Table {table} cannot be read as {dict_extension[extension]} file. Please check files, extensions and seperators"
@@ -439,6 +441,8 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
 
             # if NCBI accessions detected in sequence part, download it
             if len(download_set) > 0:
+                print(f"{path.GenMine}")
+
                 logging.info(
                     f"Running GenMine to download {len(download_set)} sequences from GenBank"
                 )
@@ -450,7 +454,15 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                         fg.write(f"{acc.strip()}\n")
 
                 # Run GenMine
-                cmd = f"GenMine -c {path.GenMine}/Accessions.txt -o {path.GenMine} -e {opt.email}"
+                accession_path = f"{path.GenMine}/Accessions.txt"
+                # To prevent space errors in windows
+                if " " in path.GenMine:
+                    accession_path = f'"{accession_path}"'
+                    GenMine_path = f'"{path.GenMine}"'
+                else:
+                    GenMine_path = path.GenMine
+
+                cmd = f"GenMine -c {accession_path} -o {GenMine_path} -e {opt.email}"
                 logging.info(f"{cmd}")
                 return_code = subprocess.call(cmd, shell=True)
 
@@ -522,6 +534,16 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
             lambda x: manage_unicode(str(x), column="ID/Accession")
         )
 
+        # Empty id check
+        empty_error = []
+        for n, acc in enumerate(df["id"]):
+            if df["id"][n].strip() == "" or df["id"][n].strip() == "-":
+                empty_error.append(n)
+
+        if len(empty_error) > 0:
+            logging.error(f"Empty id found in {table}, line {empty_error}!")
+            raise Exception
+
         # Generate funinfo by each row
         for n, acc in enumerate(df["id"]):
             # Check if each of the ids are unique
@@ -529,6 +551,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
             new_acc = True
 
             # Generate funinfo for each id
+            # Duplicate id check
             if df["id"][n] in funinfo_dict:
                 newinfo = funinfo_dict[df["id"][n]]
                 new_acc = False

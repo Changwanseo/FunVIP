@@ -164,6 +164,9 @@ class Tree_information:
     def __init__(self, tree, Tree_style, group, gene, opt):
         self.tree_name = tree  # for debugging
         self.t = Tree(tree)
+        self.t_publish = (
+            None  # for publish tree - will substitute tree_original in long_term
+        )
         self.dendro_t = dendropy.Tree.get(
             path=self.tree_name, schema="newick"
         )  # dendropy format for distance calculation
@@ -309,7 +312,7 @@ class Tree_information:
         # Resolve polytomy before rerooting
         self.t.resolve_polytomy()
 
-        # Find out if outgroup sequences exists
+        # Check if outgroup sequences exists
         print(f"[INFO] Rerooting {self.outgroup} in {self.tree_name}")
         for leaf in self.t:
             if any(outgroup.hash in leaf.name for outgroup in self.outgroup):
@@ -337,9 +340,10 @@ class Tree_information:
                 print(f"[ERROR] no outgroup selected in {self.tree_name}")
                 raise Exception
 
+            # If number of outgroup leaves and outgroup clade does not matches, paraphyletic
             if len(outgroup_leaves) != len(self.outgroup_clade):
                 print(
-                    f"[WARNING] outgroup does not seems to be monophyletic in {self.tree_name}"
+                    f"[WARNING] outgroup seems to be paraphyletic in {self.tree_name}"
                 )
 
         except:
@@ -552,7 +556,6 @@ class Tree_information:
     # decides if the clade is monophyletic
     def is_monophyletic(self, clade, gene, taxon):
         taxon_dict = self.taxon_count(clade, gene)
-
         # if taxon dict.keys() have 0 species: all query
         if len(taxon_dict.keys()) == 0:
             for children in clade.children:
@@ -560,9 +563,8 @@ class Tree_information:
                 if children.dist > self.opt.collapsedistcutoff:
                     return False
                 # or bootstrap is to distinctive
-                elif children.support >= self.opt.collapsebscutoff:
+                elif children.support > self.opt.collapsebscutoff:
                     return False
-
             return True
         elif len(taxon_dict.keys()) == 1:
             # if taxon dict.keys() have only 1 species: group assigned
@@ -571,7 +573,7 @@ class Tree_information:
                 if self.find_majortaxon(children, gene)[1].startswith("sp."):
                     if children.dist > self.opt.collapsedistcutoff:
                         return False
-                    elif children.support >= self.opt.collapsebscutoff:
+                    elif children.support > self.opt.collapsebscutoff:
                         return False
             return True
         else:
@@ -614,14 +616,13 @@ class Tree_information:
             # decides if the clade is monophyletic
             def is_monophyletic(self, clade, gene, taxon):
                 taxon_dict = self.taxon_count(clade, gene)
-
                 # if taxon dict.keys() have 0 species: all query
                 # if any of the branch length was too long or bootstrap is to distinctive : False
                 if len(taxon_dict.keys()) == 0:
                     for children in clade.children:
                         if children.dist > self.opt.collapsedistcutoff:
                             return False
-                        elif children.support >= self.opt.collapsebscutoff:
+                        elif children.support > self.opt.collapsebscutoff:
                             return False
                     return True
 
@@ -631,7 +632,7 @@ class Tree_information:
                         if self.find_majortaxon(children, gene)[1].startswith("sp."):
                             if children.dist > self.opt.collapsedistcutoff:
                                 return False
-                            elif children.support >= self.opt.collapsebscutoff:
+                            elif children.support > self.opt.collapsebscutoff:
                                 return False
                     return True
                 else:  # more than 2 species : not monophyletic
@@ -1031,7 +1032,7 @@ class Tree_information:
             # change this part when debugging flat trees
             node.img_style["size"] = 0  # removing circles whien size is 0
 
-            if node.support > self.opt.visualize.bscutoff:
+            if node.support >= self.opt.visualize.bscutoff:
                 # node.add_face without generating extra line
                 # add_face_to_node
                 node.add_face(
@@ -1157,8 +1158,6 @@ class Tree_information:
         # fit size of tree_xml to svg
         # find svg from tree_xml
         svg = list(tree_xml.iter("{http://www.w3.org/2000/svg}svg"))[0]
-        # svg.set("width", "100%")
-        # svg.set("height", "100%")
 
         # write to svg file
         tree_xml.write(

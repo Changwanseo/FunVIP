@@ -35,8 +35,10 @@ def create_search_db(opt, db_fasta, db, path) -> None:
         makeblastdb(fasta=db_fasta, db=db, path=path)
     # make mmseqssdb
     elif opt.method.search.lower() in (
+        "mmseq",
         "mmseqss",
         "mmseqs",
+        "mmseq2",
         "mmseqs2",
         "mmseqss2",
     ):
@@ -273,6 +275,12 @@ def search_df(V, path, opt):
             )
             V.list_db_gene.remove(gene)
 
+    if len(V.list_db_gene) == 0:
+        logging.error(
+            f"None of the gene seems to be valid in analysis. Please check your --gene flag"
+        )
+        raise Exception
+
     # get query fasta from funinfo_list
     list_qr_FI = tool.select(V.list_FI, datatype="query")
 
@@ -347,9 +355,12 @@ def search_df(V, path, opt):
                     )
 
                 # if dataframe exists
-                if isinstance(df_search, pd.DataFrame):
-                    if not df_search.empty:
-                        dict_unclassified[gene] = df_search
+                try:
+                    if isinstance(df_search, pd.DataFrame):
+                        if not df_search.empty:
+                            dict_unclassified[gene] = df_search
+                except:
+                    pass
 
             # assign gene by search result to unassigned sequences
             V = cluster.assign_gene(dict_unclassified, V)

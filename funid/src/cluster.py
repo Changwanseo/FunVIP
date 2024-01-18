@@ -109,6 +109,7 @@ def cluster(FI, V, path, opt):
             logging.warning(f"No adjusted_group assigned to {FI}")
         FI.adjusted_group = FI.group
         return FI, None
+
     # for db sequence with group, retain it
     elif not (FI.group == "") and FI.datatype == "db":  # or type(FI.group) != str):
         FI.adjusted_group = FI.group
@@ -161,7 +162,10 @@ def cluster(FI, V, path, opt):
                 if not (FI.adjusted_group in list_group):
                     logging.warning(f"Clustering result colliding in {FI.id}")
 
-        return FI, list_group[0]
+        if len(list_group) > 0:
+            return FI, list_group[0]
+        else:
+            return FI, None
 
 
 ### Append outgroup to given group-gene dataset by search matrix
@@ -196,6 +200,8 @@ def append_outgroup(V, df_search, gene, group, path, opt):
     except:
         bitscore_cutoff = 999999  # use infinite if failed
 
+    # print(f"Ingroup cutoff {bitscore_cutoff} selected for group {group} gene {gene}")
+
     ## get result stasifies over cutoff
     # outgroup should be outside of ingroup
     cutoff_df = df_search[df_search["bitscore"] < bitscore_cutoff]
@@ -212,8 +218,13 @@ def append_outgroup(V, df_search, gene, group, path, opt):
     for qseqid, _df in cutoff_set_df.groupby(["qseqid"]):
         # Select dataframe corresponding to current qseqid
         df_qseqid = df_search[df_search["qseqid"] == qseqid]
+        """
+        print(
+            f"Ambiguous ingroup cutoff selected for query {qseqid} group {group} gene {gene} cutoff {min(list(_df['bitscore']))}"
+        )
+        """
         # Get the list of subjects, which is closer than furtest ingroup
-        ambiguous_df = df_qseqid[df_qseqid["bitscore"] >= min(_df["bitscore"])]
+        ambiguous_df = df_qseqid[df_qseqid["bitscore"] >= min(list(_df["bitscore"]))]
         # Within the furthest match, get possible ingroups with ambiguous group
         ambiguous_df = ambiguous_df[ambiguous_df["subject_group"] != group]
         # Add inner ambiugities to ambiguous db
@@ -255,7 +266,12 @@ def append_outgroup(V, df_search, gene, group, path, opt):
     for n, subject_group in enumerate(cutoff_df["subject_group"]):
         ## Check if outgroup sequence that we're going to use actually exists
         # If gene is not "concatenated", the outgroup sequence should actually exists
+        # keep in mind if case of certain gene is blank
+
         cond1 = gene in FI_dict[cutoff_df["sseqid"][n]].seq
+        if cond1 is True:
+            cond1 = FI_dict[cutoff_df["sseqid"][n]].seq[gene] != ""
+
         # If gene is "concatenated", any of the genes should exists
         cond2 = (
             gene == "concatenated"
@@ -282,11 +298,6 @@ def append_outgroup(V, df_search, gene, group, path, opt):
                     f"Outgroup [{subject_group}] selected to [{group}]\n {text_outgroup_list}"
                 )
 
-                # Get database sequences probably in ambiguous phylogenetic position
-                for _group in outgroup_dict:
-                    if _group != subject_group:
-                        ambiguous_db += outgroup_dict[_group]
-
                 return (
                     group,
                     gene,
@@ -298,25 +309,23 @@ def append_outgroup(V, df_search, gene, group, path, opt):
                     max_cnt = len(outgroup_dict[subject_group])
                     max_group = subject_group
 
+    # If not enough outgroup sequences found while running
     logging.warning(
         f"Not enough sequences are available for outgroup number {opt.maxoutgroup} in {group}, using '{max_group}' despite of lower number"
     )
 
+    # If outgroup are selected
     if not (max_group) == "":
         logging.info(
             f"Final outgroup selection for group {group} : {outgroup_dict[max_group]}"
         )
 
-        # Get database sequences probably in ambiguous position
-        for _group in outgroup_dict:
-            if _group != subject_group:
-                ambiguous_db += outgroup_dict[_group]
-
         return (group, gene, outgroup_dict[max_group], ambiguous_db)
 
+    # If outgroup cannot be selected
     else:
         logging.warning(
-            f"No outgroup sequence available for {group}. Try use higher --cluster-evalue and lower --outgroupoffset, or add closer sequence of {group} to database"
+            f"No outgroup sequence available for {group}. Try to use\n A. Higher --cluster-evalue\n B. Lower --outgroupoffset\n C. Add closer sequence of {group} to database"
         )
         return (group, gene, [], [])
 

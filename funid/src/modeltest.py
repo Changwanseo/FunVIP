@@ -241,7 +241,7 @@ def parse_model(modeltest_file, opt, path):
             for model in model_list:
                 # if model is available model for tree method take it
                 if model in cmd_translator_modelfinder_raxml:
-                    # convert to coommands
+                    # convert to commands
                     model_cmd = cmd_translator_modelfinder_raxml[model]
                     break
 
@@ -360,6 +360,7 @@ def modeltest(V, path, opt) -> dict:
     group_dict = V.dict_dataset
     model_dict = copy.deepcopy(group_dict)
 
+    # By group and by gene
     for group in group_dict:
         for gene in group_dict[group]:
             if opt.method.modeltest.lower() == "modeltest-ng":

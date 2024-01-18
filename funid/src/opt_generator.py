@@ -3,8 +3,11 @@ import logging
 import os
 
 
-def opt_generator(V, opt, path, step):
+def opt_generator(V, opt, path, step, thread=None):
     list_opt = []
+
+    if thread is None:
+        thread = opt.thread
 
     ## alignment options generator
     if step == "alignment":
@@ -12,15 +15,6 @@ def opt_generator(V, opt, path, step):
             for gene in V.dict_dataset[group]:
                 # For concatenated gene matrix, alignment should be done by each gene matrix and then concatenated
                 if gene != "concatenated":
-                    # thread assignment
-                    if opt.verbose < 3:
-                        if opt.thread in (1, 3):
-                            thread = 1
-                        else:
-                            thread = 2
-                    else:
-                        thread = opt.thread
-
                     # double checking path
                     if os.path.isfile(
                         f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta"

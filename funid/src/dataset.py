@@ -1,7 +1,9 @@
 from funid.src import save
+from funid.src import hasher
 from Bio import SeqIO
 import os
 import sys
+import shutil
 import numpy as np
 import logging
 import re
@@ -133,8 +135,12 @@ class FunID_var:
         else:
             del self.dict_dataset[group][gene]
             # if all gene removed
-            if len(self.dict_dataset[group]) == 0:
+            # 1 for concatenated
+            if len(self.dict_dataset[group]) <= 1:
                 del self.dict_dataset[group]
+                logging.info(f"Removed {group} from dataset")
+            else:
+                logging.info(f"Removed {group} {gene} from dataset")
 
     # Check if given dict_dataset[group][gene] exists
     def exist_dataset(self, group, gene):
@@ -422,80 +428,233 @@ class FunID_var:
                         )
 
     # Validate if any multiple sequence alignment has no overlapping region
-    def validate_alignments(self, path, opt):
+    def validate_alignments(self, V, path, opt):
         fail_list = []
+
+        remove_dict = {}
+        tree_hash_dict = hasher.encode(V.list_FI, newick=True)
         for group in self.dict_dataset:
+            remove_dict[group] = {}
             for gene in self.dict_dataset[group]:
-                # Check if alignment corresponding to dataset exists
-                if not (
-                    os.path.isfile(
-                        f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta"
-                    )
-                ):
-                    logger.warning(
-                        f"Alignment file {path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta does not exists"
-                    )
+                if gene != "concatenated":
+                    remove_dict[group][gene] = []
+                    # Check if alignment corresponding to dataset exists
+                    if not (
+                        os.path.isfile(
+                            f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta"
+                        )
+                    ):
+                        logger.warning(
+                            f"Alignment file {path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta does not exists"
+                        )
 
-                    fail_list.append(group_gene)
+                        fail_list.append(group_gene)
 
-                else:
-                    # If alignment exists, check if alignment does have overlapping regions
-                    ## Parse alignment
-                    seq_list = list(
-                        SeqIO.parse(
+                    else:
+                        # If alignment exists, check if alignment does have overlapping regions
+                        ## Parse alignment
+                        seq_list = list(
+                            SeqIO.parse(
+                                f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
+                                "fasta",
+                            )
+                        )
+
+                        # Remove sequences that has not been existed during alignment stage
+                        seq_id_list = [seq.id for seq in seq_list]
+                        for FI in self.dict_dataset[group][gene].list_db_FI:
+                            if not (FI.hash in seq_id_list):
+                                self.dict_dataset[group][gene].list_db_FI.remove(FI)
+
+                        for FI in self.dict_dataset[group][gene].list_qr_FI:
+                            if not (FI.hash in seq_id_list):
+                                self.dict_dataset[group][gene].list_qr_FI.remove(FI)
+
+                        for FI in self.dict_dataset[group][gene].list_og_FI:
+                            if not (FI.hash in seq_id_list):
+                                self.dict_dataset[group][gene].list_og_FI.remove(FI)
+
+                        # Remove empty sequences
+                        remove_hash = []
+                        for seq in seq_list:
+                            if len(str(seq.seq).replace("-", "")) == 0:
+                                logging.debug(
+                                    f"{group} {gene} {seq.id} : {len(str(seq.seq).replace('-', ''))}"
+                                )
+                                remove_hash.append(seq.id)
+
+                        remove_dict[group][gene] = remove_hash
+
+                        """
+                        for _hash in remove_hash:
+                            if _hash in self.dict_dataset[group][gene].list_db_FI:
+                                self.dict_dataset[group][gene].list_db_FI.pop(_hash)
+                            if _hash in self.dict_dataset[group][gene].list_query_FI:
+                                self.dict_dataset[group][gene].list_query_FI.pop(_hash)
+                            if _hash in self.dict_dataset[group][gene].list_og_FI:
+                                self.dict_dataset[group][gene].list_og_FI.pop(_hash)
+                        """
+
+                        # Remove unusable sequence and re-read it
+                        ## db_list, query_list, outgroup_list might has to be changed
+                        seq_list = [
+                            seq for seq in seq_list if not seq.id in remove_hash
+                        ]
+                        SeqIO.write(
+                            seq_list,
                             f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
                             "fasta",
                         )
-                    )
 
-                    # Remove empty sequences
-                    remove_hash = []
-                    for seq in seq_list:
-                        if len(str(seq.seq).replace("-", "")) == 0:
-                            remove_hash.append(seq.id)
-
-                    # Remove unusable sequence and re-read it
-                    ## db_list, query_list, outgroup_list might has to be changed
-                    seq_list = [seq for seq in seq_list if not seq.id in remove_hash]
-                    SeqIO.write(
-                        seq_list,
-                        f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
-                        "fasta",
-                    )
-
-                    ## Transform alignment to vector
-                    ## Change gap to 0, and other characters to 1
-                    vectors = [
-                        np.fromiter(
-                            re.sub(r"[^0]", "1", re.sub(r"[\-]", "0", str(seq.seq))),
-                            dtype=np.int32,
+                        ## Transform alignment to vector
+                        ## Change gap to 0, and other characters to 1
+                        vectors = [
+                            np.fromiter(
+                                re.sub(
+                                    r"[^0]", "1", re.sub(r"[\-]", "0", str(seq.seq))
+                                ),
+                                dtype=np.int32,
+                            )
+                            for seq in seq_list
+                        ]
+                        ## Multiply vectors
+                        vector_products = np.prod(np.vstack(vectors), axis=0)
+                        logging.debug(
+                            f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta resulted multiplied vector {vector_products}"
                         )
-                        for seq in seq_list
-                    ]
-                    ## Multiply vectors
-                    vector_products = np.prod(np.vstack(vectors), axis=0)
-                    logging.debug(
-                        f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta resulted multiplied vector {vector_products}"
-                    )
 
-                    ## If all value of vectors are zero, it means that all regions have at least one gap
-                    ## Raise warning for this
-                    if np.all((vector_products == 0)):
-                        logging.warning(
-                            f"Alignment for {group} {gene} does not have any overlapping regions! Removing from analysis"
-                        )
-                        fail_list.append((group, gene))
-                    else:
-                        logging.info(f"Alignment for {group} {gene} passed validation")
+                        ## If all value of vectors are zero, it means that all regions have at least one gap
+                        ## Raise warning for this
+                        if np.all((vector_products == 0)):
+                            logging.warning(
+                                f"Alignment for {group} {gene} does not have any overlapping regions! Removing from analysis"
+                            )
+                            fail_list.append((group, gene))
+                            # for tree, use hash dict with genus and species information
+                            # Decoding process in done in tree building processes, so these alignments cannot be decoded. So decode them here
+                            shutil.move(
+                                f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
+                                f"{path.out_alignment}/hash/{opt.runname}_hash_MAFFT_{group}_{gene}.fasta",
+                            )
 
-                # If alignment corresponding to dataset does not exists, raise warning or error
-                pass
+                            hasher.decode(
+                                tree_hash_dict,
+                                f"{path.out_alignment}/hash/{opt.runname}_hash_MAFFT_{group}_{gene}.fasta",
+                                f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
+                            )
 
-        """
-        # Remove bad alignments
+                            # Move failed alignment to failed directory
+                            shutil.move(
+                                f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
+                                f"{path.out_alignment}/failed/{opt.runname}_MAFFT_{group}_{gene}.fasta",
+                            )
+                        else:
+                            logging.debug(
+                                f"Alignment for {group} {gene} passed validation"
+                            )
+
+                    # If alignment corresponding to dataset does not exists, raise warning or error
+                    pass
+
+        # Remove bad datasets
         for fail in fail_list:
             group = fail[0]
             gene = fail[1]
             self.dict_dataset[group].pop(gene)
             logging.warning(f"Alignment for {group} {gene} has removed from analysis")
-        """
+
+        logging.debug("Remove dict")
+        logging.debug(remove_dict)
+
+        # Remove removed sequences from dataset
+        for group in remove_dict:
+            for gene in remove_dict[group]:
+                if group in self.dict_dataset:
+                    if gene in self.dict_dataset[group]:
+                        for _hash in remove_dict[group][gene]:
+                            if _hash in self.dict_dataset[group][gene].list_qr_FI:
+                                self.dict_dataset[group][gene].list_qr_FI.remove(
+                                    self.dict_hash_FI[_hash]
+                                )
+                                logging.warning(
+                                    f"{self.dict_hash_ID[_hash]} removed from dataset {group} {gene}. Please check the alignment and see the region is correct"
+                                )
+                            if _hash in self.dict_dataset[group][gene].list_db_FI:
+                                self.dict_dataset[group][gene].list_db_FI.remove(
+                                    self.dict_hash_FI[_hash]
+                                )
+                                logging.warning(
+                                    f"{self.dict_hash_ID[_hash]} removed from dataset {group} {gene}. Please check the alignment and see the region is correct"
+                                )
+                            if _hash in self.dict_dataset[group][gene].list_og_FI:
+                                self.dict_dataset[group][gene].list_og_FI.remove(
+                                    self.dict_hash_FI[_hash]
+                                )
+                                logging.warning(
+                                    f"{self.dict_hash_ID[_hash]} removed from dataset {group} {gene}. Please check the alignment and see the region is correct"
+                                )
+
+        # Finally, check again if the datasets meet criteria
+        final_fail_list = []
+        for group in self.dict_dataset:
+            for gene in self.dict_dataset[group]:
+                logging.debug(f"Validating alignment for {group} {gene}")
+                logging.debug(
+                    f"list_qr_FI : {len(self.dict_dataset[group][gene].list_qr_FI)}"
+                )
+                logging.debug(
+                    f"list_db_FI : {len(self.dict_dataset[group][gene].list_db_FI)}"
+                )
+                logging.debug(
+                    f"list_og_FI : {len(self.dict_dataset[group][gene].list_og_FI)}"
+                )
+
+                if (
+                    len(self.dict_dataset[group][gene].list_qr_FI)
+                    + len(self.dict_dataset[group][gene].list_db_FI)
+                    + len(self.dict_dataset[group][gene].list_og_FI)
+                    < 4
+                ):
+                    logging.warning(
+                        f"After removing invalid datasets from dataset {group} {gene}, the number of remaining sequences are under 4, removing from anlaysis."
+                    )
+                    final_fail_list.append((group, gene))
+
+                elif len(self.dict_dataset[group][gene].list_og_FI) < 1:
+                    logging.warning(
+                        f"After removing invalid datasets from dataset {group} {gene}, outgroup of the dataset has completely removed, removing from anlaysis."
+                    )
+                    final_fail_list.append((group, gene))
+
+                elif (
+                    len(self.dict_dataset[group][gene].list_qr_FI)
+                    + len(self.dict_dataset[group][gene].list_db_FI)
+                    < 1
+                ):
+                    logging.warning(
+                        f"After removing invalid datasets from dataset {group} {gene}, dataset has completely removed, removing from anlaysis."
+                    )
+                    final_fail_list.append((group, gene))
+
+        # Remove bad datasets
+        for fail in final_fail_list:
+            group = fail[0]
+            gene = fail[1]
+            self.dict_dataset[group].pop(gene)
+
+        # If concatenated is only left dataset, remove entire group
+        group_pop_list = []
+        for group in self.dict_dataset:
+            if len(self.dict_dataset[group].keys()) == 0:
+                group_pop_list.append(group)
+            elif (
+                len(self.dict_dataset[group].keys()) == 1
+                and "concatenated" in self.dict_dataset[group].keys()
+            ):
+                group_pop_list.append(group)
+
+        for group in group_pop_list:
+            self.dict_dataset.pop(group)
+            logging.warning(
+                f"No alignment left for group {group}, removed from analysis"
+            )

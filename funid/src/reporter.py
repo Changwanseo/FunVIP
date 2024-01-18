@@ -9,7 +9,7 @@ from funid.src.tool import index_step
 from funid.src.save import save_df
 
 # For version reporting
-__version__ = "0.3.16"
+__version__ = "0.3.18.5"
 
 
 ### Temporary report for tree_interpretation_pipe
@@ -748,7 +748,7 @@ class Report:
                 "Modeltest-NG": "0.1.7",
                 "Partitionfinder": "2.2.0.3",
                 "FastTree": "2.1.11",
-                "IQTREE2": "2.2.0.3",
+                "IQTREE2": "2.2.2.7",
                 "RAxML": "8.2.12",
             }
 

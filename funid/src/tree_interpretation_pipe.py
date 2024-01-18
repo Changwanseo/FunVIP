@@ -50,7 +50,11 @@ def pipe_module_tree_interpretation(
     # Check validity of file while importing
     if os.path.isfile(tree_name):
         try:
-            Tree(tree_name, format=2)
+            # If iqtree, missing supports are not shown
+            if opt.method.tree.lower() == "iqtree":
+                Tree(tree_name, format=0)
+            else:
+                Tree(tree_name, format=2)
         except:
             logging.error(f"[DEVELOPMENTAL ERROR] Failed on importing tree {tree_name}")
             raise Exception
@@ -104,6 +108,9 @@ def pipe_module_tree_interpretation(
     # reorder tree for pretty look
     tree_info.t.ladderize(direction=1)
 
+    # save current status into save version of tree
+    tree_info.t_publish = deepcopy(tree_info.t)
+
     # Search tree and delimitate species
     tree_info.tree_search(tree_info.t, gene)
 
@@ -121,6 +128,25 @@ def pipe_module_tree_interpretation(
         f"{path.out_tree}/{opt.runname}_{group}_{gene}.nwk",
         newick=True,
     )
+
+    # print(tree_info.t_publish)
+    """
+    for collapse_taxon in tree_info.collapse_dict:
+        for collapse_info in tree_info.collapse_dict[collapse_taxon]:
+            clade = collapse_info.clade
+            for c in tree_info.t_publish.traverse():
+                set1 = set(l1.name for l1 in c.iter_leaves())
+                set2 = set(l2.name for l2 in clade.iter_leaves())
+                if set1 == set2:
+                    print(True)
+
+                # if any of hash in set in query list
+                # color bgcolor with given color
+                # if taxon is new species
+                # color bg color with another color
+                # change taxon order
+    """
+    # raise Exception
 
     return tree_info
 
@@ -409,12 +435,7 @@ def synchronize(V, path, tree_info_list):
                 for taxon in add_list:
                     tree_info.collapse_dict[taxon] = add_list[taxon]
 
-    print("After")
-    for group in tree_info_dict:
-        for gene in tree_info_dict[group]:
-            if gene == "cam":
-                for key in tree_info.collapse_dict:
-                    print(key, tree_info.collapse_dict[key])
+
     """
 
     # raise Exception
@@ -516,6 +537,7 @@ def pipe_module_tree_visualization(
 def pipe_tree_interpretation(V, path, opt):
     # Generate tree_interpretation opt to run
     tree_interpretation_opt = []
+
     for group in V.dict_dataset:
         for gene in V.dict_dataset[group]:
             logging.debug(f"pipe_tree_interpretation {group} {gene}")
@@ -602,6 +624,7 @@ def pipe_tree_interpretation(V, path, opt):
     ]
 
     # hash_dict_analysis to prevent overwrite analysis from other tree
+    # hash : group_analysis
     hash_dict_analysis = {}
 
     # Add final identification result
@@ -626,14 +649,19 @@ def pipe_tree_interpretation(V, path, opt):
                     FI.flat.append("concatenated")
 
                 hash_dict_analysis[singlereport.hash] = singlereport.group_analysis
+
     # Non-concatenated
     for singlereport in all_report_list:
         FI = V.dict_hash_FI[singlereport.hash]
         if singlereport.gene != "concatenated":
-            # In each gene tree, follow the group which taxon analyzed from concatenated tree
-            if hash_dict_analysis[singlereport.hash] == singlereport.group_analysis:
-                FI.bygene_species[singlereport.gene] = singlereport.species_assigned
-                if singlereport.flat is True:
-                    FI.flat.append(singlereport.gene)
+            if singlereport.hash in hash_dict_analysis:
+                # In each gene tree, follow the group which taxon analyzed from concatenated tree
+                if hash_dict_analysis[singlereport.hash] == singlereport.group_analysis:
+                    FI.bygene_species[singlereport.gene] = singlereport.species_assigned
+                    if singlereport.flat is True:
+                        FI.flat.append(singlereport.gene)
+            else:
+                # If not found, FI would be additional database sequences outside the group added for ambiguities.
+                pass
 
     return V, path, opt
