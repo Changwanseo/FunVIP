@@ -23,6 +23,9 @@ A automatic tree-based sequence identification pipeline for fungal species
 - Data validation algorithm implemented
 
 
+# See [tutorial](https://github.com/Changwanseo/FunID/blob/main/tutorial/tutorial.md) for detailed usage
+
+
 ## Requirements
 - Conda environment (See https://www.anaconda.com/products/individual to install)
 
