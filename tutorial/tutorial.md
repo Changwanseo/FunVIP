@@ -17,11 +17,11 @@ This is basic tutorial for how to run FunID
 
 ### 1. Install FunID by following instructions
 
-* [Windows](Add anchored markdown installation link here)
+* [Windows](https://github.com/Changwanseo/FunID/#Windows)
 
-* [Mac - Apple silicon](Add anchored markdown installation link here)
+* [Linux](https://github.com/Changwanseo/FunID/#Linux)
 
-* [Linux](Add anchored markdown installation link here)
+* [Mac - Apple Silicon](https://github.com/Changwanseo/FunID/#Apple-Silicon-Mac)
 
   
 
@@ -33,9 +33,9 @@ Here, we'll going to use *Aspergillus* section *Terrei* dataset from the paper (
 
 Download database and query file by clicking
 
-* [Database]()
+* [Database](https://github.com/Changwanseo/FunID/blob/main/tutorial/FunID_Aspergillus_db.xlsx)
 
-* [Query]()
+* [Query](https://github.com/Changwanseo/FunID/blob/main/tutorial/FunID_Aspergillus_query.xlsx)
 
   
   
