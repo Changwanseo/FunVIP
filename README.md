@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/588465720.svg)](https://zenodo.org/doi/10.5281/zenodo.10714946)
+
 #### This is Beta release. Unstable. We're eagaring bug reports
 
 ## Scheduling
