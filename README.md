@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/588465720.svg)](https://zenodo.org/doi/10.5281/zenodo.10714946)
+
 #### This is Beta release. Unstable. We're eagaring bug reports
 
 ## Scheduling
@@ -23,34 +25,42 @@ A automatic tree-based sequence identification pipeline for fungal species
 - Data validation algorithm implemented
 
 
+# See [tutorial](https://github.com/Changwanseo/FunID/blob/main/tutorial/tutorial.md) for detailed usage
+
+
 ## Requirements
 - Conda environment (See https://www.anaconda.com/products/individual to install)
 
-
+<!--
 ## Installation with conda (May not work with Linux or Mac)
 1. ```conda create -n FunID python=3.10```
 2. ```conda activate FunID```
 3. ```conda install -c cwseo FunID```
 4. run ```FunID --test Penicillium ``` to check installation
 If this one fails, use next one
+-->
 
-## Installation with conda (using pip - Recommended)
-1. ```conda create -n FunID python=3.10```
-2. ```conda activate FunID```
-3. ```pip install FunID```
-4. run ```FunID --test Penicillium ``` to check installation
-If you are using linux system please follow "Additional information for Linux"
-* For mac system, this installation probably work, but we couldn't test it because we don't have any mac device. We're looking for feedbacks in mac
+## Windows
+1. Install visual c++ [here](https://visualstudio.microsoft.com/ko/visual-cpp-build-tools/)
+2. ```conda create -n FunID python=3.9```
+3. ```conda activate FunID```
+4. ```pip install FunID```
+5. run ```FunID --test Penicillium ``` to check installation
+
 * For upgrade use this command
 ``` pip install FunID --upgrade ```
 
-## Additional information for Linux
-* Currently, FunID is one-step installed only in Windows
-* to use in linux please run this command additionally
+## Linux
+1. ```conda create -n FunID python=3.9```
+2. ```conda activate FunID```
+3. ```pip install FunID```
+4. ```conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 "blast>=2.12" mafft trimal gblocks fasttree```
+5. run ```FunID --test Penicillium ``` to check installation
 
-```conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 "blast>=2.12" mafft trimal gblocks fasttree```
 
-## Experimental - Installation for apple silicon (M1, M2)
+* For intel mac system, this method probably work, but we couldn't test it because we don't have any intel mac device. We're looking for feedbacks in intel mac
+
+## Apple Silicon Mac
 1. ```CONDA_SUBDIR=osx-64 conda create -n FunID python=3.10```
 2. ```conda activate FunID```
 3. ```conda config --env --set subdir osx-64```
