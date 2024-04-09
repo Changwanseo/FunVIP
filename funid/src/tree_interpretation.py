@@ -93,17 +93,19 @@ def concat_clade(
     support1=1,
     support2=1,
     root_dist=CONCAT_ZERO,
+    root_support=0,
 ):
     tmp = Tree()
     tmp.dist = root_dist
-    tmp.support = 1
+    tmp.support = root_support
     tmp.add_child(clade1, dist=dist1, support=support1)
     tmp.add_child(clade2, dist=dist2, support=support2)
     return tmp
 
 
-## concat all branches for concatenation
-def concat_all(clade_tuple, root_dist):
+## concat all given branches for concatenation
+# clades were given in tuble, and root_dist is given
+def concat_all(clade_tuple, root_dist, root_support=0):
     if len(clade_tuple) == 0:
         print("No clade input found, abort")
         raise Exception
@@ -114,25 +116,36 @@ def concat_all(clade_tuple, root_dist):
     elif len(clade_tuple) == 2:
         return_clade = clade_tuple[0].copy("newick")
         return_clade = concat_clade(
-            return_clade,
-            clade_tuple[1].copy("newick"),
-            return_clade.dist,
-            clade_tuple[1].dist,
+            clade1=return_clade,
+            clade2=clade_tuple[1].copy("newick"),
+            dist1=return_clade.dist,
+            dist2=clade_tuple[1].dist,
+            support1=return_clade.support,
+            support2=clade_tuple[1].support,
             root_dist=root_dist,
+            root_support=root_support,
         )
     # If more then 3 clades were input, iteratively concat
     elif len(clade_tuple) >= 3:
         return_clade = clade_tuple[0].copy("newick")
         for c in clade_tuple[1:-1]:
             return_clade = concat_clade(
-                return_clade, c.copy("newick"), return_clade.dist, c.dist
+                clade1=return_clade,
+                clade2=c.copy("newick"),
+                dist1=return_clade.dist,
+                dist2=c.dist,
+                support1=return_clade.support,
+                support2=c.support,
             )
         return_clade = concat_clade(
-            return_clade,
-            clade_tuple[-1].copy("newick"),
-            return_clade.dist,
-            clade_tuple[-1].dist,
+            clade1=return_clade,
+            clade2=clade_tuple[-1].copy("newick"),
+            dist1=return_clade.dist,
+            dist2=clade_tuple[-1].dist,
+            support1=return_clade.support,
+            support2=clade_tuple[-1].support,
             root_dist=root_dist,
+            root_support=root_support,
         )
     else:
         raise Exception
@@ -680,7 +693,7 @@ class Tree_information:
             else:
                 self.collapse_dict[taxon].append(collapse_info)
 
-        # start of tree_search
+        ## start of tree_search
         # at the last leaf
         if len(clade.children) == 1:
             local_generate_collapse_information(clade, opt=opt)
@@ -840,12 +853,14 @@ class Tree_information:
 
             ## Start of function solve flat
             root_dist = clade.dist
+            root_support = clade.support
             clade_list = seperate_clade(clade, gene, [])
             cnt = 0
 
             # count option.zero clades
             # result is from seperate_clade function
             # each of the result has list of (taxon, clade, dist, support)
+
             for result in clade_list:
                 if result[2] <= self.zero:
                     cnt += 1
@@ -879,10 +894,26 @@ class Tree_information:
                     r_tuple = tuple(r_list)
 
                     # concatenate within taxon clades
-                    concatenated_clade = concat_all(r_tuple, self.zero)
+                    concatenated_clade = concat_all(
+                        clade_tuple=r_tuple, root_dist=self.zero, root_support=0
+                    )
                     final_clade.append(concatenated_clade)
 
-                final = concat_all(tuple(final_clade), root_dist)
+                final = concat_all(
+                    clade_tuple=tuple(final_clade),
+                    root_dist=root_dist,
+                    root_support=root_support,
+                )
+
+                # For bootstrap debugging for 0.3.18.6 version
+                """
+                if str(clade.write(format=2)) != str(final.write(format=2)):
+                    print(f"Before solve flat:")
+                    print(clade.write(format=2))
+
+                    print(f"After solve flat: ")
+                    print(final.write(format=2))
+                """
 
                 return final.copy("newick")
             ## end of solve flat
@@ -904,13 +935,14 @@ class Tree_information:
                 r_clade2 = self.reconstruct(clade2, gene, opt)
 
             concatanated_clade = concat_clade(
-                r_clade1,
-                r_clade2,
+                clade1=r_clade1,
+                clade2=r_clade2,
                 dist1=clade1.dist,
                 dist2=clade2.dist,
                 support1=clade1.support,
                 support2=clade2.support,
                 root_dist=clade.dist,
+                root_support=clade.support,
             ).copy("newick")
             return concatanated_clade
 
