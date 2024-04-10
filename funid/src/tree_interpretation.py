@@ -1084,9 +1084,9 @@ class Tree_information:
     ### edit svg image from initial output from ete3
     def polish_image(self, out, taxon_string_list, genus_list):
         # make it to tmp svg file and parse
-        from funid.src.patch import patch
+        # from funid.src.patch import patch
 
-        patch()
+        # patch()
         self.t.render(f"{out}", tree_style=self.Tree_style.ts)
         tree_xml = ET.parse(f"{out}")
 

@@ -33,7 +33,7 @@ def main():
     import PyQt5
 
     # Patch library errors, currently for ete3
-    patch.patch()
+    # patch.patch()
 
     # For starting time stamp
     time_start = time()
