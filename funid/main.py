@@ -260,6 +260,8 @@ def main():
 
         time_visualize = time()
 
+        raise Exception
+
     # Report
     if opt.continue_from_previous is False or index_step(opt.step) <= 9:
         step = "report"

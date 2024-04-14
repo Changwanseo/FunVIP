@@ -756,8 +756,13 @@ class Tree_information:
             # Get taxon of the given clade
             # c for clade (to remove redundancy to other variable: clade)
             def get_taxon(c, gene, mode="db"):
+                # t for taxon
                 def t(leaf):
                     try:
+                        print(f"DEBUG {self.funinfo_dict[leaf.name].genus}")
+                        print(
+                            f"DEBUG {self.funinfo_dict[leaf.name].bygene_species[gene]}"
+                        )
                         return (
                             self.funinfo_dict[leaf.name].genus,
                             self.funinfo_dict[leaf.name].bygene_species[gene],
@@ -770,28 +775,34 @@ class Tree_information:
 
                 if mode == "db":
                     for leaf in c:
-                        if not (t(leaf) in taxon_dict):
-                            taxon_dict[t(leaf)] = 1
-                        else:
+                        if t(leaf) in taxon_dict:
                             taxon_dict[t(leaf)] += 1
+                        else:
+                            taxon_dict[t(leaf)] = 1
 
                     if len(taxon_dict) == 0:
-                        print(f"{taxon_dict}\n {c}")
+                        print(
+                            f"[DEVELOPMENTAL ERROR] Error in tree_interpretation.py line 780 {taxon_dict}\n {c}"
+                        )
                         raise Exception
                     elif len(taxon_dict) == 1:
+                        # If only one taxon here, return the taxon
                         return list(taxon_dict.keys())[0]
                     else:
+                        # Else, return False
                         return False
 
                 elif mode == "query":
                     for leaf in c:
-                        if not (t in taxon_dict):
-                            taxon_dict[t(leaf)] = 1
-                        else:
+                        if t in taxon_dict:
                             taxon_dict[t(leaf)] += 1
+                        else:
+                            taxon_dict[t(leaf)] = 1
 
                     if len(taxon_dict) == 0:
-                        print(f"{taxon_dict}\n {c}")
+                        print(
+                            f"[DEVELOPMENTAL ERROR] Error in tree_interpretation.py line 795 {taxon_dict}\n {c}"
+                        )
                         raise Exception
                     elif len(taxon_dict) == 1:
                         return list(taxon_dict.keys())[0]
@@ -803,13 +814,24 @@ class Tree_information:
                                 maximum, max_taxon = taxon_dict[taxon], taxon
                         return max_taxon
 
+                # If db and query mixed in the clade
                 elif mode == "both":
                     for leaf in c:
-                        if (
-                            self.decide_type(leaf.name, priority="query") == "db"
-                            or self.decide_type(leaf.name, priority="query")
-                            == "outgroup"
+                        condition = False
+                        # parse condition
+                        if self.decide_type(leaf.name, priority="query") == "db":
+                            condition = True
+                        elif (
+                            self.decide_type(leaf.name, priority="query") == "outgroup"
                         ):
+                            condition = True
+                        elif (
+                            opt.mode == "identification"
+                            and self.decide_type(leaf.name, priority="query") == "query"
+                        ):
+                            condition = True
+
+                        if condition is True:
                             if not (t in taxon_dict):
                                 taxon_dict[t(leaf)] = 1
                             else:
@@ -830,14 +852,17 @@ class Tree_information:
                         if len(c_tmp) == 1:
                             clade_list.append(
                                 (
-                                    get_taxon(c_tmp, gene, mode=consist(c_tmp)),
+                                    get_taxon(c=c_tmp, gene=gene, mode=consist(c_tmp)),
                                     c_tmp,
                                     c_tmp.dist,
                                     c_tmp.support,
                                 )
                             )
                         else:
-                            clade_list = seperate_clade(c_tmp, gene, clade_list)
+                            clade_list = seperate_clade(
+                                clade=c_tmp, gene=gene, clade_list=clade_list
+                            )
+
                     else:
                         c2 = self.reconstruct(c_tmp, gene, opt)
                         clade_list.append(
@@ -851,11 +876,18 @@ class Tree_information:
 
                 return clade_list
 
-            ## Start of function solve flat
+            ## Start of function solve_flat
             root_dist = clade.dist
             root_support = clade.support
+
+            # Divide clade by each taxon
             clade_list = seperate_clade(clade, gene, [])
             cnt = 0
+
+            # Debug seperated clade
+            for result in clade_list:
+                print(f"clade_list: {result[0]}", end=" ")
+                print("\n")
 
             # count option.zero clades
             # result is from seperate_clade function
@@ -899,26 +931,21 @@ class Tree_information:
                     )
                     final_clade.append(concatenated_clade)
 
+                """
+                for c_debug in final_clade:
+                    print(c_debug)
+                    """
+
                 final = concat_all(
                     clade_tuple=tuple(final_clade),
                     root_dist=root_dist,
                     root_support=root_support,
                 )
 
-                # For bootstrap debugging for 0.3.18.6 version
-                """
-                if str(clade.write(format=2)) != str(final.write(format=2)):
-                    print(f"Before solve flat:")
-                    print(clade.write(format=2))
-
-                    print(f"After solve flat: ")
-                    print(final.write(format=2))
-                """
-
                 return final.copy("newick")
             ## end of solve flat
 
-        ## Start of reconstruct
+        ## Start of function reconstruct
         if len(clade.children) in (0, 1):
             return clade.copy("newick")
 
