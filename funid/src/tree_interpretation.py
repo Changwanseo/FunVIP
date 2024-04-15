@@ -125,7 +125,9 @@ def concat_all(clade_tuple, root_dist, root_support=0):
             root_dist=root_dist,
             root_support=root_support,
         )
-    # If more then 3 clades were input, iteratively concat
+    # If more than 3 clades were input, iteratively concat
+    # If more than 2 species exists, and sp included, which taxon sp should be included cannot be decided
+    # In that case, move sp clade to last
     elif len(clade_tuple) >= 3:
         return_clade = clade_tuple[0].copy("newick")
         for c in clade_tuple[1:-1]:
@@ -756,13 +758,9 @@ class Tree_information:
             # Get taxon of the given clade
             # c for clade (to remove redundancy to other variable: clade)
             def get_taxon(c, gene, mode="db"):
-                # t for taxon
+                # t for taxon : get taxon of the leaf
                 def t(leaf):
                     try:
-                        print(f"DEBUG {self.funinfo_dict[leaf.name].genus}")
-                        print(
-                            f"DEBUG {self.funinfo_dict[leaf.name].bygene_species[gene]}"
-                        )
                         return (
                             self.funinfo_dict[leaf.name].genus,
                             self.funinfo_dict[leaf.name].bygene_species[gene],
@@ -773,6 +771,7 @@ class Tree_information:
 
                 taxon_dict = {}
 
+                # If only db in the clade
                 if mode == "db":
                     for leaf in c:
                         if t(leaf) in taxon_dict:
@@ -782,9 +781,10 @@ class Tree_information:
 
                     if len(taxon_dict) == 0:
                         print(
-                            f"[DEVELOPMENTAL ERROR] Error in tree_interpretation.py line 780 {taxon_dict}\n {c}"
+                            f"[DEVELOPMENTAL ERROR] ERROR in tree_interpretation.py line 780 {taxon_dict}\n {c}"
                         )
                         raise Exception
+                    # If only one species in the clade
                     elif len(taxon_dict) == 1:
                         # If only one taxon here, return the taxon
                         return list(taxon_dict.keys())[0]
@@ -792,6 +792,7 @@ class Tree_information:
                         # Else, return False
                         return False
 
+                # If only query in the clade
                 elif mode == "query":
                     for leaf in c:
                         if t in taxon_dict:
@@ -848,8 +849,13 @@ class Tree_information:
             def seperate_clade(clade, gene, clade_list):
                 for c in clade.children:
                     c_tmp = c.copy()
+                    # zero clades
                     if c_tmp.dist <= self.zero:
-                        if len(c_tmp) == 1:
+                        # Original version was == instead of >= . Revert if error occurs
+                        # What does the "len" means here? -> len means number of tips
+                        # If only one tip
+                        if len(c_tmp) <= 1:
+                            # In the zero branch tip, the query with zero length should move to sp., because they cannot be fully determined
                             clade_list.append(
                                 (
                                     get_taxon(c=c_tmp, gene=gene, mode=consist(c_tmp)),
@@ -858,11 +864,14 @@ class Tree_information:
                                     c_tmp.support,
                                 )
                             )
+                        # If more than one tip
+                        # I'm not sure if any of the recursion enters here, but just in case
                         else:
                             clade_list = seperate_clade(
                                 clade=c_tmp, gene=gene, clade_list=clade_list
                             )
 
+                    # non-zero clades
                     else:
                         c2 = self.reconstruct(c_tmp, gene, opt)
                         clade_list.append(
@@ -880,19 +889,17 @@ class Tree_information:
             root_dist = clade.dist
             root_support = clade.support
 
-            # Divide clade by each taxon
-            clade_list = seperate_clade(clade, gene, [])
-            cnt = 0
+            # Divide clade, all in the same level (flat branch)
 
-            # Debug seperated clade
-            for result in clade_list:
-                print(f"clade_list: {result[0]}", end=" ")
-                print("\n")
+            clade_list = seperate_clade(clade, gene, [])
+
+            cnt = 0
 
             # count option.zero clades
             # result is from seperate_clade function
             # each of the result has list of (taxon, clade, dist, support)
 
+            # count number of zero clades
             for result in clade_list:
                 if result[2] <= self.zero:
                     cnt += 1
@@ -903,11 +910,13 @@ class Tree_information:
 
             else:
                 # seperating db taxon and query taxon needed
+                # clade_dict format: taxon : clade
                 clade_dict = {}
                 final_clade = []
 
                 for result in clade_list:
                     # if clade does not have taxonomical information
+                    # if final clade is mixed?
                     if result[0] is False:
                         final_clade.append(result[1])
 
@@ -919,9 +928,24 @@ class Tree_information:
                         else:
                             clade_dict[result[0]].append(result)
 
-                for taxon in clade_dict:
-                    l = clade_dict[taxon]
-                    r_list = [r[1] for r in l]
+                # If sp. in the final_clade, move it to last
+                candidate_zero_len_taxa = set(clade_dict.keys())
+                if ("", "") in candidate_zero_len_taxa:
+                    if len(candidate_zero_len_taxa - set({("", "")})) == 1:
+                        # Move ("", "") (unknown species) to front to be combined to known species
+                        taxon_to_merge = sorted(list(clade_dict.keys()), reverse=False)
+                    else:
+                        # If ("", "") (unknown species) matches to multiple species, move to back to not be combined with any of the species
+                        taxon_to_merge = sorted(list(clade_dict.keys()), reverse=True)
+                else:
+                    # In other case the order is not important, sort them in any way
+                    taxon_to_merge = sorted(list(clade_dict.keys()), reverse=False)
+
+                # seperate this that order should not be affected by non-zero branch
+                tmp_final_clade = []
+                for taxon in taxon_to_merge:
+                    l = clade_dict[taxon]  # l for list of results
+                    r_list = [r[1] for r in l]  # result clade list
                     r_list.sort(key=lambda r: r.dist, reverse=True)
                     r_tuple = tuple(r_list)
 
@@ -929,12 +953,9 @@ class Tree_information:
                     concatenated_clade = concat_all(
                         clade_tuple=r_tuple, root_dist=self.zero, root_support=0
                     )
-                    final_clade.append(concatenated_clade)
+                    tmp_final_clade.append(concatenated_clade)
 
-                """
-                for c_debug in final_clade:
-                    print(c_debug)
-                    """
+                final_clade = tmp_final_clade + final_clade
 
                 final = concat_all(
                     clade_tuple=tuple(final_clade),
@@ -953,6 +974,7 @@ class Tree_information:
             clade1 = clade.children[0]
             clade2 = clade.children[1]
 
+            # Solve flat
             if clade.dist <= self.zero:
                 return solve_flat(clade).copy("newick")
             elif clade1.dist <= self.zero or clade2.dist <= self.zero:
