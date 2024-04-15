@@ -928,8 +928,14 @@ class Tree_information:
                         else:
                             clade_dict[result[0]].append(result)
 
-                # If sp. in the final_clade, move it to last
                 candidate_zero_len_taxa = set(clade_dict.keys())
+
+                # DEBUGGING branch length
+                print("-----------------------------------------")
+                for c_debug in clade_dict:
+                    for each_result in clade_dict[c_debug]:
+                        print(f"{c_debug} {each_result[1].dist} {each_result[1]}")
+
                 if ("", "") in candidate_zero_len_taxa:
                     if len(candidate_zero_len_taxa - set({("", "")})) == 1:
                         # Move ("", "") (unknown species) to front to be combined to known species

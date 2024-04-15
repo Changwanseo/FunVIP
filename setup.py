@@ -63,7 +63,8 @@ if platform == "darwin":
     )
 
 else:
-    # Windows: python 3.11, 3.10, 3.9 pass
+    # Windows: python 3.12, 3.11, 3.10, 3.9 pass
+    # Linux: python 3.10 pass
     setup_options = dict(
         name=name,
         version=__version__,

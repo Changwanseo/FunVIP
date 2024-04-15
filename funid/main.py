@@ -251,6 +251,8 @@ def main():
         # Running visualization
         V, path, opt = tree_interpretation_pipe.pipe_tree_interpretation(V, path, opt)
 
+        # raise Exception
+
         # move tree image files
         tool.cleanup_tree(path)
         tool.cleanup_tree_image(path)
