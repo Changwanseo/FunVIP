@@ -256,7 +256,7 @@ class Report:
                 pass
 
         ## update query only result
-        print(self.result)
+        # print(self.result)
         for key in self.result:
             print(f"{key} : {len(self.result[key])}")
         self.query_result = pd.DataFrame(self.result)
