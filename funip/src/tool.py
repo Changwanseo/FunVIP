@@ -291,7 +291,7 @@ def index_step(step):
 
 
 def check_avx():
-    return platform.machine() == "x86_64"
+    return platform.machine() == "x86_64" or platform.machine() == "AMD64"
 
 
 # Return logging
