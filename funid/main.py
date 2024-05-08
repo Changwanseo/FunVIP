@@ -33,7 +33,7 @@ def main():
     import PyQt5
 
     # Patch library errors, currently for ete3
-    patch.patch()
+    # patch.patch()
 
     # For starting time stamp
     time_start = time()
@@ -250,6 +250,8 @@ def main():
         # The genus duplication occurs here
         # Running visualization
         V, path, opt = tree_interpretation_pipe.pipe_tree_interpretation(V, path, opt)
+
+        # raise Exception
 
         # move tree image files
         tool.cleanup_tree(path)

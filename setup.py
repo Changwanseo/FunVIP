@@ -4,8 +4,8 @@ from sys import platform
 import subprocess
 
 name = "FunID"
-__version__ = "0.3.18.5"
-release = "0.3.18.5"
+__version__ = "0.3.18.6.2"
+release = "0.3.18.6.2"
 
 
 ## Default setup options
@@ -18,7 +18,7 @@ if platform == "darwin":
         author="Changwan Seo",
         author_email="wan101010@snu.ac.kr",
         url="https://github.com/Changwanseo/FunID",
-        python_requires="<3.11, >3.8",
+        python_requires="<3.13, >3.8",
         packages=[
             "funid",
             "funid.src",
@@ -28,13 +28,13 @@ if platform == "darwin":
         ],
         install_requires=[
             "biopython==1.78",
-            "ete3==3.1.2",
+            "ete3==3.1.3",
             "Cython",
             "dendropy",
             "GenMine>=1.0.11",
             "lxml",
-            "matplotlib==3.5.1",
-            "numpy==1.22.3",
+            "matplotlib",
+            "numpy",
             "openpyxl==3.0.9",
             "pandas==1.4.2",
             "plotly==5.9.0",
@@ -42,7 +42,7 @@ if platform == "darwin":
             "PyQt5>=5.9.2",
             "pyyaml",
             "sip>=4.19.4",
-            "scikit-learn==1.0.2",
+            "scikit-learn",
             "scipy",
             "tabulate",
             "unidecode==1.2.0",
@@ -61,7 +61,10 @@ if platform == "darwin":
         include_package_data=True,
         license="GPL3",
     )
+
 else:
+    # Windows: python 3.12, 3.11, 3.10, 3.9 pass
+    # Linux: python 3.10 pass
     setup_options = dict(
         name=name,
         version=__version__,
@@ -69,7 +72,7 @@ else:
         author="Changwan Seo",
         author_email="wan101010@snu.ac.kr",
         url="https://github.com/Changwanseo/FunID",
-        python_requires="<3.11, >3.8",
+        python_requires="<3.13, >3.8",
         packages=[
             "funid",
             "funid.src",
@@ -79,13 +82,13 @@ else:
         ],
         install_requires=[
             "biopython==1.78",
-            "ete3==3.1.2",
+            "ete3==3.1.3",
             "Cython",
             "dendropy",
             "GenMine>=1.0.10",
             "lxml",
-            "matplotlib==3.5.1",
-            "numpy==1.22.3",
+            "matplotlib",
+            "numpy",
             "openpyxl==3.0.9",
             "pandas==1.4.2",
             "plotly==5.9.0",
@@ -93,7 +96,7 @@ else:
             "PyQt5",
             "pyyaml",
             "sip>=4.19.4",
-            "scikit-learn==1.0.2",
+            "scikit-learn",
             "scipy",
             "tabulate",
             "unidecode==1.2.0",

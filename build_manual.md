@@ -27,7 +27,7 @@ conda install --yes conda-build conda-verify anaconda-client git urllib3=1.26.15
 grayskull pypi FunID // Check if version is as you expected during this step
 anaconda login
 conda config --set anaconda_upload no
-conda config --add channels cwseo
+conda config --add channels funid
 conda-build ./funid -c conda-forge // copy tar.bz2 location when this one ends
 conda install anaconda-project --yes
 anaconda upload {Build file location} // tar.bz2 in conda-build log

@@ -9,7 +9,7 @@ from funid.src.tool import index_step
 from funid.src.save import save_df
 
 # For version reporting
-__version__ = "0.3.18.5"
+__version__ = "0.3.18.6"
 
 
 ### Temporary report for tree_interpretation_pipe
@@ -256,7 +256,7 @@ class Report:
                 pass
 
         ## update query only result
-        print(self.result)
+        # print(self.result)
         for key in self.result:
             print(f"{key} : {len(self.result[key])}")
         self.query_result = pd.DataFrame(self.result)
