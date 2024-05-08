@@ -13,6 +13,12 @@ def pipe_tree(V, path, opt, model_dict):
 
     # remove tree files already exists to prevent error
     try:
+        for file in [f for f in os.listdir(path.tmp) if f.endswith(".nwk")]:
+            os.remove(f"{path.tmp}/{file}")
+    except:
+        pass
+
+    try:
         for file in [f for f in os.listdir(path.out_tree) if f.endswith(".nwk")]:
             os.remove(f"{path.out_tree}/{file}")
     except:

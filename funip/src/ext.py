@@ -96,7 +96,7 @@ def makeblastdb(fasta, db, path):
         return_code = subprocess.call(CMD, shell=True)
 
         if return_code != 0:
-            logging.error(f"[ERROR] Make blast_db failed!!")
+            logging.error(f"Make blast_db failed!!")
             install_flag = 1
 
         # Change db names
@@ -337,7 +337,7 @@ def RAxML(
     Run = subprocess.call(CMD, shell=True)
 
     if Run != 0:
-        logging.error(f"[ERROR] RAxML Failed!")
+        logging.error(f"RAxML Failed!")
         raise Exception
 
     # Return result to original directory
