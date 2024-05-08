@@ -647,7 +647,12 @@ class Option:
                 list_error.append(f"Type for email should be string")
             email_pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
             if not (re.match(email_pattern, self.email)):
-                list_error.append(f"Email {self.email} is not a valid email")
+                if self.email == "":
+                    list_warning.append(
+                        f"Email not provided. If your database includes GenBank accession, please provide email"
+                    )
+                else:
+                    list_error.append(f"Email {self.email} is not a valid email")
 
         # api
         # Check if api number is in valid format

@@ -446,7 +446,11 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
 
             # if NCBI accessions detected in sequence part, download it
             if len(download_set) > 0:
-                print(f"{path.GenMine}")
+                if opt.email == "":
+                    logging.error(
+                        "Your database includes GenBank accession but email not provided. --email is required to connect to GenBank"
+                    )
+                    raise Exception
 
                 logging.info(
                     f"Running GenMine to download {len(download_set)} sequences from GenBank"

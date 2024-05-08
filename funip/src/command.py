@@ -15,20 +15,24 @@ class CommandParser:
             title="required", description="Main options"
         )
         group_required.add_argument(
-            "--query", "-q", nargs="*", help="Query fasta or table files", type=str
+            "--query",
+            "-q",
+            nargs="*",
+            help="Query fasta or table files, delimitated by space",
+            type=str,
         )
         group_required.add_argument(
             "--db",
             "-d",
             nargs="+",
-            help="Database table files",
+            help="Database table files, delimitated by space",
             type=str,
         )
         group_required.add_argument(
             "--gene", "-g", nargs="*", help="Gene names to be analyzed", type=str
         )
 
-        # Mandatory options - ncbi notations
+        # Mandatory when NCBI download - raise Exception when manage input
         group_ncbi = self.parser.add_mutually_exclusive_group(required=False)
         group_ncbi.add_argument(
             "--email",
