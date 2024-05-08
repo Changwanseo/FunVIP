@@ -336,6 +336,10 @@ def RAxML(
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
 
+    if Run != 0:
+        logging.error(f"[ERROR] RAxML Failed!")
+        raise Exception
+
     # Return result to original directory
     os.chdir(path_ori)
     file = out.split("/")[-1]
