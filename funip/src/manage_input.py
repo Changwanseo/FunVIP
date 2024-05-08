@@ -106,7 +106,8 @@ class Funinfo:
             genus = ""
 
         # Genus with space causes error while mafft
-        genus = genus.strip().replace(" ", "_")
+        # Genus with slash causes error while tree construction
+        genus = genus.strip().replace(" ", "_").replace("/", "_")
         genus = manage_unicode(genus, column="Genus")
 
         # Check ambiguity
@@ -130,7 +131,10 @@ class Funinfo:
         # Try to solve illegal unicode characters
         if pd.isnull(species):
             species = ""
-        species = species.strip()
+
+        # Genus with space causes error while mafft
+        # Genus with slash causes error while tree construction
+        species = species.strip().replace(" ", "_").replace("/", "_")
         species = manage_unicode(species, column="Species")
 
         # Check ambiguity
@@ -542,6 +546,12 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
         df["id"] = df["id"].apply(
             lambda x: manage_unicode(str(x), column="ID/Accession")
         )
+
+        # To prevent errors on genus / spcies column
+        df["genus"] = df["genus"].apply(lambda x: x.replace(" ", "_"))
+        df["species"] = df["species"].apply(lambda x: x.replace(" ", "_"))
+        df["genus"] = df["genus"].apply(lambda x: x.replace("/", "_"))
+        df["species"] = df["species"].apply(lambda x: x.replace("/", "_"))
 
         # Empty id check
         empty_error = []
