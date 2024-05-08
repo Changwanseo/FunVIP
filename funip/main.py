@@ -90,6 +90,10 @@ def main():
         if "model_dict" in var:
             model_dict = var["model_dict"]
 
+    # To deal with location changes when rerun
+    path_root = f"{os.getcwd()}/{opt.runname}"
+    path.init_workspace(path_root, opt)
+
     ##########################################################################
     #     End of initializing blocks should not be moved for function!!!     #
     ##########################################################################

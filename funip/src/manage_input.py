@@ -254,9 +254,10 @@ def input_fasta(path, opt, fasta_list, funinfo_dict, datatype):
         logging.info(f"{file}: Fasta file")
 
         error_flag = 0
+
         try:
-            fasta_list = list(SeqIO.parse(file, "fasta"))
-            for seq in fasta_list:
+            seq_list = list(SeqIO.parse(file, "fasta"))
+            for seq in seq_list:
                 if not opt.regex == None:
                     id_ = get_id(seq.description, tuple(opt.regex))
                 else:
@@ -302,6 +303,10 @@ def input_fasta(path, opt, fasta_list, funinfo_dict, datatype):
 
         except:
             logging.warning(f"{file} does not seems to be valid fasta file skipping")
+
+        if len(seq_list) == 0:
+            logging.error(f"Fasta file {file} seems to be empty please check")
+            raise Exception
 
         if error_flag < 0:
             raise Exception

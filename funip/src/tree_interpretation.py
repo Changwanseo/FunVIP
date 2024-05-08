@@ -397,7 +397,7 @@ class Tree_information:
         # from funip.src.patch import patch
 
         # To prevent ete3 bug for all processors
-        # patch()
+        # lk patch()
         self.t.render(f"{out}", tree_style=self.Tree_style.ts)
         self.Tree_style.ts.show_leaf_name = False
 

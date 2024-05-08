@@ -37,27 +37,29 @@ def manage_unicode(string, column="", row=""):
         string.encode("ascii")
         return string
     except:
-        if row != "":
-            row_string = f"{row}th row "
-        else:
-            row_string = ""
+        pass
 
-        if column != "":
-            column_string = f"in {column} column, "
-        else:
-            column_string = ""
+    if row != "":
+        row_string = f"{row}th row "
+    else:
+        row_string = ""
 
-        logging.info(
-            f"Illegal unicode character found {column_string}{row_string}: {string}. Trying flexible solve"
+    if column != "":
+        column_string = f"in {column} column, "
+    else:
+        column_string = ""
+
+    logging.info(
+        f"Illegal unicode character found {column_string}{row_string}: {string}. Trying flexible solve"
+    )
+
+    try:
+        return unidecode(string)
+    except:
+        logging.error(
+            f"Flexible solve failed to {string}. Please change the cell with available ascii strings"
         )
-
-        try:
-            return unidecode(string)
-        except:
-            logging.error(
-                f"Flexible solve failed to {string}. Please change the cell with available ascii strings"
-            )
-            raise Exception
+        raise Exception
 
 
 @lru_cache(maxsize=10000)
