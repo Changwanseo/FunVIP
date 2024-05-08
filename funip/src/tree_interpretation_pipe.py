@@ -1,9 +1,9 @@
 # Performing multiple tree interpretation
 from ete3 import Tree
-from funid.src import tree_interpretation
-from funid.src.tool import initialize_path, get_genus_species
-from funid.src.hasher import encode, decode
-from funid.src.reporter import Singlereport
+from funip.src import tree_interpretation
+from funip.src.tool import initialize_path, get_genus_species
+from funip.src.hasher import encode, decode
+from funip.src.reporter import Singlereport
 from copy import deepcopy
 import pandas as pd
 import re

@@ -9,14 +9,14 @@ import numpy as np
 import re
 
 from Bio import SeqIO
-from funid.src.logics import isnan
-from funid.src.tool import (
+from funip.src.logics import isnan
+from funip.src.tool import (
     initialize_path,
     get_genus_species,
     mkdir,
 )
-from funid.src.logger import Mes
-from funid.src.validate_option import initialize_option
+from funip.src.logger import Mes
+from funip.src.validate_option import initialize_option
 
 INF = 99999999
 
@@ -134,7 +134,7 @@ def check(
     return obj
 
 
-# Change it to FunIDPath
+# Change it to FunIPPath
 # Class with all path
 # Use print instead of logging here, because logging has not been defined here
 class Path:

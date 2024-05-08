@@ -1,5 +1,5 @@
-from funid.src import ext, hasher
-from funid.src.opt_generator import opt_generator
+from funip.src import ext, hasher
+from funip.src.opt_generator import opt_generator
 from copy import deepcopy
 import multiprocessing as mp
 import logging

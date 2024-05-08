@@ -5,11 +5,11 @@ import io
 import logging
 import plotly.express as px
 from tabulate import tabulate
-from funid.src.tool import index_step
-from funid.src.save import save_df
+from funip.src.tool import index_step
+from funip.src.save import save_df
 
 # For version reporting
-__version__ = "0.3.18.6"
+__version__ = "0.3.19.0"
 
 
 ### Temporary report for tree_interpretation_pipe
@@ -355,7 +355,7 @@ class Report:
         # Rewrite everytime when called, the io step won't be that much
         with open(f"{path.root}/{opt.runname}.report.txt", "wt", encoding="UTF8") as f:
             if index_step(step) >= 0:
-                f.write("FunID Report\n\n")
+                f.write("FunIP Report\n\n")
                 ## Write runinfo
                 f.write("[INFO]\n")
                 # Runname
@@ -510,10 +510,10 @@ class Report:
                 )
                 f.write("DATATYPE : query or database\n")
                 f.write("GROUP_ORIGINAL : group name given by user\n")
-                f.write("GROUP_ASSIGNED : group assigned by FunID clustering\n")
+                f.write("GROUP_ASSIGNED : group assigned by FunIP clustering\n")
                 f.write("SPECIES_ORIGINAL : species name given by user\n")
                 f.write(
-                    "SPECIES_ASSIGNED : final species name (usually result from concatenated analysis) assigned by FunID tree_interpretation\n"
+                    "SPECIES_ASSIGNED : final species name (usually result from concatenated analysis) assigned by FunIP tree_interpretation\n"
                 )
                 f.write(
                     "FLAT_BRANCH : Strains with flat_branch in phylogenetic analysis. If checked, please check your barcode region have enough taxonomic resolution\n"
@@ -531,7 +531,7 @@ class Report:
             # Can be written after clustering step
             if index_step(step) >= 1:
                 f.write(f"[METHOD]\n")
-                f.write(f"Sequences were identified with FunID {__version__}\n")
+                f.write(f"Sequences were identified with FunIP {__version__}\n")
                 f.write("\n")
 
                 cnt_db = len([FI for FI in V.list_FI if FI.datatype == "db"])
@@ -558,7 +558,7 @@ class Report:
                 f.write(
                     "* Most of the warnings in this step are usually typo problems "
                     "(blanks, tabs, foreign languages that cannot be used in certain programs - like german umlauts) "
-                    "and can be automatically fixed by FunID. So you don't have to consider about it that much if you are not going to directly publish.\n"
+                    "and can be automatically fixed by FunIP. So you don't have to consider about it that much if you are not going to directly publish.\n"
                 )
                 f.write("\n")
 
@@ -685,7 +685,7 @@ class Report:
 
                 """
                 f.write(
-                    f"As a result of FunID analysis, a total of {cnt_query} strains were identified"
+                    f"As a result of FunIP analysis, a total of {cnt_query} strains were identified"
                     f"{cnt_query} sequences constists of"
                     f"{cnt_consistent} well identified strains,"
                     f"{cnt_ambiguous} strains that showed different results by genes,"
@@ -706,7 +706,7 @@ class Report:
             f.write("\n")
 
             # Generate software list by options
-            software_list = ["FunID"]
+            software_list = ["FunIP"]
             if index_step(step) >= 1:
                 if opt.method.search == "blast":
                     software_list.append("BLASTn")
@@ -739,7 +739,7 @@ class Report:
 
             # append software list by step
             dict_version = {
-                "FunID": f"{__version__}",
+                "FunIP": f"{__version__}",
                 "BLASTn": "2.13.0",
                 "MMseqs2": "14.7e284",
                 "MAFFT": "7.453",
@@ -763,7 +763,7 @@ class Report:
             ### Write citations
             f.write(f"[CITATION]\n")
             dict_citation = {
-                "FunID": "https://github.com/Changwanseo/FunID",
+                "FunIP": "https://github.com/Changwanseo/FunIP",
                 "BLASTn": "Altschul, S. F., Gish, W., Miller, W., Myers, E. W., & Lipman, D. J. (1990). Basic local alignment search tool. Journal of molecular biology, 215(3), 403-410.",
                 "MMseqs2": "Steinegger, M., & Söding, J. (2017). MMseqs2 enables sensitive protein sequence searching for the analysis of massive data sets. Nature biotechnology, 35(11), 1026-1028.",
                 "MAFFT": "Katoh, K., & Standley, D. M. (2013). MAFFT multiple sequence alignment software version 7: improvements in performance and usability. Molecular biology and evolution, 30(4), 772-780.",

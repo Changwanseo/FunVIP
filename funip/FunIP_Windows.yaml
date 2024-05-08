@@ -1,4 +1,4 @@
-name: FunID_Windows
+name: FunIP_Windows
 channels:
   - plotly
   - etetoolkit

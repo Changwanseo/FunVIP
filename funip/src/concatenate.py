@@ -6,7 +6,7 @@ import logging
 from functools import reduce
 import pandas as pd
 from copy import deepcopy
-from funid.src import search, hasher
+from funip.src import search, hasher
 from scipy.optimize import minimize
 import numpy as np
 import shutil

@@ -1,5 +1,5 @@
-from funid.src import save
-from funid.src import hasher
+from funip.src import save
+from funip.src import hasher
 from Bio import SeqIO
 import os
 import sys
@@ -26,12 +26,12 @@ class Dataset:
         self.list_og_FI = list_og
 
     def __repr__(self):
-        return f"<< FunID_Dataset object >> Gene: {self.gene} | Group: {self.group} | Query: {len(self.list_qr_FI)} | DB: {len(self.list_db_FI)} | Outgroup: {len(self.list_og_FI)}\n"
+        return f"<< FunIP_Dataset object >> Gene: {self.gene} | Group: {self.group} | Query: {len(self.list_qr_FI)} | DB: {len(self.list_db_FI)} | Outgroup: {len(self.list_og_FI)}\n"
 
 
-### FunID all dataset variables bundle
+### FunIP all dataset variables bundle
 # Called as "V" in main pipeline
-class FunID_var:
+class FunIP_var:
     def __init__(self):
         # dataset class to manage datasets used for run
         # FI : funinfo
@@ -98,7 +98,7 @@ class FunID_var:
         out_dict = {}
         for key in self.dict_dataset:
             out_dict[key] = len(self.dict_dataset[key])
-        return f"<< FunID_var object >>\nNumber of FI: {len(self.list_FI)}\nDB genes:{self.list_db_gene}\nQuery genes:{self.list_qr_gene}\ngroups:{self.list_group}\nDataset_dict:{json.dumps(out_dict, indent=2)}"
+        return f"<< FunIP_var object >>\nNumber of FI: {len(self.list_FI)}\nDB genes:{self.list_db_gene}\nQuery genes:{self.list_qr_gene}\ngroups:{self.list_group}\nDataset_dict:{json.dumps(out_dict, indent=2)}"
 
     def add_dataset(self, group, gene, list_qr, list_db, list_og):
         data = Dataset(group, gene, list_qr, list_db, list_og)

@@ -1,4 +1,4 @@
-from funid.src import ext
+from funip.src import ext
 import os, shutil, copy
 import logging
 

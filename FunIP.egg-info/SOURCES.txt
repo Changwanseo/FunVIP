@@ -8,7 +8,7 @@ FunIP.egg-info/entry_points.txt
 FunIP.egg-info/not-zip-safe
 FunIP.egg-info/requires.txt
 FunIP.egg-info/top_level.txt
-funip/FunID_GUI.py
+funip/FunIP_GUI.py
 funip/__init__.py
 funip/main.py
 funip/data/Option_manager.xlsx

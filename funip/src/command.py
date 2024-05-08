@@ -1,4 +1,4 @@
-# FunID_dev/FunID/src/command.py
+# FunIP_dev/FunIP/src/command.py
 
 import argparse
 
@@ -6,7 +6,7 @@ import argparse
 class CommandParser:
     def __init__(self) -> None:
         self.parser = argparse.ArgumentParser(
-            description="Fungal Identification Pipeline", prog="FunID"
+            description="Fungal Identification Pipeline", prog="FunIP"
         )
 
     def get_args(self) -> argparse.Namespace:
@@ -101,7 +101,7 @@ class CommandParser:
         group_run.add_argument(
             "--all",
             action="store_true",
-            help="Run FunID for all database sequences, regardless of corrresponding sequences exists in query, default : False",
+            help="Run FunIP for all database sequences, regardless of corrresponding sequences exists in query, default : False",
         )
         group_run.add_argument(
             "--confident",
@@ -279,7 +279,7 @@ class CommandParser:
         group_advanced.add_argument(
             "--allow-innertrimming",
             dest="allow_innertrimming",
-            help="Turn off FunID adjustment to not to trim inner alignment columns",
+            help="Turn off FunIP adjustment to not to trim inner alignment columns",
             action="store_true",
         )
         group_advanced.add_argument(

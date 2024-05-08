@@ -1,5 +1,5 @@
-from funid.src import ext
-from funid.src.opt_generator import opt_generator
+from funip.src import ext
+from funip.src.opt_generator import opt_generator
 import logging
 from Bio import SeqIO
 import multiprocessing as mp

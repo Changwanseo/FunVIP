@@ -11,7 +11,7 @@ import platform
 from unidecode import unidecode
 
 
-# Maybe we should move this to /funid/src/toolbox/ and split these to multiple files
+# Maybe we should move this to /funip/src/toolbox/ and split these to multiple files
 def initialize_path(path):
     global genus_file
     genus_file = path.genusdb

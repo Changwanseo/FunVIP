@@ -78,7 +78,6 @@ def set_option(
         )
 
     if not (isnan(value)):
-
         value = value.replace(" ", "").split(",")
         return expander.selectbox(
             label=criterion, index=value.index(obj), options=value, help=help_
@@ -116,7 +115,6 @@ def set_option(
 
 # for designated value
 def set_value(type_, value=np.NaN):
-
     if isnan(value) is True:
         value = ""
 
@@ -155,7 +153,6 @@ if ALLOW_OPTION_SELECT is True:
         st.session_state["option"] = False
 
     with st.sidebar.form(key="Input_option"):
-
         st.header("Option")
 
         option_submit = st.form_submit_button(label="Confirm")
@@ -332,7 +329,6 @@ if db_submit:
 
 # When Query submit
 if query_submit:
-
     # remove previous query files in the location
     # after using session id, we might not need this
 
@@ -425,8 +421,7 @@ if "run" in st.session_state:
         print("Updating run status")
 
         # Running
-        with st.spinner("Running FunID"):
-
+        with st.spinner("Running FunIP"):
             query_string = " ".join(
                 [
                     f"./Query/{get_script_run_ctx().session_id}_{i}.fasta"
@@ -443,7 +438,6 @@ if "run" in st.session_state:
 
 if "run" in st.session_state:
     if st.session_state.run == "finished_run":
-
         # Figure out Runname
         runname = input_option["BASIC"]["RUN_NAME"]
         path_root = f"./Result/{runname}"

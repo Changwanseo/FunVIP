@@ -6,9 +6,9 @@ from io import StringIO
 
 # from .logger import Mes
 
+
 # validate if string is good sequence
 def validate_seq(seqstring):
-
     if seqstring.startswith(">"):
         tmp = StringIO(seqstring)
 

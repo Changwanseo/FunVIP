@@ -1,5 +1,5 @@
-from funid.src import ext
-from funid.src.opt_generator import opt_generator
+from funip.src import ext
+from funip.src.opt_generator import opt_generator
 from Bio import AlignIO
 from Bio import SeqIO
 from time import sleep
@@ -9,7 +9,7 @@ import logging
 import shutil
 
 
-## Trimming function of FunID
+## Trimming function of FunIP
 # As most of the trimming functions affects inside of alignment
 def trimming(alignment, out, path, opt):
     logging.debug("Entered trimming module")
@@ -57,7 +57,7 @@ def trimming(alignment, out, path, opt):
     return trimming_result
 
 
-# Trimming pipeline of FunID
+# Trimming pipeline of FunIP
 def pipe_trimming(V, path, opt):
     trimming_opt = opt_generator(V, opt, path, step="trimming")
     # run multiprocessing start

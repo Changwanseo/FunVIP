@@ -1,4 +1,4 @@
-name: FunID
+name: FunIP
 channels:
   - conda-forge
   - defaults

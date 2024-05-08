@@ -1,25 +1,25 @@
 def main():
-    from funid.src import align
-    from funid.src import tree_interpretation_pipe
-    from funid.src import cluster
-    from funid.src import dataset
-    from funid.src import ext
-    from funid.src import hasher
-    from funid.src import initialize
-    from funid.src import logger
-    from funid.src import manage_input
-    from funid.src import modeltest
-    from funid.src import concatenate
-    from funid.src import patch
-    from funid.src import reporter
-    from funid.src import tool
-    from funid.src import save
-    from funid.src import search
-    from funid.src import tree
-    from funid.src import trim
-    from funid.src.command import CommandParser
-    from funid.src.tool import index_step
-    from funid.src.opt_generator import opt_generator
+    from funip.src import align
+    from funip.src import tree_interpretation_pipe
+    from funip.src import cluster
+    from funip.src import dataset
+    from funip.src import ext
+    from funip.src import hasher
+    from funip.src import initialize
+    from funip.src import logger
+    from funip.src import manage_input
+    from funip.src import modeltest
+    from funip.src import concatenate
+    from funip.src import patch
+    from funip.src import reporter
+    from funip.src import tool
+    from funip.src import save
+    from funip.src import search
+    from funip.src import tree
+    from funip.src import trim
+    from funip.src.command import CommandParser
+    from funip.src.tool import index_step
+    from funip.src.opt_generator import opt_generator
     from time import time
     import pandas as pd
     import multiprocessing as mp
@@ -73,8 +73,8 @@ def main():
     for error in list_error:
         logging.error(error)
 
-    # V contains all intermediate variables for FunID Run
-    V = dataset.FunID_var()
+    # V contains all intermediate variables for FunIP Run
+    V = dataset.FunIP_var()
     # R includes all reporting objects such as warnings, errors, statistics
     R = reporter.Report()
 
@@ -274,7 +274,7 @@ def main():
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_end = time()
-        logging.info(f"FunID ended in {time_end - time_start}")
+        logging.info(f"FunIP ended in {time_end - time_start}")
 
         try:
             logging.info(f"Time setup : {time_setup-time_start}s")

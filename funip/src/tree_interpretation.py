@@ -14,7 +14,7 @@ from time import sleep
 import lxml.etree as ET
 import pandas as pd
 from functools import lru_cache
-from funid.src.tool import get_id, get_genus_species
+from funip.src.tool import get_id, get_genus_species
 import dendropy
 import collections
 import os
@@ -393,10 +393,11 @@ class Tree_information:
         for node in self.t.traverse():
             node.img_style["size"] = 0  # removing circles whien size is 0
 
-        from funid.src.patch import patch
+        # We don't need this any more after updating ete3 into 3.13
+        # from funip.src.patch import patch
 
         # To prevent ete3 bug for all processors
-        patch()
+        # patch()
         self.t.render(f"{out}", tree_style=self.Tree_style.ts)
         self.Tree_style.ts.show_leaf_name = False
 
@@ -1133,7 +1134,7 @@ class Tree_information:
     ### edit svg image from initial output from ete3
     def polish_image(self, out, taxon_string_list, genus_list):
         # make it to tmp svg file and parse
-        # from funid.src.patch import patch
+        # from funip.src.patch import patch
 
         # patch()
         self.t.render(f"{out}", tree_style=self.Tree_style.ts)

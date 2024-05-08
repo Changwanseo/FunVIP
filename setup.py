@@ -1,11 +1,11 @@
-# FunID/setup.py
+# FunIP/setup.py
 from setuptools import setup, find_packages
 from sys import platform
 import subprocess
 
 name = "FunIP"
-__version__ = "0.3.18.6.2"
-release = "0.3.18.6.2"
+__version__ = "0.3.19.0.0.1"
+release = "0.3.19.0.0.1"
 
 
 ## Default setup options
@@ -17,7 +17,7 @@ if platform == "darwin":
         description="Fungal Identification Pipeline",
         author="Changwan Seo",
         author_email="wan101010@snu.ac.kr",
-        url="https://github.com/Changwanseo/FunID",
+        url="https://github.com/Changwanseo/FunIP",
         python_requires="<3.13, >3.8",
         packages=[
             "funip",

@@ -7,11 +7,11 @@ import builtins
 import datetime
 import re
 import psutil
-from funid.src.logics import isvalidcolor
-from funid.src.tool import check_avx
+from funip.src.logics import isvalidcolor
+from funip.src.tool import check_avx
 
 
-# FunID Option class definition
+# FunIP Option class definition
 class Option:
     # Method option
     class Method_Option:
@@ -720,7 +720,7 @@ class Option:
 
         if float(self.memory[:-1]) < 4:
             list_warning.append(
-                f"At least 4G of memory required for FunID. Try using 4G"
+                f"At least 4G of memory required for FunIP. Try using 4G"
             )
             if psutil.virtual_memory().total / (1024**3) < 4:
                 list_error.append(f"Less than 4G of memory (RAM) detected ! Aborted")
