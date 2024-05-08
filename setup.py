@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 from sys import platform
 import subprocess
 
-name = "FunID"
+name = "FunIP"
 __version__ = "0.3.18.6.2"
 release = "0.3.18.6.2"
 
@@ -20,11 +20,11 @@ if platform == "darwin":
         url="https://github.com/Changwanseo/FunID",
         python_requires="<3.13, >3.8",
         packages=[
-            "funid",
-            "funid.src",
-            "funid.data",
-            "funid.test_dataset",
-            "funid.preset",
+            "funip",
+            "funip.src",
+            "funip.data",
+            "funip.test_dataset",
+            "funip.preset",
         ],
         install_requires=[
             "biopython==1.78",
@@ -51,12 +51,12 @@ if platform == "darwin":
             "xmltodict==0.12.0",
         ],
         zip_safe=False,
-        entry_points={"console_scripts": ["FunID = funid.main:main"]},
-        package_dir={"funid": "funid"},
+        entry_points={"console_scripts": ["FunIP = funip.main:main"]},
+        package_dir={"funip": "funip"},
         package_data={
-            "funid.data": ["*.xlsx", "*.txt"],
-            "funid.test_dataset": ["**"],
-            "funid.preset": ["**"],
+            "funip.data": ["*.xlsx", "*.txt"],
+            "funip.test_dataset": ["**"],
+            "funip.preset": ["**"],
         },
         include_package_data=True,
         license="GPL3",
@@ -71,14 +71,14 @@ else:
         description="Fungal Identification Pipeline",
         author="Changwan Seo",
         author_email="wan101010@snu.ac.kr",
-        url="https://github.com/Changwanseo/FunID",
+        url="https://github.com/Changwanseo/FunIP",
         python_requires="<3.13, >3.8",
         packages=[
-            "funid",
-            "funid.src",
-            "funid.data",
-            "funid.test_dataset",
-            "funid.preset",
+            "funip",
+            "funip.src",
+            "funip.data",
+            "funip.test_dataset",
+            "funip.preset",
         ],
         install_requires=[
             "biopython==1.78",
@@ -105,12 +105,12 @@ else:
             "xmltodict==0.12.0",
         ],
         zip_safe=False,
-        entry_points={"console_scripts": ["FunID = funid.main:main"]},
-        package_dir={"funid": "funid"},
+        entry_points={"console_scripts": ["FunIP = funip.main:main"]},
+        package_dir={"funip": "funip"},
         package_data={
-            "funid.data": ["*.xlsx", "*.txt"],
-            "funid.test_dataset": ["**"],
-            "funid.preset": ["**"],
+            "funip.data": ["*.xlsx", "*.txt"],
+            "funip.test_dataset": ["**"],
+            "funip.preset": ["**"],
         },
         include_package_data=True,
         license="GPL3",
@@ -118,15 +118,15 @@ else:
 
 
 def run_tests():
-    result = subprocess.run(["FunID", "-h"], capture_output=True, text=True)
+    result = subprocess.run(["FunIP", "-h"], capture_output=True, text=True)
     print(result.stdout)
     print(result.stderr)
 
 
 # Change setup options by platform
 if platform == "win32":
-    setup_options["packages"].append("funid.external")
-    setup_options["package_data"]["funid.external"] = ["**"]
+    setup_options["packages"].append("funip.external")
+    setup_options["package_data"]["funip.external"] = ["**"]
 else:
     pass
 
