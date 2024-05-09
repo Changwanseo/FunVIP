@@ -15,7 +15,8 @@ from funip.src.tool import (
     get_genus_species,
     mkdir,
 )
-from funip.src.logger import Mes
+
+# from funip.src.logger import Mes
 from funip.src.validate_option import initialize_option
 
 INF = 99999999

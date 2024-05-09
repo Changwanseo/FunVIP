@@ -55,6 +55,7 @@ def main():
     tool.initialize_path(path)
 
     # setup logging
+    """
     logging.basicConfig(
         format="%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%m/%d/%Y %I:%M:%S %p",
@@ -72,6 +73,9 @@ def main():
 
     for error in list_error:
         logging.error(error)
+    """
+
+    logger.setup_logging(list_info, list_warning, list_error, path, opt, tool)
 
     # V contains all intermediate variables for FunIP Run
     V = dataset.FunIP_var()
