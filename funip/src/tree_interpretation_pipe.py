@@ -460,14 +460,14 @@ def pipe_module_tree_visualization(
     genus_list = tuple(genus_list)
 
     # Collapse tree branches for visualization
-    taxon_string_list = tree_info.collapse_tree()
+    taxon_string_dict = tree_info.collapse_tree()
 
     # print(f"taxon_string_list | {group} {gene}:\n {taxon_string_list}\n")
 
     # Polish tree image
     tree_info.polish_image(
         f"{path.out_tree}/{opt.runname}_{group}_{gene}.svg",
-        taxon_string_list,
+        taxon_string_dict,
         genus_list,
     )
 

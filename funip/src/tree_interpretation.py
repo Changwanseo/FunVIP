@@ -1009,7 +1009,9 @@ class Tree_information:
     ### Collapse tree
     def collapse_tree(self):
         # collect taxon string to decide in polishing
-        taxon_string_list = []
+        # taxon_string_list = []
+        taxon_string_dict = {}
+
         for collapse_taxon in self.collapse_dict:
             # collapse_info.taxon should be taxon
             for collapse_info in self.collapse_dict[collapse_taxon]:
@@ -1018,6 +1020,11 @@ class Tree_information:
                 # if only one clade with same name exists
                 if len(self.collapse_dict[collapse_taxon]) == 1:
                     taxon_string = " ".join(collapse_info.taxon)
+                    taxon_string_dict[taxon_string] = (
+                        collapse_info.taxon[0],
+                        collapse_info.taxon[1],
+                        "",
+                    )
                 else:
                     collapse_info.clade_cnt = (
                         self.collapse_dict[collapse_taxon].index(collapse_info) + 1
@@ -1025,7 +1032,13 @@ class Tree_information:
                     taxon_string = (
                         f'{" ".join(collapse_info.taxon)}-{collapse_info.clade_cnt}'
                     )
-                taxon_string_list.append(taxon_string)
+                    taxon_string_dict[taxon_string] = (
+                        collapse_info.taxon[0],
+                        collapse_info.taxon[1],
+                        f"-{collapse_info.clade_cnt}",
+                    )
+
+                # taxon_string_list.append(taxon_string)
 
                 taxon_text = TextFace(
                     taxon_string,
@@ -1127,16 +1140,16 @@ class Tree_information:
                     position="float",
                 )
 
-        return taxon_string_list
+        return taxon_string_dict
 
     ### end of collapse tree
 
     ### edit svg image from initial output from ete3
-    def polish_image(self, out, taxon_string_list, genus_list):
-        # make it to tmp svg file and parse
-        # from funip.src.patch import patch
+    def polish_image(self, out, taxon_string_dict, genus_list):
+        # runname_group_gene.svg file enters here
+        # the tree has rectangle collapsed group, tmpseperator, and hash
 
-        # patch()
+        # Render it to temporary svg file and re-parse with xml
         self.t.render(f"{out}", tree_style=self.Tree_style.ts)
         tree_xml = ET.parse(f"{out}")
 
@@ -1172,8 +1185,10 @@ class Tree_information:
                 if text.text == "0.05":
                     text_type = "scale"
                 elif any(
-                    taxon.strip() == text.text.strip() for taxon in taxon_string_list
+                    taxon.strip() == text.text.strip()
+                    for taxon in taxon_string_dict.keys()
                 ):
+                    print(f"{text.text} : taxon")
                     text_type = "taxon"
                 else:
                     text_type = "hash"
@@ -1182,12 +1197,9 @@ class Tree_information:
             text.set("y", f'{int(float(text.get("y")))-2}')
 
             if text_type == "taxon":
-                genus = get_genus_species(text.text, genus_list=genus_list)[0]
-                species = get_genus_species(text.text, genus_list=genus_list)[1]
-
-                rest = (
-                    text.text.replace(genus, "").replace(species, "").replace(" ", "")
-                )
+                genus = taxon_string_dict[text.text][0]
+                species = taxon_string_dict[text.text][1]
+                rest = taxon_string_dict[text.text][2]
 
                 # split genus, species, rest of parent into tspan
                 text.text = ""
@@ -1236,6 +1248,8 @@ class Tree_information:
                             tspan.set("fill", self.opt.visualize.highlight)
                     except:
                         pass
+
+        # raise Exception
 
         # fit size of tree_xml to svg
         # find svg from tree_xml
