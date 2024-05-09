@@ -25,6 +25,10 @@ import json
 # Default zero length branch for concatenation
 CONCAT_ZERO = 0  # for better binding
 
+# For colored logging
+bold_red = "\x1b[31;1m"
+reset = "\x1b[0m"
+
 
 ## Get maximum tree distance among all leaf pairs in given tree
 def get_max_distance(tree):
@@ -252,7 +256,9 @@ class Tree_information:
                 return "none"
 
         else:
-            print("[ERROR] DEVELOPMENTAL ERROR, UNEXPECTED by for decide_type")
+            print(
+                f"{bold_red}[ERROR] DEVELOPMENTAL ERROR, UNEXPECTED by for decide_type{reset}"
+            )
             raise Exception
 
     # Calculate zero length branch length cutoff with given tree and alignment
@@ -268,7 +274,7 @@ class Tree_information:
             hash_list_alignment
         ):
             print(
-                f"[ERROR] content of tree and alignment is not identical for {self.tree_name}"
+                f"{bold_red}[ERROR] content of tree and alignment is not identical for {self.tree_name}{reset}"
             )
             raise Exception
 
@@ -383,10 +389,16 @@ class Tree_information:
 
             if outgroup_flag is False:
                 # never erase this for debugging
-                print(f"[ERROR] Outgroup not selected in {self.tree_name}")
-                print(f"[ERROR] local variable outgroup_leaves : {outgroup_leaves}")
-                print(f"[ERROR] tree_info.outgroup : {self.outgroup}")
-                print(f"[ERROR] tree_info.outgroup_clade : {self.outgroup_clade}")
+                print(
+                    f"{bold_red}[ERROR] Outgroup not selected in {self.tree_name}{reset}"
+                )
+                print(
+                    f"{bold_red}[ERROR] local variable outgroup_leaves : {outgroup_leaves}{reset}"
+                )
+                print(f"{bold_red}[ERROR] tree_info.outgroup : {self.outgroup}{reset}")
+                print(
+                    f"{bold_red}[ERROR] tree_info.outgroup_clade : {self.outgroup_clade}{reset}"
+                )
                 raise Exception
 
         self.Tree_style.ts.show_leaf_name = True
@@ -555,7 +567,7 @@ class Tree_information:
                 collapse_info.n_query += 1
             else:
                 print(
-                    f"[ERROR] DEVELOPMENTAL ERROR : UNEXPECTED LEAF TYPE FOR {leaf.name}"
+                    f"{bold_red}[ERROR] DEVELOPMENTAL ERROR : UNEXPECTED LEAF TYPE FOR {leaf.name}{reset}"
                 )
                 print(self.tree_name)
                 print(f"Query: {sorted([FI.hash for FI in self.query_list])}")
@@ -726,7 +738,7 @@ class Tree_information:
         # if error (more than two branches or no branches)
         else:
             print(
-                f"[ERROR] DEVELOPMENTAL ERROR : FAILED TREE SEARCH ON LEAF {clade.children}"
+                f"{bold_red}[ERROR] DEVELOPMENTAL ERROR : FAILED TREE SEARCH ON LEAF {clade.children}{reset}"
             )
             raise Exception
         # end of tree_search
@@ -747,7 +759,9 @@ class Tree_information:
                         query += 1
 
                 if db == 0 and query == 0:
-                    print(f"[ERROR] DEVELOPMENTAL ON CONSIST, {c} {db} {query}")
+                    print(
+                        f"{bold_red}[ERROR] DEVELOPMENTAL ON CONSIST, {c} {db} {query}{reset}"
+                    )
                     raise Exception
                 elif db == 0 and query != 0:
                     return "query"
@@ -782,7 +796,7 @@ class Tree_information:
 
                     if len(taxon_dict) == 0:
                         print(
-                            f"[DEVELOPMENTAL ERROR] ERROR in tree_interpretation.py line 780 {taxon_dict}\n {c}"
+                            f"{bold_red}[DEVELOPMENTAL ERROR] ERROR in tree_interpretation.py line 799 {taxon_dict}\n {c}{reset}"
                         )
                         raise Exception
                     # If only one species in the clade
@@ -803,7 +817,7 @@ class Tree_information:
 
                     if len(taxon_dict) == 0:
                         print(
-                            f"[DEVELOPMENTAL ERROR] Error in tree_interpretation.py line 795 {taxon_dict}\n {c}"
+                            f"{bold_red}[DEVELOPMENTAL ERROR] Error in tree_interpretation.py line 820 {taxon_dict}\n {c}{reset}"
                         )
                         raise Exception
                     elif len(taxon_dict) == 1:
@@ -1188,7 +1202,6 @@ class Tree_information:
                     taxon.strip() == text.text.strip()
                     for taxon in taxon_string_dict.keys()
                 ):
-                    print(f"{text.text} : taxon")
                     text_type = "taxon"
                 else:
                     text_type = "hash"

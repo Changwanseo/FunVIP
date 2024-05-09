@@ -58,27 +58,6 @@ def main():
     )
     tool.initialize_path(path)
 
-    # setup logging
-    """
-    logging.basicConfig(
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        datefmt="%m/%d/%Y %I:%M:%S %p",
-        encoding="utf-8",
-        level=tool.get_level(opt.verbose),
-        handlers=[logging.FileHandler(path.log), logging.StreamHandler()],
-    )
-
-    # Delayed logging for option parsing
-    for info in list_info:
-        logging.info(info)
-
-    for warning in list_warning:
-        logging.warning(warning)
-
-    for error in list_error:
-        logging.error(error)
-    """
-
     logger.setup_logging(list_info, list_warning, list_error, path, opt, tool)
 
     # V contains all intermediate variables for FunIP Run

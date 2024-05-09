@@ -538,6 +538,11 @@ def pipe_tree_interpretation(V, path, opt):
     # Generate tree_interpretation opt to run
     tree_interpretation_opt = []
 
+    # Reset bygene_species for rerun
+    for key in V.dict_hash_FI:  # funinfo_dict
+        for gene in V.dict_hash_FI[key].bygene_species:
+            V.dict_hash_FI[key].bygene_species[gene] = V.dict_hash_FI[key].ori_species
+
     for group in V.dict_dataset:
         for gene in V.dict_dataset[group]:
             logging.debug(f"pipe_tree_interpretation {group} {gene}")
