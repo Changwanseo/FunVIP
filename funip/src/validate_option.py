@@ -1502,8 +1502,13 @@ def initialize_option(parser, path_run):
     path_test = f"{os.path.dirname(__file__)}/../test_dataset"
     path_preset = f"{os.path.dirname(__file__)}/../preset"
 
+    overwrite_preset = None
     # *1 - if test option selected
     if not (parser.test is None):
+        # If preset should be overwrited, save it
+        if not (parser.preset is None):
+            overwrite_preset = copy.deepcopy(parser.preset)
+
         # *1 - if test value is valid dataset
         if parser.test.lower() in os.listdir(path_test):
             if os.path.exists(f"{path_test}/{parser.test.lower()}/preset.yaml"):
@@ -1547,6 +1552,26 @@ def initialize_option(parser, path_run):
                 opt.update_from_preset(parser.preset)
             else:
                 print(f"Cannot find preset file : {parser.preset}")
+                raise Exception
+
+    # Overwrite test preset if needed
+    if not (overwrite_preset is None):
+        if str(overwrite_preset).lower() == "fast":  # *1 - fast mode
+            overwrite_preset = f"{path_preset}/fast.yaml"  # - connect to fast.yaml
+            print("Using fast preset as default option")
+            opt.update_from_preset(overwrite_preset)
+        elif str(overwrite_preset).lower() == "accurate":  # *1 - accurate mode
+            overwrite_preset = (
+                f"{path_preset}/accurate.yaml"  # - connect to accurate.yaml
+            )
+            print("Using accurate preset as default option")
+            opt.update_from_preset(overwrite_preset)
+        else:
+            if os.path.exists(overwrite_preset):
+                print(f"[DEBUG] {overwrite_preset}")
+                opt.update_from_preset(overwrite_preset)
+            else:
+                print(f"Cannot find preset file : {overwrite_preset}")
                 raise Exception
 
     ### Then, update other options in parser
