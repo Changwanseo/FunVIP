@@ -87,7 +87,7 @@ class Option:
         self.avx = True
         self.cachedb = True
         self.usecache = True
-        self.matrixformat = "csv"
+        self.tableformat = "csv"
         self.nosearchresult = False
 
         # Method options
@@ -173,8 +173,8 @@ class Option:
                 self.cachedb = parser_dict[key]
             elif key.lower() in ("usecache"):
                 self.usecache = parser_dict[key]
-            elif key.lower() in ("matrixformat"):
-                self.matrixformat = parser_dict[key]
+            elif key.lower() in ("tableformat"):
+                self.tableformat = parser_dict[key]
             elif key.lower() in ("nosearchresult"):
                 self.nosearchresult = parser_dict[key]
             elif key.lower() in ("confident"):
@@ -547,8 +547,8 @@ class Option:
             pass
 
         try:
-            if not parser.matrixformat is None:
-                self.matrixformat = parser.matrixformat
+            if not parser.tableformat is None:
+                self.tableformat = parser.tableformat
         except:
             pass
 
@@ -824,7 +824,7 @@ class Option:
         else:
             if not self.step is None:
                 list_warning.append(
-                    f"As --continue is not designated, step will be ignored"
+                    f"As --continue is not designated, --step will be ignored"
                 )
 
         # level
@@ -1222,7 +1222,7 @@ class Option:
         # If IQTREE selected and bootstrap number under 1000, change to 1000
         if self.method.tree == "fasttree":
             list_warning.append(
-                f"Fasttree does not supports bootstrap, but bootstrap option selected. Will be ignored"
+                f"Fasttree does not supports bootstrap. --bootstrap will be ignored"
             )
             self.bootstrap = None
         else:
@@ -1437,23 +1437,23 @@ class Option:
         else:
             self.usecache = True
 
-        # matrixformat
+        # tableformat
         # should be either [csv, xlsx, parquet, feather]
         # if ftr, change it to feather
         # if excel, change it to xlsx
         try:
-            self.matrixformat = str(self.matrixformat)
+            self.tableformat = str(self.tableformat)
             if not (
-                self.matrixformat.lower()
+                self.tableformat.lower()
                 in ("csv", "tsv", "xlsx", "parquet", "ftr", "feather")
             ):
                 list_error.append(
-                    "matrixformat should be one of csv, tsv, xlsx, parquet, ftr, or feather"
+                    "tableformat should be one of csv, tsv, xlsx, parquet, ftr, or feather"
                 )
 
         except:
             list_error.append(
-                "matrixformat should be one of csv, tsv, xlsx, parquet, ftr, or feather"
+                "tableformat should be one of csv, tsv, xlsx, parquet, ftr, or feather"
             )
 
         # nosearchresult

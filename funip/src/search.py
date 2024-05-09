@@ -314,8 +314,8 @@ def search_df(V, path, opt):
             if opt.nosearchresult is False:
                 save_df(
                     hasher.decode_df(V.dict_id_hash, df_search),
-                    f"{path.out_matrix}/{opt.runname}_BLAST_result_{gene}.{opt.matrixformat}",
-                    fmt=opt.matrixformat,
+                    f"{path.out_matrix}/{opt.runname}_BLAST_result_{gene}.{opt.tableformat}",
+                    fmt=opt.tableformat,
                 )
 
     # if query sequence exists
@@ -417,8 +417,8 @@ def search_df(V, path, opt):
             if opt.nosearchresult is False:
                 save_df(
                     hasher.decode_df(V.dict_id_hash, df_search),
-                    f"{path.out_matrix}/{opt.runname}_BLAST_result_{gene}.{opt.matrixformat}",
-                    opt.matrixformat,
+                    f"{path.out_matrix}/{opt.runname}_BLAST_result_{gene}.{opt.tableformat}",
+                    opt.tableformat,
                 )
 
         # remove tmp file after search

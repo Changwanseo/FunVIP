@@ -644,8 +644,8 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
         # After successfully parsed this table, save it
         save.save_df(
             df,
-            f"{path.out_db}/Saved_{'.'.join(table.split('/')[-1].split('.')[:-1])}.{opt.matrixformat}",
-            fmt=opt.matrixformat,
+            f"{path.out_db}/Saved_{'.'.join(table.split('/')[-1].split('.')[:-1])}.{opt.tableformat}",
+            fmt=opt.tableformat,
         )
     return funinfo_dict
 
@@ -769,5 +769,5 @@ def update_queryfile(V, path, opt):
 
     df_out = pd.DataFrame(out_dict)
     save.save_df(
-        df_out, f"{path.out_query}/Saved_query.{opt.matrixformat}", fmt=opt.matrixformat
+        df_out, f"{path.out_query}/Saved_query.{opt.tableformat}", fmt=opt.tableformat
     )

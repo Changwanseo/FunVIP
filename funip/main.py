@@ -21,6 +21,7 @@ def main():
     from funip.src.tool import index_step
     from funip.src.opt_generator import opt_generator
     from time import time
+    from time import sleep
     import pandas as pd
     import multiprocessing as mp
     import os
@@ -32,8 +33,11 @@ def main():
     import logging
     import PyQt5
 
-    # Patch library errors, currently for ete3
-    # patch.patch()
+    if "FunID" in sys.argv[0]:
+        print(
+            "\x1b[92m The name of the software changed to 'FunIP'. Please use 'FunIP' when citation. \x1b[0m"
+        )
+        sleep(3)
 
     # For starting time stamp
     time_start = time()

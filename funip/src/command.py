@@ -323,10 +323,18 @@ class CommandParser:
         group_save = self.parser.add_argument_group(
             title="save", description="Run saving options"
         )
+        # Compatibility test required for this one
+        """
         group_save.add_argument(
-            "--matrixformat",
-            help="Default format for search matrix files, [csv, xlsx, parquet, feather], default : csv",
+            "--tableformat",
+            help="Default format for table files, [csv, xlsx, parquet, feather], default : csv",
         )
+        """
+        group_save.add_argument(
+            "--tableformat",
+            help="Default format for table files, [csv, xlsx], default : csv",
+        )
+
         group_save.add_argument(
             "--nosearchresult",
             action="store_true",

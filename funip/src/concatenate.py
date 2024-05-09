@@ -337,8 +337,8 @@ def concatenate_df(V, path, opt):
     if opt.nosearchresult is False:
         search.save_df(
             hasher.decode_df(hash_dict=V.dict_id_hash, df=V.cSR),
-            f"{path.out_matrix}/{opt.runname}_BLAST_result_concatenated.{opt.matrixformat}",
-            fmt=opt.matrixformat,
+            f"{path.out_matrix}/{opt.runname}_BLAST_result_concatenated.{opt.tableformat}",
+            fmt=opt.tableformat,
         )
 
     return V

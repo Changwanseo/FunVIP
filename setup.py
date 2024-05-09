@@ -51,7 +51,9 @@ if platform == "darwin":
             "xmltodict==0.12.0",
         ],
         zip_safe=False,
-        entry_points={"console_scripts": ["FunIP = funip.main:main"]},
+        entry_points={
+            "console_scripts": ["FunID = funip.main:main", "FunIP = funip.main:main"]
+        },
         package_dir={"funip": "funip"},
         package_data={
             "funip.data": ["*.xlsx", "*.txt"],
@@ -105,7 +107,9 @@ else:
             "xmltodict==0.12.0",
         ],
         zip_safe=False,
-        entry_points={"console_scripts": ["FunIP = funip.main:main"]},
+        entry_points={
+            "console_scripts": ["FunID = funip.main:main", "FunIP = funip.main:main"]
+        },
         package_dir={"funip": "funip"},
         package_data={
             "funip.data": ["*.xlsx", "*.txt"],

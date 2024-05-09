@@ -353,7 +353,7 @@ class FunIP_var:
                         FI.adjusted_group = self.dict_hash_FI[h].group
                         self.dict_hash_FI[h].adjusted_group = self.dict_hash_FI[h].group
                     else:
-                        logging.error(f"{FI.id} does not have assigned group!")
+                        logging.warning(f"{FI.id} does not have assigned group!")
 
                 # bygene_species
                 if FI.bygene_species != self.dict_hash_FI[h].bygene_species:

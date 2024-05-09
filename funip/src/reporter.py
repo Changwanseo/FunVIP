@@ -385,11 +385,11 @@ class Report:
             if index_step(step) >= 2:
                 # Datset table can be written after cluster and outgroup selection step
                 f.write(
-                    f"* Dataset table can be found in {path.root}/{opt.runname}_Dataset.{opt.matrixformat}\n"
+                    f"* Dataset table can be found in {path.root}/{opt.runname}_Dataset.{opt.tableformat}\n"
                 )
                 # Identification table can be written after cluster step
                 f.write(
-                    f"* Identification result table can be found in {path.root}/{opt.runname}_Identification.{opt.matrixformat}\n"
+                    f"* Identification result table can be found in {path.root}/{opt.runname}_Identification.{opt.tableformat}\n"
                 )
                 f.write(f"* Log files can be found in {path.log}\n")
                 f.write("\n")
@@ -423,7 +423,7 @@ class Report:
                 f.write(f"AVX:                    {opt.avx}\n")
                 f.write(f"CACHEDB:                {opt.cachedb}\n")
                 f.write(f"USECACHE:               {opt.usecache}\n")
-                f.write(f"MATRIXFORMAT:           {opt.matrixformat}\n")
+                f.write(f"TABLEFORMAT:            {opt.tableformat}\n")
                 f.write(f"NOSEARCHRESULT:         {opt.nosearchresult}\n")
                 f.write(f"METHOD:                 \n")
                 f.write(f" - SEARCH:              {opt.method.search}\n")
@@ -797,21 +797,21 @@ class Report:
             if table == "dataset":
                 save_df(
                     df=pd.DataFrame(self.dataset),
-                    out=f"{path.root}/{opt.runname}.dataset.{opt.matrixformat}",
-                    fmt=opt.matrixformat,
+                    out=f"{path.root}/{opt.runname}.dataset.{opt.tableformat}",
+                    fmt=opt.tableformat,
                 )
             elif table == "identification":
                 save_df(
                     df=pd.DataFrame(self.result),
-                    out=f"{path.root}/{opt.runname}.result.{opt.matrixformat}",
-                    fmt=opt.matrixformat,
+                    out=f"{path.root}/{opt.runname}.result.{opt.tableformat}",
+                    fmt=opt.tableformat,
                 )
 
             elif table == "statistics":
                 save_df(
                     df=pd.DataFrame(self.statistics),
-                    out=f"{path.root}/{opt.runname}.statistics.{opt.matrixformat}",
-                    fmt=opt.matrixformat,
+                    out=f"{path.root}/{opt.runname}.statistics.{opt.tableformat}",
+                    fmt=opt.tableformat,
                 )
             else:
                 logging.error(

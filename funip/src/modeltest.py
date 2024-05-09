@@ -197,6 +197,7 @@ def parse_model(modeltest_file, opt, path):
             raise Exception
 
         # read modeltest result file
+        print(modeltest_file)
         try:
             with open(modeltest_file, "r", encoding="UTF-8") as f:
                 lines = f.readlines()
