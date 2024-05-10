@@ -94,6 +94,10 @@ class FunIP_var:
         # multigene_list
         self.multigene_list = []
 
+        # Partition information by dataset
+        # group : {"len" : dict, "order" : list} format
+        self.partition = {}
+
     def __repr__(self):
         out_dict = {}
         for key in self.dict_dataset:
@@ -428,11 +432,11 @@ class FunIP_var:
                         )
 
     # Validate if any multiple sequence alignment has no overlapping region
-    def validate_alignments(self, V, path, opt):
+    def validate_alignments(self, path, opt):
         fail_list = []
 
         remove_dict = {}
-        tree_hash_dict = hasher.encode(V.list_FI, newick=True)
+        tree_hash_dict = hasher.encode(self.list_FI, newick=True)
         for group in self.dict_dataset:
             remove_dict[group] = {}
             for gene in self.dict_dataset[group]:
@@ -563,6 +567,15 @@ class FunIP_var:
             self.dict_dataset[group].pop(gene)
             logging.warning(f"Alignment for {group} {gene} has removed from analysis")
 
+        # Add issue
+        for fail in fail_list:
+            for FI in self.list_FI:
+                if FI.adjusted_group == fail[0]:
+                    if FI.seq[fail[1]] != "":
+                        FI.issues.append(f"alignfail:{fail[1]}")
+
+        print(fail_list)
+
         logging.debug("Remove dict")
         logging.debug(remove_dict)
 
@@ -642,7 +655,7 @@ class FunIP_var:
             gene = fail[1]
             self.dict_dataset[group].pop(gene)
 
-        # If concatenated is only left dataset, remove entire group
+        # If concatenated is the only left dataset, remove entire group
         group_pop_list = []
         for group in self.dict_dataset:
             if len(self.dict_dataset[group].keys()) == 0:
@@ -658,3 +671,46 @@ class FunIP_var:
             logging.warning(
                 f"No alignment left for group {group}, removed from analysis"
             )
+
+        # Add issue: the number of sequences are insufficient
+        for fail in final_fail_list:
+            for FI in V.list_FI:
+                if FI.adjusted_group == fail[0]:
+                    if FI.seq[fail[1]] != "":
+                        FI.issues.append(f"lackseq")
+
+        # return V
+
+    # check inconsistency exists along identification result of each genes
+    def check_inconsistent(self):
+        set_gene = set(self.list_db_gene + self.list_qr_gene)
+
+        for _hash in self.dict_hash_FI:
+            FI = self.dict_hash_FI[_hash]
+
+            # Collect result from only used sequences
+            if FI.adjusted_group in self.dict_dataset:
+                # If any of appropriate gene used
+                if any(
+                    key in self.dict_dataset[FI.adjusted_group] for key in FI.seq.keys()
+                ):
+                    inconsistent_flag = 0
+
+                    for gene in set_gene:
+                        # Check if data analysis had performed for specific FI, group, gene combination
+                        if (
+                            gene in FI.bygene_species
+                            and len(FI.seq[gene]) > 0
+                            and gene in self.dict_dataset[FI.adjusted_group]
+                        ):
+                            # Check inconsistent identification across genes
+                            if not (
+                                any(
+                                    _sp in FI.final_species
+                                    for _sp in FI.bygene_species[gene].split("/")
+                                )
+                            ):
+                                inconsistent_flag = 1
+
+                    if inconsistent_flag == 1:
+                        FI.issues.append("inconsistent")

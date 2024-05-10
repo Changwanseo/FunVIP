@@ -32,7 +32,8 @@ NEWICK_ILLEGAL = ("(",'"',"[",":",";","/","[","]","{","}","(",")",",","]","+",'"
 # fmt: on
 
 
-# default funinfo class
+# Default funinfo class
+# Abbreviated as FI in most of the codes
 class Funinfo:
     def __init__(self):
         self.original_id = ""  # original id, can be newick illegal
@@ -53,7 +54,8 @@ class Funinfo:
         self.seq = {}
         self.unclassified_seq = []
         self.color = None  # color for highlighting in phylogenetic tree
-        self.flat = []  # list of flat genes
+        self.flat = []  # list of flat species in concatenated tree
+        self.issues = []  # list of issues to this FI
 
     def update_seqrecord(self, seq, gene=None):
         flag = 0
@@ -548,10 +550,13 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
         )
 
         # To prevent errors on genus / spcies column
-        df["genus"] = df["genus"].apply(lambda x: x.replace(" ", "_"))
-        df["species"] = df["species"].apply(lambda x: x.replace(" ", "_"))
-        df["genus"] = df["genus"].apply(lambda x: x.replace("/", "_"))
-        df["species"] = df["species"].apply(lambda x: x.replace("/", "_"))
+        # if this function operates with query mode, there might be no genus or species column
+        if "genus" in df.columns:
+            df["genus"] = df["genus"].apply(lambda x: x.replace(" ", "_"))
+            df["genus"] = df["genus"].apply(lambda x: x.replace("/", "_"))
+        if "species" in df.columns:
+            df["species"] = df["species"].apply(lambda x: x.replace(" ", "_"))
+            df["species"] = df["species"].apply(lambda x: x.replace("/", "_"))
 
         # Empty id check
         empty_error = []
@@ -746,6 +751,16 @@ def data_input(V, R, opt, path):
     # make hash dict
     for FI in V.list_FI:
         V.dict_hash_FI[FI.hash] = FI
+
+    # If all genes are empty, indicate them
+    for FI in V.list_FI:
+        flag_available_gene = 0
+        for gene in FI.seq:
+            if FI.seq[gene] != "":
+                flag_available_gene = 1
+
+        if flag_available_gene == 0:
+            FI.issues.append("noseq")
 
     return V, R, opt
 

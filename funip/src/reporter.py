@@ -83,7 +83,6 @@ class Report:
         self.statistics = {
             "GROUP": [],
             "IDENTIFIED": [],
-            "AMBIGUOUS": [],
             "NEW SPECIES CANDIDATE": [],
             "MISIDENTIFIED": [],
             "ERROR": [],
@@ -94,6 +93,7 @@ class Report:
         # self.statistics_link = {}
 
         # By gene results, and sequence should be added
+        """
         self.result = {
             "ID": [],
             "HASH": [],
@@ -105,6 +105,18 @@ class Report:
             "FLAT_BRANCH": [],
             "INCONSISTENT": [],
             "AMBIGUOUS": [],
+            "STATUS": [],
+        }
+        """
+        self.result = {
+            "ID": [],
+            "HASH": [],
+            "DATATYPE": [],
+            "GROUP_ORIGINAL": [],
+            "GROUP_ASSIGNED": [],
+            "SPECIES_ORIGINAL": [],
+            "SPECIES_ASSIGNED": [],
+            "FLAT_BRANCH": [],
             "STATUS": [],
         }
 
@@ -163,8 +175,8 @@ class Report:
         self.result["SPECIES_ORIGINAL"] = []
         self.result["SPECIES_ASSIGNED"] = []
         self.result["FLAT_BRANCH"] = []
-        self.result["INCONSISTENT"] = []
-        self.result["AMBIGUOUS"] = []
+        # self.result["INCONSISTENT"] = []
+        # self.result["AMBIGUOUS"] = []
         self.result["STATUS"] = []
 
         for _hash in V.dict_hash_FI:
@@ -196,7 +208,7 @@ class Report:
                         )
 
                     # Collect identification result for each gene analysis
-                    inconsistent_flag = 0
+                    # inconsistent_flag = 0
 
                     for gene in set_gene:
                         # Check if data analysis had performed for specific FI, group, gene combination
@@ -208,6 +220,7 @@ class Report:
                             self.result[f"{gene.upper()}_ASSIGNED"].append(
                                 FI.bygene_species[gene]
                             )
+                            """
                             # Check inconsistent identification across genes
                             if not (
                                 any(
@@ -216,6 +229,7 @@ class Report:
                                 )
                             ):
                                 inconsistent_flag = 1
+                            """
                         else:
                             self.result[f"{gene.upper()}_ASSIGNED"].append("-")
 
@@ -230,12 +244,14 @@ class Report:
                     self.result["FLAT_BRANCH"].append("/".join(FI.flat))
                     # Inconsistency
 
+                    """
                     if inconsistent_flag == 1:
                         self.result["INCONSISTENT"].append("inconsistent")
                     else:
                         self.result["INCONSISTENT"].append("-")
+                    """
 
-                    self.result["AMBIGUOUS"].append(FI.species_identifier)
+                    # self.result["AMBIGUOUS"].append(FI.species_identifier)
 
                     if FI.final_species.strip() == "":
                         self.result["STATUS"].append("ERROR")
@@ -250,6 +266,7 @@ class Report:
                         self.result["STATUS"].append("correctly identified")
                     else:
                         self.result["STATUS"].append("misidentified")
+            # If no corresponding marker exists, indicate that
             else:
                 # print(f"DEBUGGING {self.dataset['GROUP']} {FI.adjusted_group}")
                 # logging.info(f"{FI} removed from report because not used in analysis")
@@ -298,7 +315,7 @@ class Report:
             # Write into dictionary
             self.statistics["GROUP"].append(group)
             self.statistics["IDENTIFIED"].append(cnt_correctly_identified)
-            self.statistics["AMBIGUOUS"].append(cnt_undetermined)
+            # self.statistics["AMBIGUOUS"].append(cnt_undetermined)
             self.statistics["NEW SPECIES CANDIDATE"].append(cnt_new_species_candidate)
             self.statistics["MISIDENTIFIED"].append(cnt_misidentified)
             self.statistics["ERROR"].append(cnt_error)
@@ -307,7 +324,7 @@ class Report:
         # Add final summations
         self.statistics["GROUP"].append("TOTAL")
         self.statistics["IDENTIFIED"].append(sum(self.statistics["IDENTIFIED"]))
-        self.statistics["AMBIGUOUS"].append(sum(self.statistics["AMBIGUOUS"]))
+        # self.statistics["AMBIGUOUS"].append(sum(self.statistics["AMBIGUOUS"]))
         self.statistics["NEW SPECIES CANDIDATE"].append(
             sum(self.statistics["NEW SPECIES CANDIDATE"])
         )
@@ -475,9 +492,11 @@ class Report:
                 f.write(
                     "IDENTIFIED : Number of well-identified strains without any concerns. \n"
                 )
+                """
                 f.write(
                     "AMBIGUOUS : Multiple clades with same taxon name. Your database may contain misidentified sequences. \n"
                 )
+                """
                 f.write(
                     "NEW SPECIES CANDIDATE : New species candidate strains found by topology, phylogenetic distance and bootstrap criteria\n"
                 )
@@ -521,9 +540,11 @@ class Report:
                 f.write(
                     "INCONSISTENT : Strains that show different identification result across genes. Please check sequences were contaminated or misused. \n"
                 )
+                """
                 f.write(
                     "AMBIGUOUS : Multiple clades with same taxon name. Your database may contain misidentified sequences. \n"
                 )
+                """
 
                 f.write("\n\n")
 

@@ -7,7 +7,7 @@ from copy import deepcopy
 from functools import lru_cache
 from time import sleep
 
-from Bio.Blast import NCBIXML
+# from Bio.Blast import NCBIXML
 from Bio import SeqIO
 
 import logging
@@ -28,6 +28,11 @@ def append_query_group(V):
         group_dict[FI.hash] = FI.adjusted_group
 
     V.cSR["query_group"] = V.cSR["qseqid"].apply(lambda x: group_dict.get(x))
+
+    # Indicate queries without any corresponding group
+    for FI in V.list_FI:
+        if FI.adjusted_group == "" and not ("noseq" in FI.issues):
+            FI.issues.append("nodb")
 
     return V
 

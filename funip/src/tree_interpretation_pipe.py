@@ -30,6 +30,9 @@ def pipe_module_tree_interpretation(
     query_list = V.dict_dataset[group][gene].list_qr_FI
     outgroup = V.dict_dataset[group][gene].list_og_FI
 
+    print(V.partition)
+    partition = V.partition[group]
+
     # for unexpectively included sequence during clustering
     db_list = list(
         set([FI for FI in V.list_FI if FI.datatype == "db"])
@@ -78,9 +81,18 @@ def pipe_module_tree_interpretation(
 
     # Main phase
     # calculate zero distance with alignment
-    tree_info.calculate_zero(
-        f"{path.out_alignment}/hash/{opt.runname}_hash_trimmed_{group}_{gene}.fasta"
-    )
+    if gene == "concatenated":
+        tree_info.calculate_zero(
+            alignment_file=f"{path.out_alignment}/hash/{opt.runname}_hash_trimmed_{group}_{gene}.fasta",
+            gene=gene,
+            partition_dict=partition,
+        )
+    else:
+        tree_info.calculate_zero(
+            alignment_file=f"{path.out_alignment}/hash/{opt.runname}_hash_trimmed_{group}_{gene}.fasta",
+            gene=gene,
+            partition_dict=None,
+        )
 
     # Reroot outgroup and save original tree into image
     tree_info.reroot_outgroup(
@@ -650,6 +662,10 @@ def pipe_tree_interpretation(V, path, opt):
             if cond > 0:
                 FI.final_species = singlereport.species_assigned
                 FI.species_identifier = singlereport.ambiguous
+
+                if FI.species_identifier > 0:
+                    FI.issues.append("paraphyly")
+
                 if singlereport.flat is True:
                     FI.flat.append("concatenated")
 

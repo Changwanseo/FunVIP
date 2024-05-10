@@ -144,7 +144,7 @@ def main():
         # Append query column to concatenated_df as query assigned
         # V = cluster.append_concatenated_query_group(V)
 
-        # Both gene and group was assigned, dataset was confirmed
+        # Both gene and group was assigned, dataset are confirmed
         V.generate_dataset(opt)
 
         # Appending outgroup
@@ -181,7 +181,7 @@ def main():
         logging.info("TRIMMING")
         V, path, opt = trim.pipe_trimming(V, path, opt)
         # Alignment validations - whether some of the sequences does not have overlapping regions
-        V.validate_alignments(V=V, path=path, opt=opt)
+        V.validate_alignments(path=path, opt=opt)
         R.update_report(V=V, path=path, opt=opt, step=step)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
@@ -242,8 +242,6 @@ def main():
         # Running visualization
         V, path, opt = tree_interpretation_pipe.pipe_tree_interpretation(V, path, opt)
 
-        # raise Exception
-
         # move tree image files
         tool.cleanup_tree(path)
         tool.cleanup_tree_image(path)
@@ -260,6 +258,14 @@ def main():
 
         # Reporting
         V.homogenize_dataset()
+
+        # Check inconsistent
+        V.check_inconsistent()
+
+        for FI in V.list_FI:
+            print(FI.id, FI.adjusted_group, type(FI.adjusted_group), FI.issues)
+
+        # raise Exception
 
         R.update_report(V, path, opt, step=step)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())

@@ -26,6 +26,8 @@ def combine_alignment(V, opt, path):
                 gene_list = []
 
                 for gene in V.dict_dataset[group]:
+                    gene_list.append(gene)
+
                     if not (gene == "concatenated"):
                         fasta_list = list(
                             SeqIO.parse(
@@ -61,13 +63,16 @@ def combine_alignment(V, opt, path):
                                 seq_dict[gene][seq.description] = seq
                                 hash_set.add(seq.description)
 
+                # Save partition information
+                V.partition[group] = {"len": len_dict, "order": gene_list}
+
                 # Generate partition file
                 with open(
                     f"{path.out_alignment}/{opt.runname}_{group}.partition", "w"
                 ) as fw:
                     tot_len = 0
-                    for gene in sorted(len_dict.keys()):
-                        gene_list.append(gene)
+                    for gene in gene_list:
+                        # gene_list.append(gene)
                         fw.write(f"DNA, {gene}= {tot_len+1}-{tot_len+len_dict[gene]}\n")
                         tot_len += len_dict[gene]
 
@@ -117,6 +122,12 @@ def combine_alignment(V, opt, path):
                     f"{path.out_alignment}/{opt.runname}_{group}.partition", "w"
                 ) as fw:
                     fw.write(f"DNA, {singlegene}= 1-{gene_length}\n")
+
+                # Save partition information
+                V.partition[group] = {
+                    "len": {singlegene: gene_length},
+                    "order": [singlegene],
+                }
 
             else:
                 logging.error(f"V.dict_dataset {group}: {V.dict_dataset[group]}")

@@ -27,6 +27,8 @@ CONCAT_ZERO = 0  # for better binding
 
 # For colored logging
 bold_red = "\x1b[31;1m"
+yellow = "\x1b[33;20m"
+green = "\x1b[92m"
 reset = "\x1b[0m"
 
 
@@ -262,7 +264,7 @@ class Tree_information:
             raise Exception
 
     # Calculate zero length branch length cutoff with given tree and alignment
-    def calculate_zero(self, alignment_file):
+    def calculate_zero(self, alignment_file, gene, partition_dict):
         # Parse alignment
         seq_list = list(SeqIO.parse(alignment_file, "fasta"))
 
@@ -279,13 +281,14 @@ class Tree_information:
             raise Exception
 
         # Find identical or including pairs in alignment
-        pairs = []
+        identical_pairs = []
+        different_pairs = []
         for seq1 in seq_list:
             for seq2 in seq_list:
                 if not (
                     str(seq1.id).strip() == str(seq2.id).strip()
-                    or (seq1.id, seq2.id) in pairs
-                    or (seq2.id, seq1.id) in pairs
+                    or (seq1.id, seq2.id) in identical_pairs
+                    or (seq2.id, seq1.id) in identical_pairs
                 ):
                     # Chenge unusable chars into gap
                     seq1_str = str(seq1.seq).lower()
@@ -301,28 +304,103 @@ class Tree_information:
                     # To prevent distance among different region detected as zero in concatenated analysis
                     overlapping_cnt = 0
 
-                    # for valid part
-                    for n, i in enumerate(seq1_str):
-                        if seq1_str[n] != "-" and seq2_str[n] != "-":
+                    if gene == "concatenated":
+                        len_dict = partition_dict["len"]
+                        gene_order = partition_dict["order"]
+
+                        valid_index = []
+
+                        # calculate valid index to check
+                        previous_index = 0
+
+                        for gene in gene_order:
+                            start = previous_index
+                            end = previous_index + len_dict[gene] - 1
+
+                            for n in range(
+                                previous_index, len_dict[gene] + previous_index
+                            ):
+                                if seq1_str[n] != "-" and seq2_str[n] != "-":
+                                    start = n
+                                    break
+
+                            for n in range(
+                                len_dict[gene] + previous_index - 1,
+                                previous_index - 1,
+                                -1,
+                            ):
+                                if seq1_str[n] != "-" and seq2_str[n] != "-":
+                                    end = n
+                                    break
+
+                            for n in range(start, end + 1):
+                                valid_index.append(n)
+
+                            previous_index += len_dict[gene]
+
+                        # for valid part
+                        for n in valid_index:
+                            # connected with or to evaluate insertions or deletions
                             if seq1_str[n] != seq2_str[n]:
                                 identical_flag = False
+                            else:
                                 overlapping_cnt += 1
+
+                    else:
+                        start = 0
+                        end = len(seq1_str) - 1
+                        # calculate start and end
+                        for n in range(len(seq1_str)):
+                            if seq1_str[n] != "-" and seq2_str[n] != "-":
+                                start = n
                                 break
 
+                        for n in range(len(seq1_str)):
+                            if (
+                                seq1_str[len(seq1_str) - n - 1] != "-"
+                                and seq2_str[len(seq1_str) - n - 1] != "-"
+                            ):
+                                end = len(seq1_str) - n
+                                break
+
+                        # for valid part
+                        for n in range(start, end):
+                            # connected with or to evaluate insertions or deletions
+                            if seq1_str[n] != seq2_str[n]:
+                                identical_flag = False
+                            else:
+                                overlapping_cnt += 1
+
                     if identical_flag is True and overlapping_cnt > 0:
-                        pairs.append(
+                        identical_pairs.append(
+                            tuple(sorted([str(seq1.id).strip(), str(seq2.id).strip()]))
+                        )
+                    elif identical_flag is False:
+                        different_pairs.append(
                             tuple(sorted([str(seq1.id).strip(), str(seq2.id).strip()]))
                         )
 
         # make phylogenetic distance matrix
         pdc = self.dendro_t.phylogenetic_distance_matrix().as_data_table()._data
 
-        # For each alignment pairs, find tree length
-        for pair in pairs:
+        # print(pdc)
+
+        # For each alignment identical_pairs, find tree length
+        for pair in identical_pairs:
             if pdc[pair[0]][pair[1]] > self.zero:
+                print(f"Updated zero to {pdc[pair[0]][pair[1]]} from {pair}")
                 self.zero = pdc[pair[0]][pair[1]]
 
-        # returm maximum
+        diff_min = 999999
+        for pair in different_pairs:
+            if pdc[pair[0]][pair[1]] < diff_min:
+                print(f"Updated diff_min to {pdc[pair[0]][pair[1]]} from {pair}")
+                diff_min = pdc[pair[0]][pair[1]]
+
+        if diff_min < self.zero:
+            self.zero = diff_min - 0.00000001
+
+        # I think also finding minimal distance between non-identical sequences are also needed
         return self.zero
 
     def reroot_outgroup(self, out):
@@ -358,17 +436,19 @@ class Tree_information:
                 self.t.ladderize(direction=1)
                 self.outgroup_clade = outgroup_leaves[0]
             else:
-                print(f"[ERROR] no outgroup selected in {self.tree_name}")
+                print(
+                    f"{bold_red}[ERROR] no outgroup selected in {self.tree_name}{reset}"
+                )
                 raise Exception
 
             # If number of outgroup leaves and outgroup clade does not matches, paraphyletic
             if len(outgroup_leaves) != len(self.outgroup_clade):
                 print(
-                    f"[WARNING] outgroup seems to be paraphyletic in {self.tree_name}"
+                    f"{yellow}[WARNING] outgroup seems to be paraphyletic in {self.tree_name}{reset}"
                 )
 
         except:
-            print(f"[WARNING] no outgroup selected in {self.tree_name}")
+            print(f"{yellow}[WARNING] no outgroup selected in {self.tree_name}{reset}")
 
             outgroup_flag = False
             # if outgroup_clade is on the root side, reroot with other leaf temporarily and reroot again
@@ -573,6 +653,7 @@ class Tree_information:
                 print(f"Query: {sorted([FI.hash for FI in self.query_list])}")
                 print(f"DB: {sorted([FI.hash for FI in self.db_list])}")
                 print(f"Outgroup: {sorted([FI.hash for FI in self.outgroup])}")
+                raise Exception
 
     def decide_clade(self, clade, gene):
         taxon_dict = self.taxon_count(clade, gene)
@@ -698,10 +779,12 @@ class Tree_information:
                         continue
                     else:
                         break
+            """
             print(
                 f"[INFO] Generating collapse information on {self.group} {self.gene} for taxon {taxon}          ",
                 end="\r",
             )
+            """
 
             if not (taxon in self.collapse_dict):
                 self.collapse_dict[taxon] = [collapse_info]
@@ -900,7 +983,7 @@ class Tree_information:
 
                 return clade_list
 
-            ## Start of function solve_flat
+            ## Start of function: solve_flat
             root_dist = clade.dist
             root_support = clade.support
 
@@ -958,6 +1041,10 @@ class Tree_information:
 
                 # seperate this that order should not be affected by non-zero branch
                 tmp_final_clade = []
+
+                print(
+                    f"{green}taxon_to_merge: {taxon_to_merge}, self.zero: {self.zero}{reset}"
+                )
                 for taxon in taxon_to_merge:
                     l = clade_dict[taxon]  # l for list of results
                     r_list = [r[1] for r in l]  # result clade list
@@ -966,7 +1053,7 @@ class Tree_information:
 
                     # concatenate within taxon clades
                     concatenated_clade = concat_all(
-                        clade_tuple=r_tuple, root_dist=self.zero, root_support=0
+                        clade_tuple=r_tuple, root_dist=0, root_support=0
                     )
                     tmp_final_clade.append(concatenated_clade)
 
