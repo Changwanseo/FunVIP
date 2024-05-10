@@ -224,6 +224,8 @@ class Tree_information:
         self.additional_clustering = True
         self.zero = 0.00000100000050002909
 
+        self.flat_clades = []
+
     # to find out already existing new species number to avoid overlapping
     # e.g. avoid sp 5 if P. sp 5 already exsits in database
     def reserve_sp(self):
@@ -388,13 +390,13 @@ class Tree_information:
         # For each alignment identical_pairs, find tree length
         for pair in identical_pairs:
             if pdc[pair[0]][pair[1]] > self.zero:
-                print(f"Updated zero to {pdc[pair[0]][pair[1]]} from {pair}")
+                # print(f"Updated zero to {pdc[pair[0]][pair[1]]} from {pair}")
                 self.zero = pdc[pair[0]][pair[1]]
 
         diff_min = 999999
         for pair in different_pairs:
             if pdc[pair[0]][pair[1]] < diff_min:
-                print(f"Updated diff_min to {pdc[pair[0]][pair[1]]} from {pair}")
+                # print(f"Updated diff_min to {pdc[pair[0]][pair[1]]} from {pair}")
                 diff_min = pdc[pair[0]][pair[1]]
 
         if diff_min < self.zero:
@@ -801,7 +803,7 @@ class Tree_information:
         elif len(clade.children) == 2:
             for child_clade in clade.children:
                 # Calculate root distance between two childs to check flat
-                flat = (
+                self.flat = (
                     True if child_clade.dist <= self.opt.collapsedistcutoff else False
                 )
 
@@ -1042,9 +1044,6 @@ class Tree_information:
                 # seperate this that order should not be affected by non-zero branch
                 tmp_final_clade = []
 
-                print(
-                    f"{green}taxon_to_merge: {taxon_to_merge}, self.zero: {self.zero}{reset}"
-                )
                 for taxon in taxon_to_merge:
                     l = clade_dict[taxon]  # l for list of results
                     r_list = [r[1] for r in l]  # result clade list
@@ -1064,6 +1063,13 @@ class Tree_information:
                     root_dist=root_dist,
                     root_support=root_support,
                 )
+
+                # If more than 2 species (2 + sp - total 3), add flat issue
+                if len(taxon_to_merge) >= 3:
+                    for leaf in final:
+                        self.flat_clades.append(leaf.name)
+
+                # print(f"Status flat: {self.flat_clades}")
 
                 return final.copy("newick")
             ## end of solve flat

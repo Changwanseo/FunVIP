@@ -29,8 +29,6 @@ def pipe_module_tree_interpretation(
     hash_dict = V.dict_hash_name
     query_list = V.dict_dataset[group][gene].list_qr_FI
     outgroup = V.dict_dataset[group][gene].list_og_FI
-
-    print(V.partition)
     partition = V.partition[group]
 
     # for unexpectively included sequence during clustering
@@ -115,7 +113,9 @@ def pipe_module_tree_interpretation(
 
     # Reconstruct flat branches if option given
     if opt.solveflat is True:
-        tree_info.t = tree_info.reconstruct(tree_info.t.copy("newick"), gene, opt)
+        tree_info.t = tree_info.reconstruct(
+            clade=tree_info.t.copy("newick"), gene=gene, opt=opt
+        )
 
     # reorder tree for pretty look
     tree_info.t.ladderize(direction=1)
@@ -140,25 +140,6 @@ def pipe_module_tree_interpretation(
         f"{path.out_tree}/{opt.runname}_{group}_{gene}.nwk",
         newick=True,
     )
-
-    # print(tree_info.t_publish)
-    """
-    for collapse_taxon in tree_info.collapse_dict:
-        for collapse_info in tree_info.collapse_dict[collapse_taxon]:
-            clade = collapse_info.clade
-            for c in tree_info.t_publish.traverse():
-                set1 = set(l1.name for l1 in c.iter_leaves())
-                set2 = set(l2.name for l2 in clade.iter_leaves())
-                if set1 == set2:
-                    print(True)
-
-                # if any of hash in set in query list
-                # color bgcolor with given color
-                # if taxon is new species
-                # color bg color with another color
-                # change taxon order
-    """
-    # raise Exception
 
     return tree_info
 
@@ -611,6 +592,14 @@ def pipe_tree_interpretation(V, path, opt):
             pipe_module_tree_interpretation(*option)
             for option in tree_interpretation_opt
         ]
+
+    # Gather flat branch issues
+    for tree_info in tree_info_list:
+        # Only for concatenated
+        if tree_info.gene == "concatenated":
+            for flat_hash in tree_info.flat_clades:
+                FI = V.dict_hash_FI[flat_hash]
+                FI.issues.append("flat")
 
     synchronized_tree_info_list = synchronize(V, path, tree_info_list)
     tree_info_list = synchronized_tree_info_list
