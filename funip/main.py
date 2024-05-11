@@ -262,8 +262,10 @@ def main():
         # Check inconsistent
         V.check_inconsistent()
 
+        """
         for FI in V.list_FI:
             print(FI.id, FI.adjusted_group, type(FI.adjusted_group), FI.issues)
+        """
 
         # raise Exception
 

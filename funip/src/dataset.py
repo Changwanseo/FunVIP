@@ -572,7 +572,7 @@ class FunIP_var:
             for FI in self.list_FI:
                 if FI.adjusted_group == fail[0]:
                     if FI.seq[fail[1]] != "":
-                        FI.issues.append(f"alignfail:{fail[1]}")
+                        FI.issues.add(f"alignfail:{fail[1]}")
 
         print(fail_list)
 
@@ -677,7 +677,7 @@ class FunIP_var:
             for FI in V.list_FI:
                 if FI.adjusted_group == fail[0]:
                     if FI.seq[fail[1]] != "":
-                        FI.issues.append(f"lackseq")
+                        FI.issues.add(f"lackseq")
 
         # return V
 
@@ -713,4 +713,4 @@ class FunIP_var:
                                 inconsistent_flag = 1
 
                     if inconsistent_flag == 1:
-                        FI.issues.append("inconsistent")
+                        FI.issues.add("inconsistent")

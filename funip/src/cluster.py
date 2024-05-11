@@ -32,7 +32,7 @@ def append_query_group(V):
     # Indicate queries without any corresponding group
     for FI in V.list_FI:
         if FI.adjusted_group == "" and not ("noseq" in FI.issues):
-            FI.issues.append("nodb")
+            FI.issues.add("nodb")
 
     return V
 

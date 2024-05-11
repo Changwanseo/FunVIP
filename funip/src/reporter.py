@@ -85,6 +85,7 @@ class Report:
             "IDENTIFIED": [],
             "NEW SPECIES CANDIDATE": [],
             "MISIDENTIFIED": [],
+            "AMBIGUOUS": [],
             "ERROR": [],
             "TOTAL": [],
         }
@@ -112,11 +113,11 @@ class Report:
             "ID": [],
             "HASH": [],
             "DATATYPE": [],
+            "ISSUES": [],
             "GROUP_ORIGINAL": [],
             "GROUP_ASSIGNED": [],
             "SPECIES_ORIGINAL": [],
             "SPECIES_ASSIGNED": [],
-            "FLAT_BRANCH": [],
             "STATUS": [],
         }
 
@@ -170,11 +171,12 @@ class Report:
         self.result["ID"] = []
         self.result["HASH"] = []
         self.result["DATATYPE"] = []
+        self.result["ISSUES"] = []
         self.result["GROUP_ORIGINAL"] = []
         self.result["GROUP_ASSIGNED"] = []
         self.result["SPECIES_ORIGINAL"] = []
         self.result["SPECIES_ASSIGNED"] = []
-        self.result["FLAT_BRANCH"] = []
+        # self.result["FLAT_BRANCH"] = []
         # self.result["INCONSISTENT"] = []
         # self.result["AMBIGUOUS"] = []
         self.result["STATUS"] = []
@@ -239,9 +241,12 @@ class Report:
                     else:
                         self.result["SPECIES_ASSIGNED"].append("UNDETERMINED")
 
+                    # Issues
+                    self.result["ISSUES"].append(", ".join(sorted(list(FI.issues))))
+
                     ## Add abnormalities
                     # Flat
-                    self.result["FLAT_BRANCH"].append("/".join(FI.flat))
+                    # self.result["FLAT_BRANCH"].append("/".join(FI.flat))
                     # Inconsistency
 
                     """
@@ -266,6 +271,7 @@ class Report:
                         self.result["STATUS"].append("correctly identified")
                     else:
                         self.result["STATUS"].append("misidentified")
+
             # If no corresponding marker exists, indicate that
             else:
                 # print(f"DEBUGGING {self.dataset['GROUP']} {FI.adjusted_group}")
@@ -315,7 +321,7 @@ class Report:
             # Write into dictionary
             self.statistics["GROUP"].append(group)
             self.statistics["IDENTIFIED"].append(cnt_correctly_identified)
-            # self.statistics["AMBIGUOUS"].append(cnt_undetermined)
+            self.statistics["AMBIGUOUS"].append(cnt_undetermined)
             self.statistics["NEW SPECIES CANDIDATE"].append(cnt_new_species_candidate)
             self.statistics["MISIDENTIFIED"].append(cnt_misidentified)
             self.statistics["ERROR"].append(cnt_error)
@@ -324,7 +330,7 @@ class Report:
         # Add final summations
         self.statistics["GROUP"].append("TOTAL")
         self.statistics["IDENTIFIED"].append(sum(self.statistics["IDENTIFIED"]))
-        # self.statistics["AMBIGUOUS"].append(sum(self.statistics["AMBIGUOUS"]))
+        self.statistics["AMBIGUOUS"].append(sum(self.statistics["AMBIGUOUS"]))
         self.statistics["NEW SPECIES CANDIDATE"].append(
             sum(self.statistics["NEW SPECIES CANDIDATE"])
         )

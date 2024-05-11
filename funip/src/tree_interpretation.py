@@ -866,7 +866,9 @@ class Tree_information:
                             self.funinfo_dict[leaf.name].bygene_species[gene],
                         )
                     except:
-                        print(leaf.name)
+                        print(
+                            f"{bold_red}[DEVELOPMENTAL ERROR] in leaf.name tree_interpretation.py line 869 {resety}"
+                        )
                         raise Exception
 
                 taxon_dict = {}
@@ -881,7 +883,7 @@ class Tree_information:
 
                     if len(taxon_dict) == 0:
                         print(
-                            f"{bold_red}[DEVELOPMENTAL ERROR] ERROR in tree_interpretation.py line 799 {taxon_dict}\n {c}{reset}"
+                            f"{bold_red}[DEVELOPMENTAL ERROR] in tree_interpretation.py line 884 {taxon_dict}\n {c}{reset}"
                         )
                         raise Exception
                     # If only one species in the clade
@@ -895,14 +897,22 @@ class Tree_information:
                 # If only query in the clade
                 elif mode == "query":
                     for leaf in c:
+                        if ("", "") in taxon_dict:
+                            taxon_dict[("", "")] += 1
+                        else:
+                            taxon_dict[("", "")] = 1
+
+                    """
+                    for leaf in c:
                         if t in taxon_dict:
                             taxon_dict[t(leaf)] += 1
                         else:
                             taxon_dict[t(leaf)] = 1
+                    """
 
                     if len(taxon_dict) == 0:
                         print(
-                            f"{bold_red}[DEVELOPMENTAL ERROR] Error in tree_interpretation.py line 820 {taxon_dict}\n {c}{reset}"
+                            f"{bold_red}[DEVELOPMENTAL ERROR] Error in tree_interpretation.py line 912 {taxon_dict}\n {c}{reset}"
                         )
                         raise Exception
                     elif len(taxon_dict) == 1:
@@ -933,7 +943,7 @@ class Tree_information:
                             condition = True
 
                         if condition is True:
-                            if not (t in taxon_dict):
+                            if not (t(leaf) in taxon_dict):
                                 taxon_dict[t(leaf)] = 1
                             else:
                                 taxon_dict[t(leaf)] += 1
@@ -1044,6 +1054,7 @@ class Tree_information:
                 # seperate this that order should not be affected by non-zero branch
                 tmp_final_clade = []
 
+                flat_issue_cnt = 0
                 for taxon in taxon_to_merge:
                     l = clade_dict[taxon]  # l for list of results
                     r_list = [r[1] for r in l]  # result clade list
@@ -1056,6 +1067,9 @@ class Tree_information:
                     )
                     tmp_final_clade.append(concatenated_clade)
 
+                    if taxon != ("", "") and concatenated_clade.dist <= self.zero:
+                        flat_issue_cnt += 1
+
                 final_clade = tmp_final_clade + final_clade
 
                 final = concat_all(
@@ -1064,8 +1078,9 @@ class Tree_information:
                     root_support=root_support,
                 )
 
-                # If more than 2 species (2 + sp - total 3), add flat issue
-                if len(taxon_to_merge) >= 3:
+                # If 2+ species are connected to flat, add flat issue
+                if flat_issue_cnt >= 2:
+                    # print(taxon_to_merge)
                     for leaf in final:
                         self.flat_clades.append(leaf.name)
 
@@ -1317,7 +1332,7 @@ class Tree_information:
 
                 if species != "":
                     tspan = ET.SubElement(text, "{http://www.w3.org/2000/svg}tspan")
-                    tspan.text = species + " "
+                    tspan.text = species
                     try:
                         int(species)
                     except:

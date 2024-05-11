@@ -26,9 +26,9 @@ def combine_alignment(V, opt, path):
                 gene_list = []
 
                 for gene in V.dict_dataset[group]:
-                    gene_list.append(gene)
-
                     if not (gene == "concatenated"):
+                        gene_list.append(gene)
+
                         fasta_list = list(
                             SeqIO.parse(
                                 f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
@@ -71,6 +71,7 @@ def combine_alignment(V, opt, path):
                     f"{path.out_alignment}/{opt.runname}_{group}.partition", "w"
                 ) as fw:
                     tot_len = 0
+                    print(gene_list)
                     for gene in gene_list:
                         # gene_list.append(gene)
                         fw.write(f"DNA, {gene}= {tot_len+1}-{tot_len+len_dict[gene]}\n")

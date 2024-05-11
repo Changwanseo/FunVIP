@@ -595,11 +595,9 @@ def pipe_tree_interpretation(V, path, opt):
 
     # Gather flat branch issues
     for tree_info in tree_info_list:
-        # Only for concatenated
-        if tree_info.gene == "concatenated":
-            for flat_hash in tree_info.flat_clades:
-                FI = V.dict_hash_FI[flat_hash]
-                FI.issues.append("flat")
+        for flat_hash in tree_info.flat_clades:
+            FI = V.dict_hash_FI[flat_hash]
+            FI.issues.add(f"flat:{tree_info.gene}")
 
     synchronized_tree_info_list = synchronize(V, path, tree_info_list)
     tree_info_list = synchronized_tree_info_list
@@ -652,8 +650,8 @@ def pipe_tree_interpretation(V, path, opt):
                 FI.final_species = singlereport.species_assigned
                 FI.species_identifier = singlereport.ambiguous
 
-                if FI.species_identifier > 0:
-                    FI.issues.append("paraphyly")
+                if singlereport.ambiguous > 0:
+                    FI.issues.add("polyphyly:concatenated")
 
                 if singlereport.flat is True:
                     FI.flat.append("concatenated")
@@ -668,6 +666,10 @@ def pipe_tree_interpretation(V, path, opt):
                 # In each gene tree, follow the group which taxon analyzed from concatenated tree
                 if hash_dict_analysis[singlereport.hash] == singlereport.group_analysis:
                     FI.bygene_species[singlereport.gene] = singlereport.species_assigned
+
+                    if singlereport.ambiguous > 0:
+                        FI.issues.add(f"polyphyly:{singlereport.gene}")
+
                     if singlereport.flat is True:
                         FI.flat.append(singlereport.gene)
             else:

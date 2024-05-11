@@ -55,7 +55,7 @@ class Funinfo:
         self.unclassified_seq = []
         self.color = None  # color for highlighting in phylogenetic tree
         self.flat = []  # list of flat species in concatenated tree
-        self.issues = []  # list of issues to this FI
+        self.issues = set()  # list of issues to this FI
 
     def update_seqrecord(self, seq, gene=None):
         flag = 0
@@ -760,7 +760,7 @@ def data_input(V, R, opt, path):
                 flag_available_gene = 1
 
         if flag_available_gene == 0:
-            FI.issues.append("noseq")
+            FI.issues.add("noseq")
 
     return V, R, opt
 
