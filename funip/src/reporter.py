@@ -93,22 +93,6 @@ class Report:
         # For linking in html, should be added later (on GUI)
         # self.statistics_link = {}
 
-        # By gene results, and sequence should be added
-        """
-        self.result = {
-            "ID": [],
-            "HASH": [],
-            "DATATYPE": [],
-            "GROUP_ORIGINAL": [],
-            "GROUP_ASSIGNED": [],
-            "SPECIES_ORIGINAL": [],
-            "SPECIES_ASSIGNED": [],
-            "FLAT_BRANCH": [],
-            "INCONSISTENT": [],
-            "AMBIGUOUS": [],
-            "STATUS": [],
-        }
-        """
         self.result = {
             "ID": [],
             "HASH": [],
@@ -249,15 +233,6 @@ class Report:
                     # self.result["FLAT_BRANCH"].append("/".join(FI.flat))
                     # Inconsistency
 
-                    """
-                    if inconsistent_flag == 1:
-                        self.result["INCONSISTENT"].append("inconsistent")
-                    else:
-                        self.result["INCONSISTENT"].append("-")
-                    """
-
-                    # self.result["AMBIGUOUS"].append(FI.species_identifier)
-
                     if FI.final_species.strip() == "":
                         self.result["STATUS"].append("ERROR")
                     elif (
@@ -274,8 +249,8 @@ class Report:
 
             # If no corresponding marker exists, indicate that
             else:
-                # print(f"DEBUGGING {self.dataset['GROUP']} {FI.adjusted_group}")
-                # logging.info(f"{FI} removed from report because not used in analysis")
+                logging.debug(f"DEBUGGING {self.dataset['GROUP']} {FI.adjusted_group}")
+                logging.debug(f"{FI} removed from report because not used in analysis")
                 pass
 
         ## update query only result
@@ -340,33 +315,33 @@ class Report:
 
     ### Main report runner
     # Update report by pipeline step
-    def update_report(self, V, path, opt, step):
+    def update_report(self, V, path, opt, step, version):
         if step == "setup":
-            self.report_text(V, path, opt, step)
+            self.report_text(V, path, opt, step, version)
         elif step == "search":
             self.report_table(V, path, opt, step)
-            self.report_text(V, path, opt, step)
+            self.report_text(V, path, opt, step, version)
         elif step == "cluster":
             self.update_dataset(V, opt)
             self.report_table(V, path, opt, step)
-            self.report_text(V, path, opt, step)
+            self.report_text(V, path, opt, step, version)
             # Datasets are made after clustering
         elif step == "align":
-            self.report_text(V, path, opt, step)
+            self.report_text(V, path, opt, step, version)
         elif step == "trim":
-            self.report_text(V, path, opt, step)
+            self.report_text(V, path, opt, step, version)
         elif step == "concatenate":
-            self.report_text(V, path, opt, step)
+            self.report_text(V, path, opt, step, version)
         elif step == "modeltest":
-            self.report_text(V, path, opt, step)
+            self.report_text(V, path, opt, step, version)
         elif step == "tree":
-            self.report_text(V, path, opt, step)
+            self.report_text(V, path, opt, step, version)
         elif step == "visualize":
-            self.report_text(V, path, opt, step)
+            self.report_text(V, path, opt, step, version)
         elif step == "report":
             self.update_result(V, opt)
             self.report_table(V, path, opt, step)
-            self.report_text(V, path, opt, step)
+            self.report_text(V, path, opt, step, version)
         else:
             logging.error(
                 f"DEVELOPMENTAL ERROR : BAD STEP INPUT {step} WHILE UPDATE REPORT"
@@ -374,7 +349,7 @@ class Report:
             raise Exception
 
     # Generate report in text file
-    def report_text(self, V, path, opt, step):
+    def report_text(self, V, path, opt, step, version):
         # Rewrite everytime when called, the io step won't be that much
         with open(f"{path.root}/{opt.runname}.report.txt", "wt", encoding="UTF8") as f:
             if index_step(step) >= 0:
@@ -765,18 +740,19 @@ class Report:
                     software_list.append("RAxML")
 
             # append software list by step
+            # Should add GenMine version here
             dict_version = {
                 "FunIP": f"{__version__}",
-                "BLASTn": "2.13.0",
-                "MMseqs2": "14.7e284",
-                "MAFFT": "7.453",
-                "Gblocks": "0.91b",
-                "TrimAl": "1.4",
-                "Modeltest-NG": "0.1.7",
-                "Partitionfinder": "2.2.0.3",
-                "FastTree": "2.1.11",
-                "IQTREE2": "2.2.2.7",
-                "RAxML": "8.2.12",
+                "BLASTn": version.BLASTn,
+                "MMseqs2": version.MMseqs2,
+                "MAFFT": version.MAFFT,
+                "Gblocks": version.Gblocks,
+                "TrimAl": version.trimAl,
+                "Modeltest-NG": version.Modeltest_NG,
+                "Partitionfinder": version.IQTREE2,
+                "FastTree": version.FastTree,
+                "IQTREE2": version.IQTREE2,
+                "RAxML": version.RAxML,
             }
 
             ### Version for each software notation

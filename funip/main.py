@@ -20,6 +20,7 @@ def main():
     from funip.src.command import CommandParser
     from funip.src.tool import index_step
     from funip.src.opt_generator import opt_generator
+    from funip.src.version import Version
     from time import time
     from time import sleep
     import pandas as pd
@@ -57,6 +58,9 @@ def main():
         path_run=os.getcwd(), parser=args
     )
     tool.initialize_path(path)
+
+    # Initialize version management
+    version = Version(opt, path)
 
     logger.setup_logging(list_info, list_warning, list_error, path, opt, tool)
 
@@ -102,7 +106,7 @@ def main():
         # get possible genus list for recognizing genus name
         V = initialize.get_genus_list(V, opt, path)
 
-        R.update_report(V=V, path=path, opt=opt, step=step)
+        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
 
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
@@ -123,7 +127,7 @@ def main():
         # Update gene assignment of query sequence inputs
         manage_input.update_queryfile(V, path, opt)
 
-        R.update_report(V=V, path=path, opt=opt, step=step)
+        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_search = time()
@@ -159,7 +163,7 @@ def main():
         # Save dataset to outgroups
         V.save_dataset(path, opt)
 
-        R.update_report(V=V, path=path, opt=opt, step=step)
+        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_cluster = time()
@@ -170,7 +174,7 @@ def main():
         logging.info("ALIGNMENT")
         V, path, opt = align.pipe_alignment(V, path, opt)
 
-        R.update_report(V=V, path=path, opt=opt, step=step)
+        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_align = time()
@@ -182,7 +186,7 @@ def main():
         V, path, opt = trim.pipe_trimming(V, path, opt)
         # Alignment validations - whether some of the sequences does not have overlapping regions
         V.validate_alignments(path=path, opt=opt)
-        R.update_report(V=V, path=path, opt=opt, step=step)
+        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_trim = time()
@@ -195,7 +199,7 @@ def main():
         # Multigene
         V = concatenate.combine_alignment(V, opt, path)
 
-        R.update_report(V=V, path=path, opt=opt, step=step)
+        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_concatenate = time()
@@ -208,7 +212,7 @@ def main():
         # most of the modeltest algorithms are well working with multiprocessing
         model_dict = modeltest.modeltest(V, path, opt)
 
-        R.update_report(V=V, path=path, opt=opt, step=step)
+        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_modeltest = time()
@@ -221,14 +225,14 @@ def main():
         # Build phylogenetic trees
         V, path, opt = tree.pipe_tree(V, path, opt, model_dict)
 
-        R.update_report(V=V, path=path, opt=opt, step=step)
+        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         # move tree and image files
         tool.cleanup_tree(path)
         tool.cleanup_tree_image(path)
 
-        R.update_report(V=V, path=path, opt=opt, step=step)
+        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_tree = time()
@@ -246,7 +250,7 @@ def main():
         tool.cleanup_tree(path)
         tool.cleanup_tree_image(path)
 
-        R.update_report(V=V, path=path, opt=opt, step=step)
+        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
         save.save_session(opt=opt, path=path, global_var=locals(), var=dir())
 
         time_visualize = time()
@@ -269,7 +273,7 @@ def main():
 
         # raise Exception
 
-        R.update_report(V, path, opt, step=step)
+        R.update_report(V, path, opt, step=step, version=version)
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_end = time()

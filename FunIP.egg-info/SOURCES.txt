@@ -179,6 +179,7 @@ funip/src/tree_interpretation_pipe.py
 funip/src/trim.py
 funip/src/validate_option.py
 funip/src/validation.py
+funip/src/version.py
 funip/test_dataset/penicillium/Options.config
 funip/test_dataset/penicillium/preset.yaml
 funip/test_dataset/penicillium/DB/DB_Penicillium.xlsx
