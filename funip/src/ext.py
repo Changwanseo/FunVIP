@@ -292,7 +292,7 @@ def ModelFinder(fasta, opt, path, thread):
     if platform == "win32":
         if " " in fasta:
             fasta = f'"{fasta}"'
-        CMD = f"{path.sys_path}/external/iqtree-2.2.2.7-Windows/bin/iqtree2.exe --seqtype DNA -s {fasta} {model_term} -merit {opt.criterion} -T {thread} -mem {opt.memory}"
+        CMD = f"{path.sys_path}/external/iqtree/bin/iqtree2.exe --seqtype DNA -s {fasta} {model_term} -merit {opt.criterion} -T {thread} -mem {opt.memory}"
     else:
         # not final
         CMD = f"iqtree --seqtype DNA -s '{fasta}' {model_term} -merit {opt.criterion} -T {thread} -mem {opt.memory}"
@@ -409,7 +409,7 @@ def IQTREE(
         else:
             tmp_fasta = fasta
 
-        CMD = f"{path.sys_path}/external/iqtree-2.2.2.7-Windows/bin/iqtree2.exe -s {tmp_fasta} -B {bootstrap} -T {thread} {model}"
+        CMD = f"{path.sys_path}/external/iqtree/bin/iqtree2.exe -s {tmp_fasta} -B {bootstrap} -T {thread} {model}"
     else:
         CMD = f"iqtree -s {fasta} -B {bootstrap} -T {thread} {model}"
 

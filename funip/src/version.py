@@ -110,7 +110,7 @@ class Version:
 
             ### IQTREE
             CMD = [
-                f"{path.sys_path}/external/iqtree-2.2.2.7-Windows/bin/iqtree2.exe",
+                f"{path.sys_path}/external/iqtree/bin/iqtree2.exe",
                 "--version",
             ]
             result = subprocess.Popen(
