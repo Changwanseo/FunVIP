@@ -50,7 +50,7 @@ def manage_unicode(string, column="", row=""):
         column_string = ""
 
     logging.info(
-        f"Illegal unicode character found {column_string}{row_string}: {string}. Trying flexible solve"
+        f"Illegal unicode character found {column_string}{row_string}: {unidecode(string)}. Trying flexible solve"
     )
 
     try:

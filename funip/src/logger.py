@@ -4,12 +4,15 @@ import logging
 
 
 class CustomFormatter(logging.Formatter):
-    grey = "\x1b[38;20m"
-    yellow = "\x1b[33;20m"
-    red = "\x1b[31;20m"
-    bold_red = "\x1b[31;1m"
-    white = "\x1b[38;97m"
-    reset = "\x1b[0m"
+    # ANSI \u001b
+    # UNICODE \u001b
+
+    grey = "\u001b[38;20m"
+    yellow = "\u001b[33;20m"
+    red = "\u001b[31;20m"
+    bold_red = "\u001b[31;1m"
+    white = "\u001b[38;97m"
+    reset = "\u001b[0m"
     fmt = "%(asctime)s [%(levelname)s] %(message)s"
     fmt_err = "%(asctime)s [%(levelname)s] %(message)s (%(filename)s:%(lineno)d)"
 
