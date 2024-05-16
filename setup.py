@@ -4,7 +4,7 @@ from sys import platform
 import subprocess
 
 name = "FunVIP"
-__version__ = "0.3.19.0.1.6"
+__version__ = "0.3.19.0.1.12"
 
 
 # Define common setup options
@@ -67,6 +67,8 @@ elif platform == "win32":
     setup_options["packages"].append("funvip.external")
     setup_options["install_requires"].append("PyQt5>=5.9.2")
     setup_options["package_data"]["funvip.external"] = ["**"]
+else:  # linux maybe
+    setup_options["install_requires"].append("PyQt5>=5.9.2")
 
 
 def run_tests():

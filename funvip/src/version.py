@@ -201,13 +201,9 @@ class Version:
             result = subprocess.Popen(
                 CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
+            stdout, stderr = result.communicate()
             stdout_str = stdout.decode("utf-8")
-
-            print("Modeltest_NG - should finish this code")
-            print(stdout)
-            self.Modeltest_NG = "not supported"
-
-            raise Exception
+            self.Modeltest_NG = stdout_str.split("ModelTest-NG ")[1].split(" ")[0]
 
             ### FastTree
             ## Also use stderr of FastTree
@@ -221,7 +217,7 @@ class Version:
             # print("FastTree", self.FastTree)
 
             ### IQTREE
-            CMD = ["IQTree2", "--version"]
+            CMD = ["iqtree", "--version"]
             result = subprocess.Popen(
                 CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
@@ -296,13 +292,9 @@ class Version:
             result = subprocess.Popen(
                 CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
+            stdout, stderr = result.communicate()
             stdout_str = stdout.decode("utf-8")
-
-            print("Modeltest_NG - should finish this code")
-            print(stdout)
-            self.Modeltest_NG = "not supported"
-
-            raise Exception
+            self.Modeltest_NG = stdout_str.split("ModelTest-NG ")[1].split(" ")[0]
 
             ### FastTree
             ## Also use stderr of FastTree
@@ -316,7 +308,7 @@ class Version:
             # print("FastTree", self.FastTree)
 
             ### IQTREE
-            CMD = ["IQTree2", "--version"]
+            CMD = ["iqtree", "--version"]
             result = subprocess.Popen(
                 CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
