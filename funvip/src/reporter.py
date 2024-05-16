@@ -223,7 +223,49 @@ class Report:
                         self.result["SPECIES_ASSIGNED"].append("UNDETERMINED")
 
                     # Issues
-                    self.result["ISSUES"].append(", ".join(sorted(list(FI.issues))))
+                    flat_issues = []
+                    alignfail_issues = []
+                    polyphyly_issues = []
+                    other_issues = []
+                    for issue in FI.issues:
+                        if issue.startswith("flat"):
+                            flat_issues.append(issue)
+                        elif issue.startswith("alignfail"):
+                            alignfail_issues.append(issue)
+                        elif issue.startswith("polyphyly"):
+                            polyphyly_issues.append(issue)
+                        else:
+                            other_issues.append(issue)
+
+                    issues_string = ", ".join(other_issues)
+                    if len(flat_issues) > 0:
+                        flat_issue_str = "flat:" + "/".join(
+                            sorted([issue.split(":")[1] for issue in flat_issues])
+                        )
+                        if len(issues_string) == 0:
+                            issues_string = flat_issue_str
+                        else:
+                            issues_string += f", {flat_issue_str}"
+
+                    if len(alignfail_issues) > 0:
+                        alignfail_issue_str = "alignfail:" + "/".join(
+                            sorted([issue.split(":")[1] for issue in alignfail_issues])
+                        )
+                        if len(issues_string) == 0:
+                            issues_string = alignfail_issue_str
+                        else:
+                            issues_string += f", {alignfail_issue_str}"
+
+                    if len(polyphyly_issues) > 0:
+                        polyphyly_issue_str = "polyphyly:" + "/".join(
+                            sorted([issue.split(":")[1] for issue in polyphyly_issues])
+                        )
+                        if len(issues_string) == 0:
+                            issues_string = polyphyly_issue_str
+                        else:
+                            issues_string += f", {polyphyly_issue_str}"
+
+                    self.result["ISSUES"].append(issues_string)
 
                     ## Add abnormalities
                     # Flat

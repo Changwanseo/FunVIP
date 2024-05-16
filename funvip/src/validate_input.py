@@ -464,7 +464,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                 logging.info(
                     f"Running GenMine to download {len(download_set)} sequences from GenBank"
                 )
-                logging.info(download_set)
+                # logging.info(download_set)
 
                 # Write GenMine input file
                 with open(f"{path.GenMine}/Accessions.txt", "w") as fg:
@@ -482,7 +482,6 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
 
                 cmd = f"GenMine -c {accession_path} -o {GenMine_path} -e {opt.email}"
                 logging.info(cmd)
-                logging.info(f"{cmd}")
 
                 return_code = subprocess.call(cmd, shell=True)
 
