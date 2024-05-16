@@ -166,11 +166,14 @@ class Report:
             FI = V.dict_hash_FI[_hash]
 
             # Collect result from only used sequences
-            if FI.adjusted_group in V.dict_dataset:
+            # if FI.adjusted_group in V.dict_dataset:
+            if 1:
                 # If any of appropriate gene used
-                if any(
-                    key in V.dict_dataset[FI.adjusted_group] for key in FI.seq.keys()
-                ):
+                if FI.adjusted_group in V.dict_dataset:
+                    # if any(
+                    #    key in V.dict_dataset[FI.adjusted_group] for key in FI.seq.keys()
+                    # ):
+
                     # Default results
                     self.result["ID"].append(FI.original_id)
                     self.result["HASH"].append(FI.hash)
@@ -215,6 +218,104 @@ class Report:
                             """
                         else:
                             self.result[f"{gene.upper()}_ASSIGNED"].append("-")
+
+                    # Add final identification result
+                    if FI.final_species != "":
+                        self.result["SPECIES_ASSIGNED"].append(f"{FI.final_species}")
+                    else:
+                        self.result["SPECIES_ASSIGNED"].append("UNDETERMINED")
+
+                    # Issues
+                    flat_issues = []
+                    alignfail_issues = []
+                    polyphyly_issues = []
+                    other_issues = []
+                    for issue in FI.issues:
+                        if issue.startswith("flat"):
+                            flat_issues.append(issue)
+                        elif issue.startswith("alignfail"):
+                            alignfail_issues.append(issue)
+                        elif issue.startswith("polyphyly"):
+                            polyphyly_issues.append(issue)
+                        else:
+                            other_issues.append(issue)
+
+                    issues_string = ", ".join(other_issues)
+                    if len(flat_issues) > 0:
+                        flat_issue_str = "flat:" + "/".join(
+                            sorted([issue.split(":")[1] for issue in flat_issues])
+                        )
+                        if len(issues_string) == 0:
+                            issues_string = flat_issue_str
+                        else:
+                            issues_string += f", {flat_issue_str}"
+
+                    if len(alignfail_issues) > 0:
+                        alignfail_issue_str = "alignfail:" + "/".join(
+                            sorted([issue.split(":")[1] for issue in alignfail_issues])
+                        )
+                        if len(issues_string) == 0:
+                            issues_string = alignfail_issue_str
+                        else:
+                            issues_string += f", {alignfail_issue_str}"
+
+                    if len(polyphyly_issues) > 0:
+                        polyphyly_issue_str = "polyphyly:" + "/".join(
+                            sorted([issue.split(":")[1] for issue in polyphyly_issues])
+                        )
+                        if len(issues_string) == 0:
+                            issues_string = polyphyly_issue_str
+                        else:
+                            issues_string += f", {polyphyly_issue_str}"
+
+                    self.result["ISSUES"].append(issues_string)
+
+                    ## Add abnormalities
+                    # Flat
+                    # self.result["FLAT_BRANCH"].append("/".join(FI.flat))
+                    # Inconsistency
+
+                    if FI.final_species.strip() == "":
+                        self.result["STATUS"].append("ERROR")
+                    elif (
+                        f"{FI.ori_genus} {FI.ori_species}".strip() == ""
+                        and "sp." in FI.final_species.strip()
+                    ):
+                        self.result["STATUS"].append("new species candidate")
+                    elif f"{FI.ori_genus} {FI.ori_species}".strip() == "":
+                        self.result["STATUS"].append("undetermined")
+                    elif FI.final_species == f"{FI.ori_genus} {FI.ori_species}":
+                        self.result["STATUS"].append("correctly identified")
+                    else:
+                        self.result["STATUS"].append("misidentified")
+
+                # For outgroup
+                else:
+                    # Default results
+                    self.result["ID"].append(FI.original_id)
+                    self.result["HASH"].append(FI.hash)
+                    self.result["DATATYPE"].append("outgroup")
+
+                    if str(FI.group).strip() == "":
+                        self.result["GROUP_ORIGINAL"].append("-")
+                    else:
+                        self.result["GROUP_ORIGINAL"].append(FI.group)
+
+                    self.result["GROUP_ASSIGNED"].append(FI.group)
+
+                    if f"{FI.ori_genus} {FI.ori_species}".strip() == "":
+                        self.result["SPECIES_ORIGINAL"].append("-")
+                    else:
+                        self.result["SPECIES_ORIGINAL"].append(
+                            f"{FI.ori_genus} {FI.ori_species}"
+                        )
+
+                    # Collect identification result for each gene analysis
+                    # inconsistent_flag = 0
+
+                    for gene in set_gene:
+                        # Check if data analysis had performed for specific FI, group, gene combination
+                        self.result[f"{gene.upper()}_ASSIGNED"].append("-")
 
                     # Add final identification result
                     if FI.final_species != "":

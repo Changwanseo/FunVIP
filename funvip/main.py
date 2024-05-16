@@ -125,6 +125,9 @@ def main():
 
         time_setup = time()
 
+        if not ("HS49HE" in V.dict_hash_FI):
+            raise Exception
+
     # Searching (BLAST or mmseqs)
     if opt.continue_from_previous is False or index_step(opt.step) <= 1:
         step = "search"
@@ -151,6 +154,9 @@ def main():
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_search = time()
+
+        if not ("HS49HE" in V.dict_hash_FI):
+            raise Exception
 
     # Clustering
     if opt.continue_from_previous is False or index_step(opt.step) <= 2:
@@ -195,6 +201,9 @@ def main():
 
         time_cluster = time()
 
+        if not ("HS49HE" in V.dict_hash_FI):
+            raise Exception
+
     # Alignment
     if opt.continue_from_previous is False or index_step(opt.step) <= 3:
         step = "align"
@@ -212,6 +221,9 @@ def main():
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_align = time()
+
+        if not ("HS49HE" in V.dict_hash_FI):
+            raise Exception
 
     # Trimming
     if opt.continue_from_previous is False or index_step(opt.step) <= 4:
@@ -231,6 +243,9 @@ def main():
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_trim = time()
+
+        if not ("HS49HE" in V.dict_hash_FI):
+            raise Exception
 
     # Concatenation (multigene)
     if opt.continue_from_previous is False or index_step(opt.step) <= 5:
@@ -252,6 +267,9 @@ def main():
 
         time_concatenate = time()
 
+        if not ("HS49HE" in V.dict_hash_FI):
+            raise Exception
+
     # Modeltest
     if opt.continue_from_previous is False or index_step(opt.step) <= 6:
         step = "modeltest"
@@ -271,6 +289,9 @@ def main():
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_modeltest = time()
+
+        if not ("HS49HE" in V.dict_hash_FI):
+            raise Exception
 
     # Tree construction
     if opt.continue_from_previous is False or index_step(opt.step) <= 7:
@@ -306,6 +327,9 @@ def main():
 
         time_tree = time()
 
+        if not ("HS49HE" in V.dict_hash_FI):
+            raise Exception
+
     # Visualize
     if opt.continue_from_previous is False or index_step(opt.step) <= 8:
         step = "visualize"
@@ -331,6 +355,9 @@ def main():
 
         time_visualize = time()
 
+        if not ("HS49HE" in V.dict_hash_FI):
+            raise Exception
+
     # Report
     if opt.continue_from_previous is False or index_step(opt.step) <= 9:
         step = "report"
@@ -342,13 +369,6 @@ def main():
         # Check inconsistent
         V.check_inconsistent()
 
-        """
-        for FI in V.list_FI:
-            print(FI.id, FI.adjusted_group, type(FI.adjusted_group), FI.issues)
-        """
-
-        # raise Exception
-
         R.update_report(
             V, path, opt, step=step, version=version, GenMine_flag=GenMine_flag
         )
@@ -356,6 +376,9 @@ def main():
 
         time_end = time()
         logging.info(f"FunVIP ended in {time_end - time_start}")
+
+        if not ("HS49HE" in V.dict_hash_FI):
+            raise Exception
 
         try:
             logging.info(f"Time setup : {time_setup-time_start}s")

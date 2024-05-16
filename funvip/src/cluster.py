@@ -485,6 +485,15 @@ def pipe_append_outgroup(V, path, opt):
             V.dict_dataset[group][gene].list_og_FI = outgroup
             # Add ambiguous group to FI
             V.dict_dataset[group][gene].list_db_FI += ambiguous_group
+            # Add outgroup and db in to dict_hash_FI
+
+            # Should find out why this does not work at the end
+            """
+            for FI in outgroup + ambiguous_group:
+                # If already in dict_hash_FI, they have priority
+                if not (FI.hash in V.dict_hash_FI):
+                    V.dict_hash_FI[FI.hash] = FI
+            """
 
     groups = deepcopy(list(V.dict_dataset.keys()))
 
