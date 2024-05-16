@@ -421,7 +421,7 @@ if "run" in st.session_state:
         print("Updating run status")
 
         # Running
-        with st.spinner("Running FunIP"):
+        with st.spinner("Running FunVIP"):
             query_string = " ".join(
                 [
                     f"./Query/{get_script_run_ctx().session_id}_{i}.fasta"

@@ -1,5 +1,5 @@
-from funip.src import ext
-from funip.src.opt_generator import opt_generator
+from funvip.src import ext
+from funvip.src.opt_generator import opt_generator
 from Bio import AlignIO
 from Bio import SeqIO
 from time import sleep

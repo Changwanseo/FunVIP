@@ -5,8 +5,8 @@ import io
 import logging
 import plotly.express as px
 from tabulate import tabulate
-from funip.src.tool import index_step
-from funip.src.save import save_df
+from funvip.src.tool import index_step
+from funvip.src.save import save_df
 
 
 ### Temporary report for tree_interpretation_pipe
@@ -350,7 +350,7 @@ class Report:
         # Rewrite everytime when called, the io step won't be that much
         with open(f"{path.root}/{opt.runname}.report.txt", "wt", encoding="UTF8") as f:
             if index_step(step) >= 0:
-                f.write("FunIP Report\n\n")
+                f.write("FunVIP Report\n\n")
                 ## Write runinfo
                 f.write("[INFO]\n")
                 # Runname
@@ -507,10 +507,10 @@ class Report:
                 )
                 f.write("DATATYPE : query or database\n")
                 f.write("GROUP_ORIGINAL : group name given by user\n")
-                f.write("GROUP_ASSIGNED : group assigned by FunIP clustering\n")
+                f.write("GROUP_ASSIGNED : group assigned by FunVIP clustering\n")
                 f.write("SPECIES_ORIGINAL : species name given by user\n")
                 f.write(
-                    "SPECIES_ASSIGNED : final species name (usually result from concatenated analysis) assigned by FunIP tree_interpretation\n"
+                    "SPECIES_ASSIGNED : final species name (usually result from concatenated analysis) assigned by FunVIP tree_interpretation\n"
                 )
                 f.write(
                     "FLAT_BRANCH : Strains with flat_branch in phylogenetic analysis. If checked, please check your barcode region have enough taxonomic resolution\n"
@@ -530,7 +530,7 @@ class Report:
             # Can be written after clustering step
             if index_step(step) >= 1:
                 f.write(f"[METHOD]\n")
-                f.write(f"Sequences were identified with FunIP {version.FunVIP}\n")
+                f.write(f"Sequences were identified with FunVIP {version.FunVIP}\n")
                 f.write("\n")
 
                 cnt_db = len([FI for FI in V.list_FI if FI.datatype == "db"])
@@ -557,7 +557,7 @@ class Report:
                 f.write(
                     "* Most of the warnings in this step are usually typo problems "
                     "(blanks, tabs, foreign languages that cannot be used in certain programs - like german umlauts) "
-                    "and can be automatically fixed by FunIP. So you don't have to consider about it that much if you are not going to directly publish.\n"
+                    "and can be automatically fixed by FunVIP. So you don't have to consider about it that much if you are not going to directly publish.\n"
                 )
                 f.write("\n")
 
@@ -684,7 +684,7 @@ class Report:
 
                 """
                 f.write(
-                    f"As a result of FunIP analysis, a total of {cnt_query} strains were identified"
+                    f"As a result of FunVIP analysis, a total of {cnt_query} strains were identified"
                     f"{cnt_query} sequences constists of"
                     f"{cnt_consistent} well identified strains,"
                     f"{cnt_ambiguous} strains that showed different results by genes,"
@@ -767,7 +767,7 @@ class Report:
             ### Write citations
             f.write(f"[CITATION]\n")
             dict_citation = {
-                "FunVIP": "https://github.com/Changwanseo/FunIP",
+                "FunVIP": "https://github.com/Changwanseo/FunVIP",
                 "GenMine": "Seo, C. W., Kim, S. H., Lim, Y. W., & Park, M. S. (2022). Re-identification on Korean Penicillium sequences in GenBank collected by software GenMine. Mycobiology, 50(4), 231-237.",
                 "BLASTn": "Altschul, S. F., Gish, W., Miller, W., Myers, E. W., & Lipman, D. J. (1990). Basic local alignment search tool. Journal of molecular biology, 215(3), 403-410.",
                 "MMseqs2": "Steinegger, M., & Söding, J. (2017). MMseqs2 enables sensitive protein sequence searching for the analysis of massive data sets. Nature biotechnology, 35(11), 1026-1028.",

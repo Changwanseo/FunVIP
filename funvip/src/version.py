@@ -38,7 +38,7 @@ class Version:
         # For windows platform
         if sys.platform == "win32":
             ### FunVIP
-            self.FunVIP = version("FunIP")
+            self.FunVIP = version("FunVIP")
 
             ### GenMine
             self.GenMine = version("GenMine")
@@ -50,7 +50,7 @@ class Version:
             )
             stdout, stderr = result.communicate()
             stdout_str = stdout.decode("utf-8")
-            ## Format
+            ## tableformat
             # blastn: blastn: 2.12.0+
             #   Package: blast 2.12.0, build Jun  4 2021 03:25:07
             self.BLASTn = stdout_str.split("\n")[0].split(" ")[1].strip()

@@ -1,12 +1,13 @@
 # ete3 patch
+# After using ete3 3.1.3, we don't need this anymore
 from __future__ import absolute_import
 from __future__ import print_function
 import ete3
 from copy import deepcopy
 
+
 # Patch for ete3 3.1.2 colliding with higher version PyQt5
 def save(scene, imgName, w=None, h=None, dpi=90, take_region=False, units="px"):
-
     import colorsys
     import random
     import re

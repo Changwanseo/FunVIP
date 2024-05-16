@@ -10,14 +10,14 @@ import numpy as np
 import logging
 from unidecode import unidecode
 from Bio import SeqIO
-from funip.src.tool import (
+from funvip.src.tool import (
     initialize_path,
     get_genus_species,
     get_id,
     manage_unicode,
 )
-from funip.src.logics import isnewicklegal
-from funip.src.hasher import decode, newick_legal, hash_funinfo_list
+from funvip.src.logics import isnewicklegal
+from funvip.src.hasher import decode, newick_legal, hash_funinfo_list
 import shelve
 
 

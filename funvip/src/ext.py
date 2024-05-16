@@ -7,8 +7,8 @@ import shutil
 import psutil
 from copy import deepcopy
 from pathlib import Path
-from funip.src.save import save_tree
-from funip.src.tool import mkdir
+from funvip.src.save import save_tree
+from funvip.src.tool import mkdir
 
 
 # Search methods

@@ -12,7 +12,7 @@ from copy import deepcopy
 
 from unidecode import unidecode
 from Bio import SeqIO
-from funip.src.tool import (
+from funvip.src.tool import (
     initialize_path,
     get_genus_species,
     get_id,
@@ -21,9 +21,9 @@ from funip.src.tool import (
 )
 from pathlib import Path
 
-from funip.src import save
-from funip.src.logics import isnewicklegal, isuniquecolumn, isvalidcolor
-from funip.src.hasher import decode, newick_legal, hash_funinfo_list
+from funvip.src import save
+from funvip.src.logics import isnewicklegal, isuniquecolumn, isvalidcolor
+from funvip.src.hasher import decode, newick_legal, hash_funinfo_list
 
 
 ## newick illegal characters

@@ -1,26 +1,26 @@
 def main():
-    from funip.src import align
-    from funip.src import tree_interpretation_pipe
-    from funip.src import cluster
-    from funip.src import dataset
-    from funip.src import ext
-    from funip.src import hasher
-    from funip.src import initialize
-    from funip.src import logger
-    from funip.src import manage_input
-    from funip.src import modeltest
-    from funip.src import concatenate
-    from funip.src import patch
-    from funip.src import reporter
-    from funip.src import tool
-    from funip.src import save
-    from funip.src import search
-    from funip.src import tree
-    from funip.src import trim
-    from funip.src.command import CommandParser
-    from funip.src.tool import index_step
-    from funip.src.opt_generator import opt_generator
-    from funip.src.version import Version
+    from funvip.src import align
+    from funvip.src import tree_interpretation_pipe
+    from funvip.src import cluster
+    from funvip.src import dataset
+    from funvip.src import ext
+    from funvip.src import hasher
+    from funvip.src import initialize
+    from funvip.src import logger
+    from funvip.src import manage_input
+    from funvip.src import modeltest
+    from funvip.src import concatenate
+    from funvip.src import patch
+    from funvip.src import reporter
+    from funvip.src import tool
+    from funvip.src import save
+    from funvip.src import search
+    from funvip.src import tree
+    from funvip.src import trim
+    from funvip.src.command import CommandParser
+    from funvip.src.tool import index_step
+    from funvip.src.opt_generator import opt_generator
+    from funvip.src.version import Version
     from time import time
     from time import sleep
     import pandas as pd
@@ -36,7 +36,7 @@ def main():
 
     if "FunID" in sys.argv[0]:
         print(
-            "\x1b[92m The name of the software changed to 'FunIP'. Please use 'FunIP' when citation. \x1b[0m"
+            "\x1b[92m The name of the software changed to 'FunVIP'. Please use 'FunVIP' when citation. \x1b[0m"
         )
         sleep(3)
 
@@ -64,8 +64,8 @@ def main():
 
     logger.setup_logging(list_info, list_warning, list_error, path, opt, tool)
 
-    # V contains all intermediate variables for FunIP Run
-    V = dataset.FunIP_var()
+    # V contains all intermediate variables for FunVIP Run
+    V = dataset.FunVIP_var()
     # R includes all reporting objects such as warnings, errors, statistics
     R = reporter.Report()
 
@@ -349,7 +349,7 @@ def main():
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_end = time()
-        logging.info(f"FunIP ended in {time_end - time_start}")
+        logging.info(f"FunVIP ended in {time_end - time_start}")
 
         try:
             logging.info(f"Time setup : {time_setup-time_start}s")

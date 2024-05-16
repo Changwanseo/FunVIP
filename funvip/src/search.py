@@ -1,6 +1,6 @@
-from funip.src import cluster, tool, hasher, manage_input, save
-from funip.src.ext import blast, makeblastdb, mmseqs, makemmseqsdb
-from funip.src.save import save_df
+from funvip.src import cluster, tool, hasher, manage_input, save
+from funvip.src.ext import blast, makeblastdb, mmseqs, makemmseqsdb
+from funvip.src.save import save_df
 import copy
 import pandas as pd
 import numpy as np

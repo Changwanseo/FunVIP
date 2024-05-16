@@ -1,4 +1,4 @@
-# FunIP_dev/FunIP/src/command.py
+# FunVIP_dev/FunVIP/src/command.py
 
 import argparse
 from importlib.metadata import version
@@ -7,7 +7,7 @@ from importlib.metadata import version
 class CommandParser:
     def __init__(self) -> None:
         self.parser = argparse.ArgumentParser(
-            description="Fungal Identification Pipeline", prog="FunIP"
+            description="Fungal Validation & Identification Pipeline", prog="FunVIP"
         )
 
     def get_args(self) -> argparse.Namespace:
@@ -106,7 +106,7 @@ class CommandParser:
         group_run.add_argument(
             "--all",
             action="store_true",
-            help="Run FunIP for all database sequences, regardless of corrresponding sequences exists in query, default : False",
+            help="Run FunVIP for all database sequences, regardless of corrresponding sequences exists in query, default : False",
         )
         group_run.add_argument(
             "--confident",
@@ -284,7 +284,7 @@ class CommandParser:
         group_advanced.add_argument(
             "--allow-innertrimming",
             dest="allow_innertrimming",
-            help="Turn off FunIP adjustment to not to trim inner alignment columns",
+            help="Turn off FunVIP adjustment to not to trim inner alignment columns",
             action="store_true",
         )
         group_advanced.add_argument(
@@ -354,7 +354,7 @@ class CommandParser:
 
         # version
         self.parser.add_argument(
-            "--version", action="version", version=f"FunVIP {version('FunIP')}"
+            "--version", action="version", version=f"FunVIP {version('FunVIP')}"
         )
 
         return self.parser.parse_args()

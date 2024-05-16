@@ -9,8 +9,8 @@ import numpy as np
 import re
 
 from Bio import SeqIO
-from funip.src.logics import isnan
-from funip.src.tool import (
+from funvip.src.logics import isnan
+from funvip.src.tool import (
     initialize_path,
     get_genus_species,
     mkdir,

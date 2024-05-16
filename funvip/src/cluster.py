@@ -12,7 +12,7 @@ from Bio import SeqIO
 
 import logging
 import gc
-from funip.src.ext import mmseqs
+from funvip.src.ext import mmseqs
 
 
 # return list of original group of given FI

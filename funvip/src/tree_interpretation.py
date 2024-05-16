@@ -14,7 +14,7 @@ from time import sleep
 import lxml.etree as ET
 import pandas as pd
 from functools import lru_cache
-from funip.src.tool import get_id, get_genus_species
+from funvip.src.tool import get_id, get_genus_species
 import dendropy
 import collections
 import os
@@ -487,11 +487,6 @@ class Tree_information:
         for node in self.t.traverse():
             node.img_style["size"] = 0  # removing circles whien size is 0
 
-        # We don't need this any more after updating ete3 into 3.13
-        # from funip.src.patch import patch
-
-        # To prevent ete3 bug for all processors
-        # lk patch()
         self.t.render(f"{out}", tree_style=self.Tree_style.ts)
         self.Tree_style.ts.show_leaf_name = False
 

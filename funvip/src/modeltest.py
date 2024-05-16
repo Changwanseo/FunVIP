@@ -1,4 +1,4 @@
-from funip.src import ext
+from funvip.src import ext
 import os, shutil, copy
 import logging
 

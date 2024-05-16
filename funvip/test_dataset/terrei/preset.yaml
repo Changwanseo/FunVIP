@@ -7,9 +7,9 @@ GENE:
 - CaM
 CONCATENATE: true
 DB:
-- FunID_Aspergillus_db.xlsx
+- FunVIP_Aspergillus_db.xlsx
 QUERY:
-- FunID_Aspergillus_query.xlsx
+- FunVIP_Aspergillus_query.xlsx
 LEVEL: family
 MAXOUTGROUP: 1
 CONTINUE: false
