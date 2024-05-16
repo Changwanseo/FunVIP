@@ -1,4 +1,4 @@
-from funvip.src import cluster, tool, hasher, manage_input, save
+from funvip.src import cluster, tool, hasher, validate_input, save
 from funvip.src.ext import blast, makeblastdb, mmseqs, makemmseqsdb
 from funvip.src.save import save_df
 import copy
@@ -389,7 +389,7 @@ def search_df(V, path, opt):
             if query_state == 0:
                 V.list_qr_gene.remove(gene)
             else:
-                # If db column and query column does not matches -> should be moved to manage_input
+                # If db column and query column does not matches -> should be moved to validate_input
                 if not (gene in V.list_db_gene):
                     logging.error(
                         f"Gene {gene} found in query, but not found in database. Please add {gene} column to database"

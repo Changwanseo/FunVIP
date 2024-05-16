@@ -17,7 +17,7 @@ from funvip.src.tool import (
 )
 
 # from funip.src.logger import Mes
-from funip.src.validate_option import initialize_option
+from funvip.src.validate_option import initialize_option
 
 INF = 99999999
 

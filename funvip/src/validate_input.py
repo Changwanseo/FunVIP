@@ -481,7 +481,9 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                     GenMine_path = path.GenMine
 
                 cmd = f"GenMine -c {accession_path} -o {GenMine_path} -e {opt.email}"
+                logging.info(cmd)
                 logging.info(f"{cmd}")
+
                 return_code = subprocess.call(cmd, shell=True)
 
                 if return_code != 0:

@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Id: get_species_taxids.sh 631570 2021-05-19 13:54:06Z ivanov $
+# $Id: get_species_taxids.sh 631039 2021-05-12 14:35:54Z fongah2 $
 # ===========================================================================
 #
 #                            PUBLIC DOMAIN NOTICE

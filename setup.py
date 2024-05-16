@@ -62,9 +62,10 @@ setup_options = dict(
 
 # Modify setup options based on platform
 if platform == "darwin":
-    setup_options["install_requires"].append("PyQt5>=5.9.2")
+    pass
 elif platform == "win32":
     setup_options["packages"].append("funvip.external")
+    setup_options["install_requires"].append("PyQt5>=5.9.2")
     setup_options["package_data"]["funvip.external"] = ["**"]
 
 

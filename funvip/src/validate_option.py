@@ -1466,18 +1466,29 @@ class Option:
         # Printing logs while parsing validate options
         # Written in print functions, because logging can be loaded after option parsing
         print("--INFO--")
-        for info in list_info:
-            print(f"[INFO] {info}")
+        if len(list_info) > 0:
+            for info in list_info:
+                print(f"[INFO] {info}")
+        else:
+            print(f"[INFO] No information to declare during input validation")
 
         print("\n")
         print("--WARNING--")
-        for warning in list_warning:
-            print(f"[WARNING] {warning}")
+        if len(list_warning) > 0:
+            for warning in list_warning:
+                print(f"[WARNING] {warning}")
+        else:
+            print(f"[INFO] No warnings to declare during input validation")
 
         print("\n")
         print("--ERROR--")
-        for error in list_error:
-            print(f"[ERROR] {error}")
+        if len(list_error) > 0:
+            for error in list_error:
+                print(f"[ERROR] {error}")
+        else:
+            print(f"[INFO] No errors to declare during input validation")
+
+        print("\n\n")
 
         if len(list_error) > 0:
             raise Exception
@@ -1581,17 +1592,17 @@ def initialize_option(parser, path_run):
     list_info, list_warning, list_error = opt.validate()
 
     ### stdout input options
-    print("[OPTIONS INPUT]")
+    # print("[OPTIONS INPUT]")
 
     ## Print and log output options
     for attr, value in opt.__dict__.items():
         if isinstance(value, (str, float, bool, int, list, type(None))):
             list_info.append(f"Option {attr} : {value}")
-            print(f"Option {attr} : {value}")
+            # print(f"Option {attr} : {value}")
         else:
             for attr_, value_ in value.__dict__.items():
                 list_info.append(f"Option {attr}-{attr_}: {value_}")
-                print(f"Option {attr}-{attr_}: {value_}")
+                # print(f"Option {attr}-{attr_}: {value_}")
 
     print("------------------------------------")
 

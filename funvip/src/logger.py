@@ -1,6 +1,7 @@
 from datetime import datetime
 import os
 import shelve
+import subprocess
 import logging
 
 
@@ -54,6 +55,10 @@ def setup_logging(list_info, list_warning, list_error, path, opt, tool):
         handler.setFormatter(formatter)
 
     # Delayed logging for option parsing
+
+    # I don't know why, but in some environment, ANSI color works only after first subprocess.call was done
+    _ = subprocess.call("", shell=True)
+
     for info in list_info:
         logging.info(info)
 

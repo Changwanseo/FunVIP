@@ -7,7 +7,7 @@ def main():
     from funvip.src import hasher
     from funvip.src import initialize
     from funvip.src import logger
-    from funvip.src import manage_input
+    from funvip.src import validate_input
     from funvip.src import modeltest
     from funvip.src import concatenate
     from funvip.src import patch
@@ -24,6 +24,7 @@ def main():
     from time import time
     from time import sleep
     import pandas as pd
+    import subprocess
     import multiprocessing as mp
     import os
     import shelve
@@ -33,6 +34,9 @@ def main():
     import sys
     import logging
     import PyQt5
+
+    # To initialize log print
+    _ = subprocess.call("", shell=True)
 
     if "FunID" in sys.argv[0]:
         print(
@@ -101,7 +105,7 @@ def main():
         # save metadata input to report
         # R.initialize_metadata(opt)
         # get input data
-        V, R, opt, GenMine_flag = manage_input.data_input(V, R, opt, path)
+        V, R, opt, GenMine_flag = validate_input.data_input(V, R, opt, path)
 
         # get possible genus list for recognizing genus name
         V = initialize.get_genus_list(V, opt, path)
@@ -114,6 +118,8 @@ def main():
             version=version,
             GenMine_flag=GenMine_flag,
         )
+
+        # logging works well from here
 
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
@@ -132,7 +138,7 @@ def main():
         V = concatenate.concatenate_df(V, path, opt)
 
         # Update gene assignment of query sequence inputs
-        manage_input.update_queryfile(V, path, opt)
+        validate_input.update_queryfile(V, path, opt)
 
         R.update_report(
             V=V,

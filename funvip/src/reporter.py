@@ -549,9 +549,9 @@ class Report:
                 )
                 f.write("\n")
                 """
-                for warning in manage_input_warning:
+                for warning in validate_input_warning:
                     f.write(f"\n")
-                for error in manage_input_error:
+                for error in validate_input_error:
                     f.write(f"\n")
                 """
                 f.write(
