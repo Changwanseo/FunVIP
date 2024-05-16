@@ -196,14 +196,8 @@ class Version:
             # print("trimAl", self.trimAl)
 
             ### Modeltest-ng
-            ## Not supported in Windows
-            CMD = ["modeltest-ng", "--version"]
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            stdout_str = stdout.decode("utf-8")
-            self.Modeltest_NG = stdout_str.split("ModelTest-NG ")[1].split(" ")[0]
+            ## Not supported in apple silicon
+            self.Modeltest_NG = "not supported"
 
             ### FastTree
             ## Also use stderr of FastTree
