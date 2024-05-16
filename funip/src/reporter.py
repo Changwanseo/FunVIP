@@ -8,9 +8,6 @@ from tabulate import tabulate
 from funip.src.tool import index_step
 from funip.src.save import save_df
 
-# For version reporting
-__version__ = "0.3.19.0"
-
 
 ### Temporary report for tree_interpretation_pipe
 # To collect result from multiprocessing on tree_interpretation
@@ -315,33 +312,33 @@ class Report:
 
     ### Main report runner
     # Update report by pipeline step
-    def update_report(self, V, path, opt, step, version):
+    def update_report(self, V, path, opt, step, version, GenMine_flag):
         if step == "setup":
-            self.report_text(V, path, opt, step, version)
+            self.report_text(V, path, opt, step, version, GenMine_flag)
         elif step == "search":
             self.report_table(V, path, opt, step)
-            self.report_text(V, path, opt, step, version)
+            self.report_text(V, path, opt, step, version, GenMine_flag)
         elif step == "cluster":
             self.update_dataset(V, opt)
             self.report_table(V, path, opt, step)
-            self.report_text(V, path, opt, step, version)
+            self.report_text(V, path, opt, step, version, GenMine_flag)
             # Datasets are made after clustering
         elif step == "align":
-            self.report_text(V, path, opt, step, version)
+            self.report_text(V, path, opt, step, version, GenMine_flag)
         elif step == "trim":
-            self.report_text(V, path, opt, step, version)
+            self.report_text(V, path, opt, step, version, GenMine_flag)
         elif step == "concatenate":
-            self.report_text(V, path, opt, step, version)
+            self.report_text(V, path, opt, step, version, GenMine_flag)
         elif step == "modeltest":
-            self.report_text(V, path, opt, step, version)
+            self.report_text(V, path, opt, step, version, GenMine_flag)
         elif step == "tree":
-            self.report_text(V, path, opt, step, version)
+            self.report_text(V, path, opt, step, version, GenMine_flag)
         elif step == "visualize":
-            self.report_text(V, path, opt, step, version)
+            self.report_text(V, path, opt, step, version, GenMine_flag)
         elif step == "report":
             self.update_result(V, opt)
             self.report_table(V, path, opt, step)
-            self.report_text(V, path, opt, step, version)
+            self.report_text(V, path, opt, step, version, GenMine_flag)
         else:
             logging.error(
                 f"DEVELOPMENTAL ERROR : BAD STEP INPUT {step} WHILE UPDATE REPORT"
@@ -349,7 +346,7 @@ class Report:
             raise Exception
 
     # Generate report in text file
-    def report_text(self, V, path, opt, step, version):
+    def report_text(self, V, path, opt, step, version, GenMine_flag):
         # Rewrite everytime when called, the io step won't be that much
         with open(f"{path.root}/{opt.runname}.report.txt", "wt", encoding="UTF8") as f:
             if index_step(step) >= 0:
@@ -533,7 +530,7 @@ class Report:
             # Can be written after clustering step
             if index_step(step) >= 1:
                 f.write(f"[METHOD]\n")
-                f.write(f"Sequences were identified with FunIP {__version__}\n")
+                f.write(f"Sequences were identified with FunIP {version.FunVIP}\n")
                 f.write("\n")
 
                 cnt_db = len([FI for FI in V.list_FI if FI.datatype == "db"])
@@ -708,7 +705,10 @@ class Report:
             f.write("\n")
 
             # Generate software list by options
-            software_list = ["FunIP"]
+            software_list = ["FunVIP"]
+            if GenMine_flag != 0:
+                software_list.append("GenMine")
+
             if index_step(step) >= 1:
                 if opt.method.search == "blast":
                     software_list.append("BLASTn")
@@ -742,7 +742,8 @@ class Report:
             # append software list by step
             # Should add GenMine version here
             dict_version = {
-                "FunIP": f"{__version__}",
+                "FunVIP": version.FunVIP,
+                "GenMine": version.GenMine,
                 "BLASTn": version.BLASTn,
                 "MMseqs2": version.MMseqs2,
                 "MAFFT": version.MAFFT,
@@ -766,7 +767,8 @@ class Report:
             ### Write citations
             f.write(f"[CITATION]\n")
             dict_citation = {
-                "FunIP": "https://github.com/Changwanseo/FunIP",
+                "FunVIP": "https://github.com/Changwanseo/FunIP",
+                "GenMine": "Seo, C. W., Kim, S. H., Lim, Y. W., & Park, M. S. (2022). Re-identification on Korean Penicillium sequences in GenBank collected by software GenMine. Mycobiology, 50(4), 231-237.",
                 "BLASTn": "Altschul, S. F., Gish, W., Miller, W., Myers, E. W., & Lipman, D. J. (1990). Basic local alignment search tool. Journal of molecular biology, 215(3), 403-410.",
                 "MMseqs2": "Steinegger, M., & Söding, J. (2017). MMseqs2 enables sensitive protein sequence searching for the analysis of massive data sets. Nature biotechnology, 35(11), 1026-1028.",
                 "MAFFT": "Katoh, K., & Standley, D. M. (2013). MAFFT multiple sequence alignment software version 7: improvements in performance and usability. Molecular biology and evolution, 30(4), 772-780.",

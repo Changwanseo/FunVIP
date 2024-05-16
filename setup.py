@@ -4,8 +4,8 @@ from sys import platform
 import subprocess
 
 name = "FunIP"
-__version__ = "0.3.19.0.0.1"
-release = "0.3.19.0.0.1"
+__version__ = "0.3.19.0.1.6"
+# release = "0.3.19.0.0.1"
 
 
 ## Default setup options
@@ -31,7 +31,7 @@ if platform == "darwin":
             "ete3==3.1.3",
             "Cython",
             "dendropy",
-            "GenMine>=1.0.12",
+            "GenMine>=1.0.13",
             "lxml",
             "matplotlib",
             "numpy",
@@ -87,7 +87,7 @@ else:
             "ete3==3.1.3",
             "Cython",
             "dendropy",
-            "GenMine>=1.0.12",
+            "GenMine>=1.0.13",
             "lxml",
             "matplotlib",
             "numpy",

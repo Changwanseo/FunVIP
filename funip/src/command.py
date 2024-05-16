@@ -1,6 +1,7 @@
 # FunIP_dev/FunIP/src/command.py
 
 import argparse
+from importlib.metadata import version
 
 
 class CommandParser:
@@ -349,6 +350,11 @@ class CommandParser:
             "--preset",
             help="[fast, accurate], or json formatted option config file. Check documentation for each preset, default : fast",
             type=str,
+        )
+
+        # version
+        self.parser.add_argument(
+            "--version", action="version", version=f"FunVIP {version('FunIP')}"
         )
 
         return self.parser.parse_args()

@@ -101,12 +101,19 @@ def main():
         # save metadata input to report
         # R.initialize_metadata(opt)
         # get input data
-        V, R, opt = manage_input.data_input(V, R, opt, path)
+        V, R, opt, GenMine_flag = manage_input.data_input(V, R, opt, path)
 
         # get possible genus list for recognizing genus name
         V = initialize.get_genus_list(V, opt, path)
 
-        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
+        R.update_report(
+            V=V,
+            path=path,
+            opt=opt,
+            step=step,
+            version=version,
+            GenMine_flag=GenMine_flag,
+        )
 
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
@@ -127,7 +134,14 @@ def main():
         # Update gene assignment of query sequence inputs
         manage_input.update_queryfile(V, path, opt)
 
-        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
+        R.update_report(
+            V=V,
+            path=path,
+            opt=opt,
+            step=step,
+            version=version,
+            GenMine_flag=GenMine_flag,
+        )
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_search = time()
@@ -163,7 +177,14 @@ def main():
         # Save dataset to outgroups
         V.save_dataset(path, opt)
 
-        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
+        R.update_report(
+            V=V,
+            path=path,
+            opt=opt,
+            step=step,
+            version=version,
+            GenMine_flag=GenMine_flag,
+        )
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_cluster = time()
@@ -174,7 +195,14 @@ def main():
         logging.info("ALIGNMENT")
         V, path, opt = align.pipe_alignment(V, path, opt)
 
-        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
+        R.update_report(
+            V=V,
+            path=path,
+            opt=opt,
+            step=step,
+            version=version,
+            GenMine_flag=GenMine_flag,
+        )
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_align = time()
@@ -186,7 +214,14 @@ def main():
         V, path, opt = trim.pipe_trimming(V, path, opt)
         # Alignment validations - whether some of the sequences does not have overlapping regions
         V.validate_alignments(path=path, opt=opt)
-        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
+        R.update_report(
+            V=V,
+            path=path,
+            opt=opt,
+            step=step,
+            version=version,
+            GenMine_flag=GenMine_flag,
+        )
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_trim = time()
@@ -199,7 +234,14 @@ def main():
         # Multigene
         V = concatenate.combine_alignment(V, opt, path)
 
-        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
+        R.update_report(
+            V=V,
+            path=path,
+            opt=opt,
+            step=step,
+            version=version,
+            GenMine_flag=GenMine_flag,
+        )
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_concatenate = time()
@@ -212,7 +254,14 @@ def main():
         # most of the modeltest algorithms are well working with multiprocessing
         model_dict = modeltest.modeltest(V, path, opt)
 
-        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
+        R.update_report(
+            V=V,
+            path=path,
+            opt=opt,
+            step=step,
+            version=version,
+            GenMine_flag=GenMine_flag,
+        )
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_modeltest = time()
@@ -225,14 +274,28 @@ def main():
         # Build phylogenetic trees
         V, path, opt = tree.pipe_tree(V, path, opt, model_dict)
 
-        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
+        R.update_report(
+            V=V,
+            path=path,
+            opt=opt,
+            step=step,
+            version=version,
+            GenMine_flag=GenMine_flag,
+        )
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         # move tree and image files
         tool.cleanup_tree(path)
         tool.cleanup_tree_image(path)
 
-        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
+        R.update_report(
+            V=V,
+            path=path,
+            opt=opt,
+            step=step,
+            version=version,
+            GenMine_flag=GenMine_flag,
+        )
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_tree = time()
@@ -250,7 +313,14 @@ def main():
         tool.cleanup_tree(path)
         tool.cleanup_tree_image(path)
 
-        R.update_report(V=V, path=path, opt=opt, step=step, version=version)
+        R.update_report(
+            V=V,
+            path=path,
+            opt=opt,
+            step=step,
+            version=version,
+            GenMine_flag=GenMine_flag,
+        )
         save.save_session(opt=opt, path=path, global_var=locals(), var=dir())
 
         time_visualize = time()
@@ -273,7 +343,9 @@ def main():
 
         # raise Exception
 
-        R.update_report(V, path, opt, step=step, version=version)
+        R.update_report(
+            V, path, opt, step=step, version=version, GenMine_flag=GenMine_flag
+        )
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_end = time()

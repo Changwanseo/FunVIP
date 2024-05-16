@@ -322,6 +322,8 @@ def input_fasta(path, opt, fasta_list, funinfo_dict, datatype):
 
 # getting datafile from excel or tabular file
 def input_table(funinfo_dict, path, opt, table_list, datatype):
+    # Whether to check if GenMine has run
+    GenMine_flag = 0
     string_error = 0
 
     initialize_path(path)  # this one is ugly
@@ -452,6 +454,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
 
             # if NCBI accessions detected in sequence part, download it
             if len(download_set) > 0:
+                GenMine_flag = 1
                 if opt.email == "":
                     logging.error(
                         "Your database includes GenBank accession but email not provided. --email is required to connect to GenBank"
@@ -652,14 +655,14 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
             f"{path.out_db}/Saved_{'.'.join(table.split('/')[-1].split('.')[:-1])}.{opt.tableformat}",
             fmt=opt.tableformat,
         )
-    return funinfo_dict
+    return funinfo_dict, GenMine_flag
 
 
 def db_input(funinfo_dict, opt, path) -> list:
     # Get DB input
     logging.info(f"Input DB list: {opt.db}")
 
-    funinfo_dict = input_table(
+    funinfo_dict, GenMine_flag = input_table(
         funinfo_dict=funinfo_dict, path=path, opt=opt, table_list=opt.db, datatype="db"
     )
 
@@ -685,7 +688,7 @@ def db_input(funinfo_dict, opt, path) -> list:
             f"Sequences in database of some group has lower number than MINIMUM_OUTGROUP_COUNT. It may cause error when outgroup selection, or may select not most appropriate outgroup to group. Please lower number of MINIMUM_OUTGROUP_COUNT in option or add more sequences to these groups"
         )
 
-    return funinfo_dict
+    return funinfo_dict, GenMine_flag
 
 
 def query_input(funinfo_dict, opt, path):
@@ -703,7 +706,7 @@ def query_input(funinfo_dict, opt, path):
         )
     ]
 
-    funinfo_dict = input_table(
+    funinfo_dict, GenMine_flag = input_table(
         funinfo_dict=funinfo_dict,
         path=path,
         opt=opt,
@@ -729,7 +732,7 @@ def query_input(funinfo_dict, opt, path):
         f"Total {len([funinfo_dict[key].datatype =='query' for key in funinfo_dict.keys()])} sequences parsed from query"
     )
 
-    return funinfo_dict
+    return funinfo_dict, GenMine_flag
 
 
 # combined db and query input
@@ -737,10 +740,19 @@ def data_input(V, R, opt, path):
     funinfo_dict = {}
 
     # get database input
-    funinfo_dict = db_input(funinfo_dict=funinfo_dict, opt=opt, path=path)
+    funinfo_dict, GenMine_flag_db = db_input(
+        funinfo_dict=funinfo_dict, opt=opt, path=path
+    )
 
     # get query input
-    funinfo_dict = query_input(funinfo_dict=funinfo_dict, opt=opt, path=path)
+    funinfo_dict, GenMine_flag_query = query_input(
+        funinfo_dict=funinfo_dict, opt=opt, path=path
+    )
+
+    if GenMine_flag_db != 0 or GenMine_flag_query != 0:
+        GenMine_flag = 1
+    else:
+        GenMine_flag = 0
 
     # combine all data
     V.list_FI = [funinfo_dict[key] for key in funinfo_dict]
@@ -762,7 +774,7 @@ def data_input(V, R, opt, path):
         if flag_available_gene == 0:
             FI.issues.add("noseq")
 
-    return V, R, opt
+    return V, R, opt, GenMine_flag
 
 
 # This function updates initial input query files to saved files with matrices and downloaded sequences

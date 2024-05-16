@@ -1,6 +1,7 @@
 # Version management module
 import sys
 import subprocess
+from importlib.metadata import version
 
 # import
 
@@ -22,7 +23,8 @@ version = {
 
 class Version:
     def __init__(self, opt, path):
-        self.FunVIP = "0.3.19.0.1.3"
+        self.FunVIP = ""
+        self.GenMine = ""
         self.BLASTn = ""
         self.MMseqs2 = ""
         self.MAFFT = ""
@@ -35,6 +37,12 @@ class Version:
 
         # For windows platform
         if sys.platform == "win32":
+            ### FunVIP
+            self.FunVIP = version("FunIP")
+
+            ### GenMine
+            self.GenMine = version("GenMine")
+
             ### BLASTn
             CMD = [f"{path.sys_path}/external/BLAST_Windows/bin/blastn.exe", "-version"]
             result = subprocess.Popen(
