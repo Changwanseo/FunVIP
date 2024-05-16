@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 from sys import platform
 import subprocess
 
-name = "FunIP"
+name = "FunVIP"
 __version__ = "0.3.19.0.1.6"
 # release = "0.3.19.0.0.1"
 
@@ -14,7 +14,7 @@ if platform == "darwin":
     setup_options = dict(
         name=name,
         version=__version__,
-        description="Fungal Identification Pipeline",
+        description="Fungal Validation & Identification Pipeline",
         author="Changwan Seo",
         author_email="wan101010@snu.ac.kr",
         url="https://github.com/Changwanseo/FunIP",
@@ -52,13 +52,13 @@ if platform == "darwin":
         ],
         zip_safe=False,
         entry_points={
-            "console_scripts": ["FunID = funip.main:main", "FunIP = funip.main:main"]
+            "console_scripts": ["FunID = funvip.main:main", "FunVIP = funvip.main:main"]
         },
-        package_dir={"funip": "funip"},
+        package_dir={"funvip": "funvip"},
         package_data={
-            "funip.data": ["*.xlsx", "*.txt"],
-            "funip.test_dataset": ["**"],
-            "funip.preset": ["**"],
+            "funvip.data": ["*.xlsx", "*.txt"],
+            "funvip.test_dataset": ["**"],
+            "funvip.preset": ["**"],
         },
         include_package_data=True,
         license="GPL3",
@@ -70,17 +70,17 @@ else:
     setup_options = dict(
         name=name,
         version=__version__,
-        description="Fungal Identification Pipeline",
+        description="Fungal Validation & Identification Pipeline",
         author="Changwan Seo",
         author_email="wan101010@snu.ac.kr",
         url="https://github.com/Changwanseo/FunIP",
         python_requires="<3.13, >3.8",
         packages=[
-            "funip",
-            "funip.src",
-            "funip.data",
-            "funip.test_dataset",
-            "funip.preset",
+            "funvip",
+            "funvip.src",
+            "funvip.data",
+            "funvip.test_dataset",
+            "funvip.preset",
         ],
         install_requires=[
             "biopython==1.78",
@@ -108,13 +108,13 @@ else:
         ],
         zip_safe=False,
         entry_points={
-            "console_scripts": ["FunID = funip.main:main", "FunIP = funip.main:main"]
+            "console_scripts": ["FunID = funvip.main:main", "FunVIP = funvip.main:main"]
         },
-        package_dir={"funip": "funip"},
+        package_dir={"funvip": "funvip"},
         package_data={
-            "funip.data": ["*.xlsx", "*.txt"],
-            "funip.test_dataset": ["**"],
-            "funip.preset": ["**"],
+            "funvip.data": ["*.xlsx", "*.txt"],
+            "funvip.test_dataset": ["**"],
+            "funvip.preset": ["**"],
         },
         include_package_data=True,
         license="GPL3",
@@ -122,15 +122,15 @@ else:
 
 
 def run_tests():
-    result = subprocess.run(["FunIP", "-h"], capture_output=True, text=True)
+    result = subprocess.run(["FunVIP", "-h"], capture_output=True, text=True)
     print(result.stdout)
     print(result.stderr)
 
 
 # Change setup options by platform
 if platform == "win32":
-    setup_options["packages"].append("funip.external")
-    setup_options["package_data"]["funip.external"] = ["**"]
+    setup_options["packages"].append("funvip.external")
+    setup_options["package_data"]["funvip.external"] = ["**"]
 else:
     pass
 
