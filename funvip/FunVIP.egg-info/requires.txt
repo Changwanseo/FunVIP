@@ -1,0 +1,24 @@
+biopython==1.78
+ete3==3.1.3
+Cython
+dendropy
+GenMine>=1.0.13
+lxml
+matplotlib
+numpy
+openpyxl==3.0.9
+pandas==1.4.2
+plotly==5.9.0
+psutil
+pyyaml
+sip>=4.19.4
+scikit-learn
+scipy
+tabulate
+unidecode==1.2.0
+xlrd==2.0.1
+xlsxwriter
+xmltodict==0.12.0
+
+[:sys_platform != "darwin"]
+PyQt5>=5.9.2

@@ -1,0 +1,3 @@
+[console_scripts]
+FunID = funvip.main:main
+FunVIP = funvip.main:main
