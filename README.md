@@ -15,8 +15,8 @@
 
 
 
-# FunIP
-"Fun"gal "I"dentification "P"ipeline
+# FunVIP
+"Fun"gal "Validation" & "I"dentification "P"ipeline
 
 A automatic tree-based sequence identification pipeline for fungal species
 
@@ -25,7 +25,7 @@ A automatic tree-based sequence identification pipeline for fungal species
 - Data validation algorithm implemented
 
 
-# See [tutorial](https://github.com/Changwanseo/FunID/blob/main/tutorial/tutorial.md) for detailed usage
+# See [tutorial](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/tutorial.md) for detailed usage
 
 
 ## Requirements
@@ -33,57 +33,57 @@ A automatic tree-based sequence identification pipeline for fungal species
 
 <!--
 ## Installation with conda (May not work with Linux or Mac)
-1. ```conda create -n FunID python=3.10```
-2. ```conda activate FunID```
-3. ```conda install -c cwseo FunID```
-4. run ```FunID --test Penicillium ``` to check installation
+1. ```conda create -n FunVIP python=3.10```
+2. ```conda activate FunVIP```
+3. ```conda install -c cwseo FunVIP```
+4. run ```FunVIP --test Penicillium ``` to check installation
 If this one fails, use next one
 -->
 
 ## Windows
 1. Install visual c++ [here](https://visualstudio.microsoft.com/ko/visual-cpp-build-tools/)
-2. ```conda create -n FunID python=3.9```
-3. ```conda activate FunID```
-4. ```pip install FunID```
-5. run ```FunID --test Penicillium ``` to check installation
+2. ```conda create -n FunVIP python=3.9```
+3. ```conda activate FunVIP```
+4. ```pip install FunVIP```
+5. run ```FunVIP --test Penicillium ``` to check installation
 
 * For upgrade use this command
-``` pip install FunID --upgrade ```
+``` pip install FunVIP --upgrade ```
 
 ## Linux
-1. ```conda create -n FunID python=3.9```
-2. ```conda activate FunID```
-3. ```pip install FunID```
+1. ```conda create -n FunVIP python=3.9```
+2. ```conda activate FunVIP```
+3. ```pip install FunVIP```
 4. ```conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 "blast>=2.12" mafft trimal gblocks fasttree```
-5. run ```FunID --test Penicillium ``` to check installation
+5. run ```FunVIP --test Penicillium ``` to check installation
 
 
 * For intel mac system, this method probably work, but we couldn't test it because we don't have any intel mac device. We're looking for feedbacks in intel mac
 
 ## Apple Silicon Mac
-1. ```CONDA_SUBDIR=osx-64 conda create -n FunID python=3.10```
-2. ```conda activate FunID```
+1. ```CONDA_SUBDIR=osx-64 conda create -n FunVIP python=3.10```
+2. ```conda activate FunVIP```
 3. ```conda config --env --set subdir osx-64```
 4. ```conda install pyqt```
-5. ```pip install FunID```
+5. ```pip install FunVIP```
 6. ```conda install -c bioconda raxml iqtree mmseqs2 "blast>=2.12" mafft trimal gblocks fasttree```
-7. run ```FunID --test Penicillium ``` to check installation
+7. run ```FunVIP --test Penicillium ``` to check installation
 
 ## Installation from source (For developers)
 * this is for developmental steps
-1. ```git clone https://github.com/Changwanseo/FunID.git```
-2. Move to ```~/FunID```
-3. ```conda create -n FunID python=3.10```
-4. ```conda activate FunID```
+1. ```git clone https://github.com/Changwanseo/FunVIP.git```
+2. Move to ```~/FunVIP```
+3. ```conda create -n FunVIP python=3.10```
+4. ```conda activate FunVIP```
 5. ```pip install ./```
-6. run ```FunID --test Penicillium ``` to check installation
+6. run ```FunVIP --test Penicillium ``` to check installation
 
 
 ## Usage
-```FunID --db {Your database file} --query {Your query file} --email {Your email} --gene {Your genes} --preset {fast or accurate}```
+```FunVIP --db {Your database file} --query {Your query file} --email {Your email} --gene {Your genes} --preset {fast or accurate}```
 
 ### Example
-```FunID --db Penicillium.xlsx --query Query.xlsx --email {Your email} --gene ITS BenA RPB2 CaM --preset fast```
+```FunVIP --db Penicillium.xlsx --query Query.xlsx --email {Your email} --gene ITS BenA RPB2 CaM --preset fast```
 
 
 \* See documentation for detailed usage
@@ -91,22 +91,22 @@ If this one fails, use next one
 
 
 <!--### GUI mode (\*Currently under development)
-1. Go to ~/FunID-dev
-2. ```streamlit run FunID_GUI.py```
+1. Go to ~/FunVIP-dev
+2. ```streamlit run FunVIP_GUI.py```
 * GUI run is on experimental
-* If you want to edit GUI options, edit ```Option_manager.xlsx``` and variables in ```FunID_GUI.py```
+* If you want to edit GUI options, edit ```Option_manager.xlsx``` and variables in ```FunVIP_GUI.py```
 
 ### Server mode (\* Currently under development)-->
 
 
 
 ## How to make database?
-  ![Fig 2 FunID interface, usage, and input example](https://github.com/Changwanseo/FunID/assets/64393882/78e5dd58-a656-4395-bda9-0ee671411e2c)
+  ![Fig 2 FunVIP interface, usage, and input example](https://github.com/Changwanseo/FunVIP/assets/64393882/78e5dd58-a656-4395-bda9-0ee671411e2c)
 
 
 
 
-[See example database here](https://github.com/Changwanseo/FunID/blob/main/funid/test_dataset/penicillium/DB/DB_Penicillium.xlsx)
+[See example database here](https://github.com/Changwanseo/FunVIP/blob/main/FunVIP/test_dataset/penicillium/DB/DB_Penicillium.xlsx)
 
 
 <!--## 
@@ -132,8 +132,8 @@ tabular (```.xlsx```, ```.csv```,  ```.parquet```, ```.ftr```) form
 * ```/Tree/{section}_{gene}.svg``` : Final collapsed tree in svg format. Can be edited in vector graphics programs, or in powerpoint (by ungroup)
 * ```/Tree/{section}_{gene}_original.svg ``` : Uncollapsed tree for inspection
 
-## How does FunID work?
-![figure1 - ver4](https://github.com/Changwanseo/FunID/assets/64393882/6a366d32-6aaf-4d0c-8102-8c7dd5fda4c2)
+## How does FunVIP work?
+![figure1 - ver4](https://github.com/Changwanseo/FunVIP/assets/64393882/6a366d32-6aaf-4d0c-8102-8c7dd5fda4c2)
 
 
 
