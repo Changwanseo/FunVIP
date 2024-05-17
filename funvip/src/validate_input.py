@@ -223,6 +223,51 @@ class Funinfo:
     def update_hash(self, n):
         self.hash = f"HS{n}HE"
 
+    def get_issue_str(self):
+        flat_issues = []
+        alignfail_issues = []
+        polyphyly_issues = []
+        other_issues = []
+        for issue in self.issues:
+            if issue.startswith("flat"):
+                flat_issues.append(issue)
+            elif issue.startswith("alignfail"):
+                alignfail_issues.append(issue)
+            elif issue.startswith("polyphyly"):
+                polyphyly_issues.append(issue)
+            else:
+                other_issues.append(issue)
+
+        issues_string = ", ".join(other_issues)
+        if len(flat_issues) > 0:
+            flat_issue_str = "flat:" + "/".join(
+                sorted([issue.split(":")[1] for issue in flat_issues])
+            )
+            if len(issues_string) == 0:
+                issues_string = flat_issue_str
+            else:
+                issues_string += f", {flat_issue_str}"
+
+        if len(alignfail_issues) > 0:
+            alignfail_issue_str = "alignfail:" + "/".join(
+                sorted([issue.split(":")[1] for issue in alignfail_issues])
+            )
+            if len(issues_string) == 0:
+                issues_string = alignfail_issue_str
+            else:
+                issues_string += f", {alignfail_issue_str}"
+
+        if len(polyphyly_issues) > 0:
+            polyphyly_issue_str = "polyphyly:" + "/".join(
+                sorted([issue.split(":")[1] for issue in polyphyly_issues])
+            )
+            if len(issues_string) == 0:
+                issues_string = polyphyly_issue_str
+            else:
+                issues_string += f", {polyphyly_issue_str}"
+
+        return issues_string
+
     def __repr__(self):
         return f"FI: {self.id}"
 

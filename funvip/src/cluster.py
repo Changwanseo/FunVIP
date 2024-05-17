@@ -252,7 +252,7 @@ def append_outgroup(V, df_search, gene, group, path, opt):
         cutoff_df = df_search[df_search["bitscore"] > 0]
         cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
 
-    # Garbage collection for lower memory consumption in this process
+    # Garbage collection to reduce memory consumption in this process
     del df_search
     gc.collect()
 

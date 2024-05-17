@@ -824,7 +824,7 @@ class Option:
         else:
             if not self.step is None:
                 list_warning.append(
-                    f"As --continue is not designated, --step will be ignored"
+                    f"--continue is not designated, --step will be ignored"
                 )
 
         # level

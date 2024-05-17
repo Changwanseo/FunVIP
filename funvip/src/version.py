@@ -151,6 +151,12 @@ class Version:
 
         # For apple silicon platform
         elif sys.platform == "darwin":
+            ### FunVIP
+            self.FunVIP = version("FunVIP")
+
+            ### GenMine
+            self.GenMine = version("GenMine")
+
             ### BLASTn
             CMD = ["blastn", "-version"]
             result = subprocess.Popen(
@@ -236,6 +242,12 @@ class Version:
 
         # For linux platform
         else:
+            ### FunVIP
+            self.FunVIP = version("FunVIP")
+
+            ### GenMine
+            self.GenMine = version("GenMine")
+
             ### BLASTn
             CMD = ["blastn", "-version"]
             result = subprocess.Popen(

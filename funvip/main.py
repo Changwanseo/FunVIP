@@ -35,7 +35,7 @@ def main():
     import logging
     import PyQt5
 
-    # To initialize log print
+    # To initialize logger to print ANSI color
     _ = subprocess.call("", shell=True)
 
     if "FunID" in sys.argv[0]:
@@ -125,9 +125,6 @@ def main():
 
         time_setup = time()
 
-        if not ("HS49HE" in V.dict_hash_FI):
-            raise Exception
-
     # Searching (BLAST or mmseqs)
     if opt.continue_from_previous is False or index_step(opt.step) <= 1:
         step = "search"
@@ -154,9 +151,6 @@ def main():
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_search = time()
-
-        if not ("HS49HE" in V.dict_hash_FI):
-            raise Exception
 
     # Clustering
     if opt.continue_from_previous is False or index_step(opt.step) <= 2:
@@ -201,9 +195,6 @@ def main():
 
         time_cluster = time()
 
-        if not ("HS49HE" in V.dict_hash_FI):
-            raise Exception
-
     # Alignment
     if opt.continue_from_previous is False or index_step(opt.step) <= 3:
         step = "align"
@@ -221,9 +212,6 @@ def main():
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_align = time()
-
-        if not ("HS49HE" in V.dict_hash_FI):
-            raise Exception
 
     # Trimming
     if opt.continue_from_previous is False or index_step(opt.step) <= 4:
@@ -243,9 +231,6 @@ def main():
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_trim = time()
-
-        if not ("HS49HE" in V.dict_hash_FI):
-            raise Exception
 
     # Concatenation (multigene)
     if opt.continue_from_previous is False or index_step(opt.step) <= 5:
@@ -267,9 +252,6 @@ def main():
 
         time_concatenate = time()
 
-        if not ("HS49HE" in V.dict_hash_FI):
-            raise Exception
-
     # Modeltest
     if opt.continue_from_previous is False or index_step(opt.step) <= 6:
         step = "modeltest"
@@ -289,9 +271,6 @@ def main():
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_modeltest = time()
-
-        if not ("HS49HE" in V.dict_hash_FI):
-            raise Exception
 
     # Tree construction
     if opt.continue_from_previous is False or index_step(opt.step) <= 7:
@@ -327,9 +306,6 @@ def main():
 
         time_tree = time()
 
-        if not ("HS49HE" in V.dict_hash_FI):
-            raise Exception
-
     # Visualize
     if opt.continue_from_previous is False or index_step(opt.step) <= 8:
         step = "visualize"
@@ -355,9 +331,6 @@ def main():
 
         time_visualize = time()
 
-        if not ("HS49HE" in V.dict_hash_FI):
-            raise Exception
-
     # Report
     if opt.continue_from_previous is False or index_step(opt.step) <= 9:
         step = "report"
@@ -375,52 +348,55 @@ def main():
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_end = time()
-        logging.info(f"FunVIP ended in {time_end - time_start}")
-
-        if not ("HS49HE" in V.dict_hash_FI):
-            raise Exception
+        logging.info(f"FunVIP ended in {round(time_end - time_start,3)}s")
 
         try:
-            logging.info(f"Time setup : {time_setup-time_start}s")
+            logging.info(f"Time input validation : {round(time_setup-time_start,3)}s")
         except:
             logging.warning(f"Failed logging initialization time")
 
         try:
-            logging.info(f"Time search : {time_search-time_setup}s")
+            logging.info(f"Time search : {round(time_search-time_setup,3)}s")
         except:
             logging.warning(f"Failed logging search time")
 
         try:
-            logging.info(f"Time cluster : {time_cluster-time_search}s")
+            logging.info(f"Time cluster : {round(time_cluster-time_search,3)}s")
         except:
             logging.warning(f"Failed logging cluster time")
 
         try:
-            logging.info(f"Time alignment : {time_align-time_cluster}s")
+            logging.info(f"Time alignment : {round(time_align-time_cluster,3)}s")
         except:
             logging.warning(f"Failed logging alignment time")
 
         try:
-            logging.info(f"Time trimming : {time_trim-time_align}s")
+            logging.info(f"Time trimming : {round(time_trim-time_align,3)}s")
         except:
             logging.warning(f"Failed logging trimming time")
 
         try:
-            logging.info(f"Time concatenatation : {time_concatenate-time_trim}s")
+            logging.info(
+                f"Time concatenatation : {round(time_concatenate-time_trim,3)}s"
+            )
         except:
             logging.warning(f"Failed logging concatenation time")
 
         try:
-            logging.info(f"Time tree construction : {time_tree-time_concatenate}s")
+            logging.info(
+                f"Time tree construction : {round(time_tree-time_concatenate,3)}s"
+            )
         except:
             logging.warning(f"Failed logging tree construction time")
 
         try:
-            logging.info(f"Time tree interpretation : {time_visualize-time_tree}s")
+            logging.info(
+                f"Time tree interpretation : {round(time_visualize-time_tree,3)}s"
+            )
         except:
             logging.warning(f"Failed logging tree interpretation time")
 
         try:
-            logging.info(f"Time report generation: {time_end-time_visualize}s")
+            logging.info(f"Time report generation: {round(time_end-time_visualize,3)}s")
         except:
             logging.warning(f"Failed logging reoprt generation time")
