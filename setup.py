@@ -4,7 +4,7 @@ from sys import platform
 import subprocess
 
 name = "FunVIP"
-__version__ = "0.3.20"
+__version__ = "0.3.20.0.0.0"
 
 
 # Define common setup options

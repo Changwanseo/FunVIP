@@ -4,13 +4,13 @@ pip install ./
 ```
 
 # pypi build
-## We are now using flit instead of setup.py
 In new conda environment
 ```
 conda create -n FunID-build python=3.10
 conda activate FunID-build
-pip install flit>=3.4
-flit 
+pip install twine
+python setup.py bdist_wheel --universal
+python setup.py sdist
 twine upload dist/FunID-{YOUR_VERSION}* 	// use current build number
 conda deactivate
 conda env remove -n FunID-build
