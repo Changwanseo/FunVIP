@@ -1,3 +1,0 @@
-[console_scripts]
-FunID = funip.main:main
-FunIP = funip.main:main

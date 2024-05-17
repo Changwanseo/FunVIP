@@ -9,7 +9,7 @@ import logging
 import shutil
 
 
-## Trimming function of FunIP
+## Trimming function of FunVIP
 # As most of the trimming functions affects inside of alignment
 def trimming(alignment, out, path, opt):
     logging.debug("Entered trimming module")
@@ -57,7 +57,7 @@ def trimming(alignment, out, path, opt):
     return trimming_result
 
 
-# Trimming pipeline of FunIP
+# Trimming pipeline of FunVIP
 def pipe_trimming(V, path, opt):
     trimming_opt = opt_generator(V, opt, path, step="trimming")
     # run multiprocessing start

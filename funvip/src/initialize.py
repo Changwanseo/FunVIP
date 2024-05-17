@@ -16,7 +16,6 @@ from funvip.src.tool import (
     mkdir,
 )
 
-# from funip.src.logger import Mes
 from funvip.src.validate_option import initialize_option
 
 INF = 99999999
@@ -135,7 +134,7 @@ def check(
     return obj
 
 
-# Change it to FunIPPath
+# Change it to FunVIPPath
 # Class with all path
 # Use print instead of logging here, because logging has not been defined here
 class Path:
