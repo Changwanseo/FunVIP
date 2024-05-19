@@ -1,0 +1,31 @@
+Metadata-Version: 2.1
+Name: FunVIP
+Version: 0.3.21
+Summary: Fungal Validation & Identification Pipeline
+Author-email: Changwan Seo <wan101010@snu.ac.kr>
+License: GPL-3.0
+Project-URL: Homepage, https://github.com/Changwanseo/FunVIP
+Requires-Python: <3.13,>3.8
+License-File: LICENSE
+Requires-Dist: biopython==1.78
+Requires-Dist: ete3==3.1.3
+Requires-Dist: Cython
+Requires-Dist: dendropy
+Requires-Dist: GenMine>=1.0.13
+Requires-Dist: lxml
+Requires-Dist: matplotlib
+Requires-Dist: numpy
+Requires-Dist: openpyxl==3.0.9
+Requires-Dist: pandas==1.4.2
+Requires-Dist: plotly==5.9.0
+Requires-Dist: psutil
+Requires-Dist: pyyaml
+Requires-Dist: sip>=4.19.4
+Requires-Dist: scikit-learn
+Requires-Dist: scipy
+Requires-Dist: tabulate
+Requires-Dist: unidecode==1.2.0
+Requires-Dist: xlrd==2.0.1
+Requires-Dist: xlsxwriter
+Requires-Dist: xmltodict==0.12.0
+Requires-Dist: PyQt5>=5.9.2; sys_platform != "darwin"

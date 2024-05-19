@@ -15,8 +15,8 @@
 
 
 
-# FunIP
-"Fun"gal "I"dentification "P"ipeline
+# FunVIP
+"Fun"gal "V"alidation & "I"dentification "P"ipeline
 
 A automatic tree-based sequence identification pipeline for fungal species
 

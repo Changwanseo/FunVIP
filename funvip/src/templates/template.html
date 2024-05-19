@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Identification Report</title>
+</head>
+<body>
+    <ul id="navigation">
+    {% for item in navigation %}
+        <li><a href= "{{ item.href }}" > {{ item.caption }} </a></li>
+    {% endfor %}
+    </ul>
+
+    <h1>Identification Result</h1>
+    {{ table | safe }}
+    {# a comment #}
+</body>
+</html>
