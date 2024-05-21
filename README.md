@@ -1,10 +1,9 @@
 [![DOI](https://zenodo.org/badge/588465720.svg)](https://zenodo.org/doi/10.5281/zenodo.10714946)
 
-#### This is Beta release. Unstable. We're eagaring bug reports
+#### This is Beta release. Bug reports are welcomed
 
 ## Scheduling
 ### Beta release part 1 (2023 Feburary ~ As paper published, ver 0.3)
-- ~~Will operate normally most of the case~~ We tried our best, but it's still very buggy. Please report bugs for us
 - Will be tested by our lab memebers to fix bugs and advance features
 
 ### Beta release part 2 (As paper published ~ When pipeline gets stabled, ver 0.4)
@@ -13,77 +12,75 @@
 ### Stable release (ver 1.0)
 
 
-
-
 # FunVIP
 "Fun"gal "V"alidation & "I"dentification "P"ipeline
 
-A automatic tree-based sequence identification pipeline for fungal species
+An automatic tree-based sequence identification and validation pipeline for fungal species
 
 - Automatic tree-based identification
 - Works with multigene
 - Data validation algorithm implemented
 
 
-# See [tutorial](https://github.com/Changwanseo/FunID/blob/main/tutorial/tutorial.md) for detailed usage
+# See [tutorial](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/tutorial.md) for detailed usage
 
 
 ## Requirements
-- Conda environment (See https://www.anaconda.com/products/individual to install)
+- Conda environment (See [https://www.anaconda.com/products/individual](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) to how to install conda environment)
 
 <!--
 ## Installation with conda (May not work with Linux or Mac)
-1. ```conda create -n FunID python=3.10```
-2. ```conda activate FunID```
-3. ```conda install -c cwseo FunID```
-4. run ```FunID --test Penicillium ``` to check installation
+1. ```conda create -n FunVO{ python=3.10```
+2. ```conda activate FunVIP```
+3. ```conda install -c cwseo FunVIP```
+4. run ```FunVIP --test Terrei --email [your email] ``` to check installation
 If this one fails, use next one
 -->
 
 ## Windows
-1. Install visual c++ [here](https://visualstudio.microsoft.com/ko/visual-cpp-build-tools/)
-2. ```conda create -n FunID python=3.9```
-3. ```conda activate FunID```
-4. ```pip install FunID```
-5. run ```FunID --test Penicillium ``` to check installation
+1. Install visual c++ [here](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+2. ```conda create -n FunVIP python>=3.8```
+3. ```conda activate FunVIP```
+4. ```pip install FunVIP```
+5. run ```FunVIP --test Terrei --email [your email] ``` to check installation
 
 * For upgrade use this command
-``` pip install FunID --upgrade ```
+``` pip install FunVIP --upgrade ```
 
 ## Linux
-1. ```conda create -n FunID python=3.9```
-2. ```conda activate FunID```
-3. ```pip install FunID```
+1. ```conda create -n FunVIP python>=3.8```
+2. ```conda activate FunVIP```
+3. ```pip install FunVIP```
 4. ```conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 "blast>=2.12" mafft trimal gblocks fasttree```
-5. run ```FunID --test Penicillium ``` to check installation
+5. run ```FunVIP --test Terrei --email [your email] ``` to check installation
 
 
 * For intel mac system, this method probably work, but we couldn't test it because we don't have any intel mac device. We're looking for feedbacks in intel mac
 
 ## Apple Silicon Mac
-1. ```CONDA_SUBDIR=osx-64 conda create -n FunID python=3.10```
-2. ```conda activate FunID```
+1. ```CONDA_SUBDIR=osx-64 conda create -n FunVIP python>=3.8```
+2. ```conda activate FunVIP```
 3. ```conda config --env --set subdir osx-64```
 4. ```conda install pyqt```
-5. ```pip install FunID```
+5. ```pip install FunVIP```
 6. ```conda install -c bioconda raxml iqtree mmseqs2 "blast>=2.12" mafft trimal gblocks fasttree```
-7. run ```FunID --test Penicillium ``` to check installation
+7. run ```FunVIP --test Terrei --email [your email] ``` to check installation
 
-## Installation from source (For developers)
+## Installation from source (For developers and core users)
 * this is for developmental steps
-1. ```git clone https://github.com/Changwanseo/FunID.git```
-2. Move to ```~/FunID```
-3. ```conda create -n FunID python=3.10```
-4. ```conda activate FunID```
+1. ```git clone https://github.com/Changwanseo/FunVIP.git```
+2. Move to ```~/FunVIP```
+3. ```conda create -n FunVIP python=3.10```
+4. ```conda activate FunVIP```
 5. ```pip install ./```
-6. run ```FunID --test Penicillium ``` to check installation
+6. run ```FunVIP --test Terrei --email [your email]``` to check installation
 
 
 ## Usage
-```FunID --db {Your database file} --query {Your query file} --email {Your email} --gene {Your genes} --preset {fast or accurate}```
+```FunVIP --db {Your database file} --query {Your query file} --email {Your email} --gene {Your genes} --preset {fast or accurate}```
 
 ### Example
-```FunID --db Penicillium.xlsx --query Query.xlsx --email {Your email} --gene ITS BenA RPB2 CaM --preset fast```
+```FunVIP --db Penicillium.xlsx --query Query.xlsx --email {Your email} --gene ITS BenA RPB2 CaM --preset fast```
 
 
 \* See documentation for detailed usage
@@ -101,12 +98,12 @@ If this one fails, use next one
 
 
 ## How to make database?
-  ![Fig 2 FunID interface, usage, and input example](https://github.com/Changwanseo/FunID/assets/64393882/78e5dd58-a656-4395-bda9-0ee671411e2c)
+![Fig 2 Database and command configuration of FunID (ver2) ](https://github.com/Changwanseo/FunVIP/assets/64393882/9ba71eb9-91e9-4c0b-ac60-b9b7be993694)
 
 
 
 
-[See example database here](https://github.com/Changwanseo/FunID/blob/main/funid/test_dataset/penicillium/DB/DB_Penicillium.xlsx)
+[See example database here](https://github.com/Changwanseo/FunVIP/blob/main/funvip/test_dataset/penicillium/DB/DB_Penicillium.xlsx)
 
 
 <!--## 
@@ -132,7 +129,7 @@ tabular (```.xlsx```, ```.csv```,  ```.parquet```, ```.ftr```) form
 * ```/Tree/{section}_{gene}.svg``` : Final collapsed tree in svg format. Can be edited in vector graphics programs, or in powerpoint (by ungroup)
 * ```/Tree/{section}_{gene}_original.svg ``` : Uncollapsed tree for inspection
 
-## How does FunID work?
+## How does FunVIP work?
 ![figure1 - ver4](https://github.com/Changwanseo/FunID/assets/64393882/6a366d32-6aaf-4d0c-8102-8c7dd5fda4c2)
 
 
