@@ -538,14 +538,21 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                     )
                     raise Exception
 
-                GenMine_df_list = [
-                    file
-                    for file in os.listdir(path.GenMine)
-                    if file.endswith("_result.xlsx")
+                GenMine_outdir_candidate = [
+                    directory
+                    for directory in os.listdir(path.GenMine)
+                    if not ("." in directory)
                 ]
 
+                GenMine_df_list = []
+                for directory in GenMine_outdir_candidate:
+                    print(os.listdir(f"{path.GenMine}/{directory}/"))
+                    for file in os.listdir(f"{path.GenMine}/{directory}/"):
+                        if file.endswith("_transformed.xlsx"):
+                            GenMine_df_list.append(f"{path.GenMine}/{directory}/{file}")
+
                 if len(GenMine_df_list) == 1:
-                    download_df = pd.read_excel(f"{path.GenMine}/{GenMine_df_list[0]}")
+                    download_df = pd.read_excel(GenMine_df_list[0])
 
                     # Generate download_dict (I think this can be done with pandas operation, but a bit tricky. Will be done later)
                     for n, acc in enumerate(download_df["acc"]):
@@ -577,9 +584,8 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                             df[gene] = df[gene].apply(update_from_GenMine)
 
                     # Remove GenMine results to prevent collision with next set
-                    for file in os.listdir(path.GenMine):
-                        if "_result.xlsx" in file:
-                            os.remove(f"{path.GenMine}/{file}")
+                    for directory in GenMine_outdir_candidate:
+                        shutil.rmtree(f"{path.GenMine}/{directory}")
 
                 elif len(GenMine_df_list) == 0:
                     logging.warning(
@@ -692,26 +698,28 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                                 gene, seq_string.replace("-", "").replace(".", "")
                             )
 
-        if error_flag < 0:
-            raise Exception
-
         # After successfully parsed this table, save it
         save.save_df(
             df,
             f"{path.out_db}/Saved_{'.'.join(table.split('/')[-1].split('.')[:-1])}.{opt.tableformat}",
             fmt=opt.tableformat,
         )
-    return funinfo_dict, GenMine_flag
+    return funinfo_dict, GenMine_flag, error_flag
 
 
 def db_input(funinfo_dict, opt, path) -> list:
     # Get DB input
     logging.info(f"Input DB list: {opt.db}")
 
-    funinfo_dict, GenMine_flag = input_table(
+    funinfo_dict, GenMine_flag, error_flag = input_table(
         funinfo_dict=funinfo_dict, path=path, opt=opt, table_list=opt.db, datatype="db"
     )
 
+    if error_flag < 0:
+        logging.error(
+            f"FunVIP terminated because error found during input validation. Please check [ERROR] in log.txt"
+        )
+        raise Exception
     # validate dataset
     # if only one group exists, outgroup cannot work
     group_set = set(funinfo_dict[key].group for key in funinfo_dict)
@@ -752,7 +760,7 @@ def query_input(funinfo_dict, opt, path):
         )
     ]
 
-    funinfo_dict, GenMine_flag = input_table(
+    funinfo_dict, GenMine_flag, error_flag = input_table(
         funinfo_dict=funinfo_dict,
         path=path,
         opt=opt,
@@ -766,6 +774,12 @@ def query_input(funinfo_dict, opt, path):
         funinfo_dict=funinfo_dict,
         datatype="query",
     )
+
+    if error_flag < 0:
+        logging.error(
+            f"FunVIP terminated because error found during input validation. Please check [ERROR] in log.txt"
+        )
+        raise Exception
 
     # Save query initially in raw format, because gene has not been assigned yet
     for file in query_table:
