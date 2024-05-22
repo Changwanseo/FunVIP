@@ -370,6 +370,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
     # Whether to check if GenMine has run
     GenMine_flag = 0
     string_error = 0
+    error_flag = 0
 
     initialize_path(path)  # this one is ugly
     df_list = []
@@ -546,7 +547,6 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
 
                 GenMine_df_list = []
                 for directory in GenMine_outdir_candidate:
-                    print(os.listdir(f"{path.GenMine}/{directory}/"))
                     for file in os.listdir(f"{path.GenMine}/{directory}/"):
                         if file.endswith("_transformed.xlsx"):
                             GenMine_df_list.append(f"{path.GenMine}/{directory}/{file}")
@@ -596,8 +596,6 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                         f"DEVELOPMENTAL ERROR: Multiple GenMine result colliding!"
                     )
                     raise Exception
-
-        error_flag = 0
 
         # Manage unicode for ID
         df["id"] = df["id"].apply(
@@ -717,7 +715,7 @@ def db_input(funinfo_dict, opt, path) -> list:
 
     if error_flag < 0:
         logging.error(
-            f"FunVIP terminated because error found during input validation. Please check [ERROR] in log.txt"
+            f"FunVIP terminated because error found during input validation. Please check [ERROR] list in log.txt"
         )
         raise Exception
     # validate dataset
