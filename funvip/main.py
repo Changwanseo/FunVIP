@@ -83,6 +83,8 @@ def main():
             path = var["path"]
         if "model_dict" in var:
             model_dict = var["model_dict"]
+        if "GenMine_flag" in var:
+            GenMine_flag = var["GenMine_flag"]
 
     # To deal with location changes when rerun
     path_root = f"{os.getcwd()}/{opt.runname}"

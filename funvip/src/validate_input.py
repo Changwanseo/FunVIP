@@ -56,17 +56,18 @@ class Funinfo:
         self.color = None  # color for highlighting in phylogenetic tree
         self.flat = []  # list of flat species in concatenated tree
         self.issues = set()  # list of issues to this FI
+        self.source = set()  # source which FI was from
+
+    def update_source(self, source):
+        self.source.add(source)
 
     def update_seqrecord(self, seq, gene=None):
-        flag = 0
+        error = None
         self.description = seq.description
         self.genus, self.ori_species = get_genus_species(seq.description)
 
         if gene in self.seq:
-            logging.error(
-                f"More than 1 sequence for {gene} found for {self.id} during update_seqrecord"
-            )
-            flag = -1
+            error = f"In {self.source}, More than 1 sequence for {gene} found for {self.id} during update_seqrecord"
         elif gene is None:
             self.unclassified_seq.append(str(seq.seq.ungap("-")))
         else:
@@ -74,18 +75,15 @@ class Funinfo:
 
         self.bygene_species[gene] = self.ori_species
 
-        return flag
+        return error
 
     def update_seq(self, gene, seq):  # get input as Entrez seqrecord! Important!
-        flag = 0
+        error = None
         if gene in self.seq:
             if (
                 self.seq[gene] != seq
             ):  # if more than 1 sequence per gene gets in, and if they are different
-                logging.error(
-                    f"More than 1 sequence for {gene} found for {self.id} during update_seq"
-                )
-                flag = -1
+                error = f"In {self.source}, More than 1 sequence for {gene} found for {self.id} during update_seq"
             else:
                 pass
         else:
@@ -96,13 +94,13 @@ class Funinfo:
         # Update concatenated
         self.bygene_species["concatenated"] = self.ori_species
 
-        return flag
+        return error
 
     def update_description(self, description):
         self.description = description
 
     def update_genus(self, genus):
-        flag = 0
+        error = None
         # Try to solve illegal unicode characters
         if pd.isnull(genus):
             genus = ""
@@ -114,10 +112,7 @@ class Funinfo:
 
         # Check ambiguity
         if self.genus != "" and self.genus != genus:
-            flag = -1
-            logging.error(
-                f"Colliding genus info found for {self.original_id}, {self.genus} and {genus}"
-            )
+            error = f"In {self.source}, Colliding genus info found for {self.original_id}, {self.genus} and {genus}"
 
         # Update original if should
         if self.ori_genus == "":
@@ -126,10 +121,10 @@ class Funinfo:
         # Update genus
         self.genus = genus
 
-        return flag
+        return error
 
     def update_ori_species(self, species):
-        flag = 0
+        error = None
         # Try to solve illegal unicode characters
         if pd.isnull(species):
             species = ""
@@ -141,22 +136,19 @@ class Funinfo:
 
         # Check ambiguity
         if self.ori_species != "" and self.ori_species != species:
-            flag = -1
-            logging.error(
-                f"Colliding species info found for {self.original_id}, {self.ori_species} and {species}"
-            )
+            error = f"In {self.source}, Colliding species info found for {self.original_id}, {self.ori_species} and {species}"
 
         # Update original if should
         if self.ori_species == "":
             self.ori_species = species
 
-        return flag
+        return error
 
     def update_species(self, gene, species):
         self.bygene_species[gene] = species
 
     def update_group(self, group):
-        flag = 0
+        error = None
         # Try to solve illegal unicode characters
         if pd.isnull(group):
             group = ""
@@ -167,15 +159,12 @@ class Funinfo:
 
         # Check ambiguity
         if self.group != "" and self.group != group:
-            logging.error(
-                f"Colliding group info found for {self.original_id}, {self.group} and {group}"
-            )
-            flag = -1
+            error = f"In {self.source}, Colliding group info found for {self.original_id}, {self.group} and {group}"
 
         # Update group
         self.group = group
 
-        return flag
+        return error
 
     def update_color(self, color):
         if pd.isnull(color):
@@ -186,13 +175,14 @@ class Funinfo:
             if isvalidcolor(color) is True:
                 self.color = color
             else:
-                logging.error(
-                    f"Color {color} does not seems to be valid svg color nor hex code"
+                logging.warning(
+                    f"Color {color} does not seems to be valid svg color nor hex code. Using default color"
                 )
-                raise Exception
+                self.color = None
 
     def update_datatype(self, datatype):
         flag = 0
+        error = None
         # Available datatypes : db, query
         if not (datatype in ("db", "query", "outgroup")):
             logging.error(f"DEVELOPMENTAL ERROR: {datatype} is not available datatype")
@@ -200,14 +190,11 @@ class Funinfo:
 
         # Check ambiguity
         if self.datatype != "" and self.datatype != datatype:
-            flag = -1
-            logging.error(
-                f"Colliding datatype found for {self.original_id}, {self.datatype} and {datatype}"
-            )
+            error = f"In {self.source}, Colliding datatype found for {self.original_id}, {self.datatype} and {datatype}"
 
         self.datatype = datatype
 
-        return flag
+        return error
 
     def update_id(self, id_, regexs=None):
         if not regexs == None:
@@ -286,8 +273,14 @@ class Funinfo:
 
 # getting data input from fasta file
 def input_fasta(path, opt, fasta_list, funinfo_dict, datatype):
+    warnings = []
+    errors = []
+
     # initialize path to use function "get_genus_species"
     initialize_path(path)
+
+    errors = []
+    warnings = []
 
     # Fasta files only
     for file in fasta_list:
@@ -304,8 +297,60 @@ def input_fasta(path, opt, fasta_list, funinfo_dict, datatype):
 
         logging.info(f"{file}: Fasta file")
 
-        error_flag = 0
+        seq_list = list(SeqIO.parse(file, "fasta"))
+        for seq in seq_list:
+            if not opt.regex == None:
+                id_ = get_id(seq.description, tuple(opt.regex))
+            else:
+                id_ = seq.description
 
+            id_ = newick_legal(id_)
+
+            if id_ in funinfo_dict:
+                funinfo_dict[id_].update_source(file)
+                errors.append(funinfo_dict[id_].update_seqrecord(seq))
+                errors.append(funinfo_dict[id_].update_datatype(datatype))
+                errors.append(funinfo_dict[id_].update_group(""))
+                if get_genus_species(seq.description)[0] != "":
+                    errors.append(
+                        funinfo_dict[id_].update_genus(
+                            get_genus_species(seq.description)[0]
+                        )
+                    )
+
+                if get_genus_species(seq.description)[1] != "":
+                    errors.append(
+                        funinfo_dict[id_].update_ori_species(
+                            get_genus_species(seq.description)[1]
+                        )
+                    )
+
+            # For new Funinfo
+            else:
+                newinfo = Funinfo()
+                newinfo.update_source(file)
+                errors.append(newinfo.update_seqrecord(seq))
+                errors.append(newinfo.update_datatype(datatype))
+                errors.append(
+                    newinfo.update_group("")
+                )  # because group not designated yet
+                # id by regex match
+                newinfo.update_id(seq.description, regexs=opt.regex)
+                if get_genus_species(seq.description)[0] != "":
+                    errors.append(
+                        newinfo.update_genus(get_genus_species(seq.description)[0])
+                    )
+
+                if get_genus_species(seq.description)[1] != "":
+                    errors.append(
+                        newinfo.update_ori_species(
+                            get_genus_species(seq.description)[1]
+                        )
+                    )
+
+                funinfo_dict[id_] = deepcopy(newinfo)
+
+        """
         try:
             seq_list = list(SeqIO.parse(file, "fasta"))
             for seq in seq_list:
@@ -317,52 +362,60 @@ def input_fasta(path, opt, fasta_list, funinfo_dict, datatype):
                 id_ = newick_legal(id_)
 
                 if id_ in funinfo_dict:
-                    error_flag += funinfo_dict[id_].update_seqrecord(seq)
-                    error_flag += funinfo_dict[id_].update_datatype(datatype)
-                    error_flag += funinfo_dict[id_].update_group("")
+                    funinfo_dict[id_].update_source(file)
+                    errors.append(funinfo_dict[id_].update_seqrecord(seq))
+                    errors.append(funinfo_dict[id_].update_datatype(datatype))
+                    errors.append(funinfo_dict[id_].update_group(""))
                     if get_genus_species(seq.description)[0] != "":
-                        error_flag += funinfo_dict[id_].update_genus(
-                            get_genus_species(seq.description)[0]
+                        errors.append(
+                            funinfo_dict[id_].update_genus(
+                                get_genus_species(seq.description)[0]
+                            )
                         )
 
                     if get_genus_species(seq.description)[1] != "":
-                        error_flag += funinfo_dict[id_].update_ori_species(
-                            get_genus_species(seq.description)[1]
+                        errors.append(
+                            funinfo_dict[id_].update_ori_species(
+                                get_genus_species(seq.description)[1]
+                            )
                         )
 
                 # For new Funinfo
                 else:
                     newinfo = Funinfo()
-                    error_flag += newinfo.update_seqrecord(seq)
-                    error_flag += newinfo.update_datatype(datatype)
-                    error_flag += newinfo.update_group(
-                        ""
+                    newinfo[id_].update_source(file)
+                    errors.append(newinfo.update_seqrecord(seq))
+                    errors.append(newinfo.update_datatype(datatype))
+                    errors.append(
+                        newinfo.update_group("")
                     )  # because group not designated yet
                     # id by regex match
                     newinfo.update_id(seq.description, regexs=opt.regex)
                     if get_genus_species(seq.description)[0] != "":
-                        error_flag += newinfo.update_genus(
-                            get_genus_species(seq.description)[0]
+                        errors.append(
+                            newinfo.update_genus(get_genus_species(seq.description)[0])
                         )
 
                     if get_genus_species(seq.description)[1] != "":
-                        error_flag += newinfo.update_ori_species(
-                            get_genus_species(seq.description)[1]
+                        errors.append(
+                            newinfo.update_ori_species(
+                                get_genus_species(seq.description)[1]
+                            )
                         )
 
                     funinfo_dict[id_] = deepcopy(newinfo)
 
         except:
-            logging.warning(f"{file} does not seems to be valid fasta file skipping")
+            errors.append(f"{file} does not seems to be valid fasta file")
+        """
 
         if len(seq_list) == 0:
-            logging.error(f"Fasta file {file} seems to be empty please check")
-            raise Exception
+            errors.append(f"Fasta file {file} seems to be empty please check")
+            # raise Exception
 
-        if error_flag < 0:
-            raise Exception
+        errors = [err for err in errors if not (err is None)]
 
-    return funinfo_dict
+    return funinfo_dict, warnings, errors
 
 
 # getting datafile from excel or tabular file
@@ -370,10 +423,12 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
     # Whether to check if GenMine has run
     GenMine_flag = 0
     string_error = 0
-    error_flag = 0
 
     initialize_path(path)  # this one is ugly
     df_list = []
+
+    warnings = []
+    errors = []
 
     # extensionto filetype translation
     dict_extension = {
@@ -389,6 +444,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
     # Running table by table operations
     for table in table_list:
         # Read each of the table by each of the extensions
+        # This is part is double validation after options
         flag_read_table = 0
         for extension in dict_extension:
             if table.endswith(extension):
@@ -510,7 +566,6 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                 logging.info(
                     f"Running GenMine to download {len(download_set)} sequences from GenBank"
                 )
-                # logging.info(download_set)
 
                 # Write GenMine input file
                 with open(f"{path.GenMine}/Accessions.txt", "w") as fg:
@@ -572,7 +627,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                         elif not (accession_wo_version in download_dict) and (
                             accession_w_version in download_set
                         ):
-                            logging.warning(f"Failed updating {string}")
+                            logging.warning(f"Failed updating {string} using GenMine")
                             return ""
 
                         # For sequence input
@@ -588,9 +643,10 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                         shutil.rmtree(f"{path.GenMine}/{directory}")
 
                 elif len(GenMine_df_list) == 0:
-                    logging.warning(
-                        f"None of the GenMine results were succesfully parsed"
+                    warnings.append(
+                        f"In table {table}, None of the GenMine results were succesfully parsed"
                     )
+
                 else:
                     logging.error(
                         f"DEVELOPMENTAL ERROR: Multiple GenMine result colliding!"
@@ -618,8 +674,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                 empty_error.append(n)
 
         if len(empty_error) > 0:
-            logging.error(f"Empty id found in {table}, line {empty_error}!")
-            raise Exception
+            errors.append(f"In table {table}, Empty id found, line {empty_error}!")
 
         # Generate funinfo by each row
         for n, acc in enumerate(df["id"]):
@@ -631,31 +686,37 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
             # Duplicate id check
             if df["id"][n] in funinfo_dict:
                 newinfo = funinfo_dict[df["id"][n]]
+                # Update source
+                newinfo.update_source(table)
                 new_acc = False
-                logging.warning(f"Duplicate id {df['id'][n]} found!")
+                warnings.append(
+                    f"Among table {newinfo.source}, Duplicate id {df['id'][n]} found!"
+                )
             else:
                 funinfo_dict[df["id"][n]] = Funinfo()
                 newinfo = funinfo_dict[df["id"][n]]
                 newinfo.update_id(df["id"][n])
+                # Update source
+                newinfo.update_source(table)
 
             # if flag_genus is true, try to parse genus
             if not (flag_genus is None or flag_genus is False):
-                error_flag += newinfo.update_genus(df["genus"][n])
+                errors.append(newinfo.update_genus(df["genus"][n]))
 
             # if flag_species is true, try to parse species
             if not (flag_species is None or flag_species is False):
-                error_flag += newinfo.update_ori_species(df["species"][n])
+                errors.append(newinfo.update_ori_species(df["species"][n]))
 
             # if flag_level is true, try to parse the optimal taxonomic group
             if not (flag_level is None or flag_level is False):
-                error_flag += newinfo.update_group(df[flag_level][n])
+                errors.append(newinfo.update_group(df[flag_level][n]))
 
             # if flag_color is true, try to parse color for taxon
             if not (flag_color is None or flag_color is False):
                 newinfo.update_color(df[flag_color][n])
 
             # update datatype
-            error_flag += newinfo.update_datatype(datatype)
+            errors.append(newinfo.update_datatype(datatype))
 
             # parse each of the genes
             for gene in opt.gene:
@@ -683,17 +744,19 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                                 seq_error_list.append(x)
 
                         if seq_error_cnt > 0:
-                            logging.warning(
-                                f"Illegal DNA character {seq_error_list} found in {gene} of {datatype} {df['id'][n]}"
+                            warnings.append(
+                                f"In table {table}, Illegal DNA character {seq_error_list} found in {gene} of {datatype} {df['id'][n]}"
                             )
                         elif seq_string.lower().strip() in ("nan", "na"):
-                            logging.warning(
-                                f"Sequence {df['id'][n]} {seq_string} detected as nan, removing it"
+                            warnings.append(
+                                f"In table {table}, Sequence {df['id'][n]} {seq_string} detected as nan, removing it"
                             )
                         elif seq_error_cnt == 0:
                             # remove gaps for preventing BLAST error
-                            error_flag += newinfo.update_seq(
-                                gene, seq_string.replace("-", "").replace(".", "")
+                            errors.append(
+                                newinfo.update_seq(
+                                    gene, seq_string.replace("-", "").replace(".", "")
+                                )
                             )
 
         # After successfully parsed this table, save it
@@ -702,20 +765,39 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
             f"{path.out_db}/Saved_{'.'.join(table.split('/')[-1].split('.')[:-1])}.{opt.tableformat}",
             fmt=opt.tableformat,
         )
-    return funinfo_dict, GenMine_flag, error_flag
+
+    # Remove non-errors from errors
+    errors = [err for err in errors if not (err is None)]
+
+    return funinfo_dict, GenMine_flag, warnings, errors
 
 
 def db_input(funinfo_dict, opt, path) -> list:
     # Get DB input
     logging.info(f"Input DB list: {opt.db}")
 
-    funinfo_dict, GenMine_flag, error_flag = input_table(
-        funinfo_dict=funinfo_dict, path=path, opt=opt, table_list=opt.db, datatype="db"
+    (
+        funinfo_dict,
+        GenMine_flag,
+        warnings,
+        errors,
+    ) = input_table(
+        funinfo_dict=funinfo_dict,
+        path=path,
+        opt=opt,
+        table_list=opt.db,
+        datatype="db",
     )
 
-    if error_flag < 0:
+    for warning in warnings:
+        logging.warning(warning)
+
+    if len(errors) > 0:
+        for error in errors:
+            logging.error(error)
+
         logging.error(
-            f"FunVIP terminated because error found during input validation. Please check [ERROR] list in log.txt"
+            f"FunVIP terminated because error found during input validation. Please check [ERROR] in log.txt"
         )
         raise Exception
     # validate dataset
@@ -758,14 +840,14 @@ def query_input(funinfo_dict, opt, path):
         )
     ]
 
-    funinfo_dict, GenMine_flag, error_flag = input_table(
+    funinfo_dict, GenMine_flag, table_warnings, table_errors = input_table(
         funinfo_dict=funinfo_dict,
         path=path,
         opt=opt,
         table_list=query_table,
         datatype="query",
     )
-    funinfo_dict = input_fasta(
+    funinfo_dict, fasta_warnings, fasta_errors = input_fasta(
         path=path,
         opt=opt,
         fasta_list=query_fasta,
@@ -773,7 +855,16 @@ def query_input(funinfo_dict, opt, path):
         datatype="query",
     )
 
-    if error_flag < 0:
+    warnings = table_warnings + fasta_warnings
+    errors = table_errors + fasta_errors
+
+    for warning in warnings:
+        logging.warning(warning)
+
+    if len(errors) > 0:
+        for error in errors:
+            logging.error(error)
+
         logging.error(
             f"FunVIP terminated because error found during input validation. Please check [ERROR] in log.txt"
         )

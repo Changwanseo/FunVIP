@@ -258,6 +258,7 @@ class Report:
             # For unused FI
             else:
                 self.result["DATATYPE"].append("unused")
+                self.result["GROUP_ASSIGNED"].append("-")
 
                 for gene in set_gene:
                     # Check if data analysis had performed for specific FI, group, gene combination
@@ -272,6 +273,17 @@ class Report:
                 self.result["STATUS"].append("unused")
 
         ## update query only result on report.txt
+
+        logging.debug(f"ID: {len(self.result['ID'])}")
+        logging.debug(f"HASH: {len(self.result['HASH'])}")
+        logging.debug(f"DATATYPE: {len(self.result['DATATYPE'])}")
+        logging.debug(f"ISSUES: {len(self.result['ISSUES'])}")
+        logging.debug(f"GROUP_ORIGINAL: {len(self.result['GROUP_ORIGINAL'])}")
+        logging.debug(f"GROUP_ASSIGNED: {len(self.result['GROUP_ASSIGNED'])}")
+        logging.debug(f"SPECIES_ORIGINAL: {len(self.result['SPECIES_ORIGINAL'])}")
+        logging.debug(f"SPECIES_ASSIGNED: {len(self.result['SPECIES_ASSIGNED'])}")
+        logging.debug(f"STATUS: {len(self.result['STATUS'])}")
+
         self.query_result = pd.DataFrame(self.result)
         # Filter if queryonly is True
         if opt.queryonly is True:
