@@ -10,7 +10,6 @@ def main():
     from funvip.src import validate_input
     from funvip.src import modeltest
     from funvip.src import concatenate
-    from funvip.src import patch
     from funvip.src import reporter
     from funvip.src import tool
     from funvip.src import save

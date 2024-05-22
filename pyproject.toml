@@ -40,8 +40,10 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["funvip"]
+include = ["funvip", "funvip.src", "funvip.external", "funvip.data", "funvip.preset", "funvip.test_dataset" ]
 
+[tool.setuptools.package-data]
+funvip = ["data/*", "external/*", "preset/*", "src/*", "test_dataset/*"]
 
 
 [build-system]

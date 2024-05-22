@@ -5,6 +5,7 @@ pip install ./
 
 # pypi build
 In new conda environment
+Remove FunvIP.egg-info, build, and dist directory if exists
 ```
 conda create -n FunVIP-build python=3.10
 conda activate FunVIP-build
