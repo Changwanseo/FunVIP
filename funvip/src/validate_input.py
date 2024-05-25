@@ -20,6 +20,7 @@ from funvip.src.tool import (
     mkdir,
 )
 from pathlib import Path
+from time import sleep
 
 from funvip.src import save
 from funvip.src.logics import isnewicklegal, isuniquecolumn, isvalidcolor
@@ -584,6 +585,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                 cmd = f"GenMine -c {accession_path} -o {GenMine_path} -e {opt.email}"
                 logging.info(cmd)
 
+                sleep(5)  # To run GenMine safetly between run and run
                 return_code = subprocess.call(cmd, shell=True)
 
                 if return_code != 0:
@@ -789,11 +791,11 @@ def db_input(funinfo_dict, opt, path) -> list:
         datatype="db",
     )
 
-    for warning in warnings:
+    for warning in sorted(list(warnings)):
         logging.warning(warning)
 
     if len(errors) > 0:
-        for error in errors:
+        for error in sorted(list(set(errors))):
             logging.error(error)
 
         logging.error(
@@ -858,11 +860,11 @@ def query_input(funinfo_dict, opt, path):
     warnings = table_warnings + fasta_warnings
     errors = table_errors + fasta_errors
 
-    for warning in warnings:
+    for warning in sorted(list(warnings)):
         logging.warning(warning)
 
     if len(errors) > 0:
-        for error in errors:
+        for error in sorted(list(set(errors))):
             logging.error(error)
 
         logging.error(
