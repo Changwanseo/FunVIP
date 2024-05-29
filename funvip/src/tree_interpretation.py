@@ -672,14 +672,20 @@ class Tree_information:
                 elif children.support > self.opt.collapsebscutoff:
                     return False
             return True
+        # if taxon dict.keys() have 1 species: 1 kinds of species
         elif len(taxon_dict.keys()) == 1:
             # if taxon dict.keys() have only 1 species: group assigned
             for children in clade.children:
+                other_children = list(set(clade.children) - set(children))[0]
                 # check query branch
                 if self.find_majortaxon(children, gene)[1].startswith("sp."):
                     if children.dist > self.opt.collapsedistcutoff:
                         return False
+                    elif other_children.dist > self.opt.collapsedistcutoff:
+                        return False
                     elif children.support > self.opt.collapsebscutoff:
+                        return False
+                    elif other_children.dist > self.opt.collapsebscutoff:
                         return False
             return True
         else:
@@ -744,10 +750,11 @@ class Tree_information:
                 else:  # more than 2 species : not monophyletic
                     return False
 
+            ## Start of local_check_monophyletic
             # if clade only has query species or not
             datatype = decide_clade(clade, gene)
 
-            # if only one clade, it is firmly monophyletic
+            # if only one clade, it is confirmly monophyletic
             if len(clade.children) == 1:
                 return datatype, True
 
@@ -758,6 +765,8 @@ class Tree_information:
                 return datatype, True
             else:
                 return datatype, False
+
+            ## End of local_check_monophyletic
 
         def local_generate_collapse_information(self, clade, opt=None):
             collapse_info = Collapse_information()
