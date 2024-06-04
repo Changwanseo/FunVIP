@@ -1,0 +1,5 @@
+recursive-include funvip/data *
+recursive-include funvip/external *
+recursive-include funvip/preset *
+recursive-include funvip/src *
+recursive-include funvip/test_dataset *

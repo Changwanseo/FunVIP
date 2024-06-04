@@ -434,7 +434,6 @@ class FunVIP_var:
     # Validate if any multiple sequence alignment has no overlapping region
     def validate_alignments(self, path, opt):
         fail_list = []
-
         remove_dict = {}
         tree_hash_dict = hasher.encode(self.list_FI, newick=True)
         for group in self.dict_dataset:
@@ -571,10 +570,11 @@ class FunVIP_var:
         for fail in fail_list:
             for FI in self.list_FI:
                 if FI.adjusted_group == fail[0]:
-                    if FI.seq[fail[1]] != "":
-                        FI.issues.add(f"alignfail:{fail[1]}")
+                    if fail[1] in FI.seq:
+                        if FI.seq[fail[1]] != "":
+                            FI.issues.add(f"alignfail:{fail[1]}")
 
-        print(fail_list)
+        # print(fail_list)
 
         logging.debug("Remove dict")
         logging.debug(remove_dict)

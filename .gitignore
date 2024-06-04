@@ -63,3 +63,5 @@ log.txt
 DB.fasta
 /Penicillium_*/*
 /Penicillium/*
+/FunVIP.egg-info/*
+/funvip/FunVIP.egg-info/*
