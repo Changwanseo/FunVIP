@@ -51,8 +51,9 @@ If this one fails, use next one
 1. ```conda create -n FunVIP python>=3.8```
 2. ```conda activate FunVIP```
 3. ```pip install FunVIP```
-4. ```conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 "blast>=2.12" mafft trimal gblocks fasttree```
-5. run ```FunVIP --test Terrei --email [your email] ``` to check installation
+4. ```conda config --add channels conda-forge```
+5. ```conda install -c bioconda raxml iqtree "modeltest-ng>=0.1.7" mmseqs2 "blast>=2.12" mafft trimal gblocks fasttree```
+6. run ```FunVIP --test Terrei --email [your email] ``` to check installation
 
 
 * For intel mac system, this method probably work, but we couldn't test it because we don't have any intel mac device. We're looking for feedbacks in intel mac
