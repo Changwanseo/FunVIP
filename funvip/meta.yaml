@@ -1,69 +1,73 @@
-{% set name = "FunID" %}
-{% set version = "0.3.18.6" %}
+{% set name = "FunVIP" %}
+{% set version = "0.3.23" %}
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/FunID-{{ version }}.tar.gz
-  sha256: 9f322725f4320e38e808d8ce5260627051029c18c755c8cae5cb2bc05a7ca9e8
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/funvip-{{ version }}.tar.gz
+  sha256: 0896e5961868a9547207fb8f3c3db01d04e02212254683b41086d48de356b1ff
 
 build:
-  skip: true  # [py>=311 or py2k]
+  skip: true  # [py>=313 or py2k]
   entry_points:
-    - FunID = funid.main:main
-  script: {{ PYTHON }} -m pip install . -vv
+    - FunID = funvip.main:main
+    - FunVIP = funvip.main:main
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   number: 0
 
 requirements:
   build:
     - {{ compiler('c') }}
   host:
-    - python
+    - python >3.8,<3.13
+    - setuptools
+    - setuptools-ext
+    - wheel
     - pip
   run:
-    - python
+    - python >3.8,<3.13
     - biopython ==1.78
-    - ete3 ==3.1.2
+    - ete3 ==3.1.3
     - cython
     - dendropy
-    - genmine >=1.0.10
+    - genmine >=1.1.0,<1.2.0
     - lxml
-    - matplotlib-base ==3.5.1
-    - numpy ==1.22.3
+    - matplotlib-base
+    - numpy
     - openpyxl ==3.0.9
     - pandas ==1.4.2
     - plotly ==5.9.0
     - psutil
-    - pyqt
     - pyyaml
     - sip >=4.19.4
-    - scikit-learn ==1.0.2
+    - scikit-learn
     - scipy
     - tabulate
     - unidecode ==1.2.0
     - xlrd ==2.0.1
     - xlsxwriter
     - xmltodict ==0.12.0
+    - pyqt >=5.9.2
 
 test:
   imports:
-    - funid
+    - FunVIP
   commands:
     - pip check
     - FunID --help
+    - FunVIP --help
   requires:
     - pip
 
 about:
-  home: https://github.com/Changwanseo/FunID
-  summary: Fungal Identification Pipeline
+  summary: Fungal Validation & Identification Pipeline
   license: GPL-3.0
   license_file:
     - LICENSE
-    - funid/external/mmseqs_Windows/LICENSE.md
-    - funid/external/trimal.v1.4/trimAl/LICENSE
+    - funvip/external/mmseqs_Windows/LICENSE.md
+    - funvip/external/trimal.v1.4/trimAl/LICENSE
 
 extra:
   recipe-maintainers:

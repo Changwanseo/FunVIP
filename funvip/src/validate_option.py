@@ -85,6 +85,7 @@ class Option:
         self.solveflat = True
         self.regex = None
         self.avx = True
+        self.ambiguous = True
         self.cachedb = True
         self.usecache = True
         self.tableformat = "csv"
@@ -165,6 +166,8 @@ class Option:
                 self.regex = parser_dict[key]
             elif key.lower() in ("avx"):
                 self.avx = parser_dict[key]
+            elif key.lower() in ("ambiguous"):
+                self.ambiguous = parser_dict[key]
             elif key.lower() in ("allow-innertrimming"):
                 self.allow_innertrimming = parser_dict[key]
             elif key.lower() in ("criterion"):
@@ -519,6 +522,12 @@ class Option:
         try:
             if parser.noavx is True:
                 self.avx = False
+        except:
+            pass
+
+        try:
+            if parser.noambiguous is True:
+                self.ambiguous = False
         except:
             pass
 
@@ -1397,6 +1406,10 @@ class Option:
         if check_avx() is False and self.avx is True:
             list_warning.append(f"AVX is not available. Changing --noavx to True")
             self.avx = False
+
+        # noambiguous
+        # default : False
+        # if used, set True
 
         # criterion
         # default : BIC

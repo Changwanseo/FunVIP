@@ -303,6 +303,11 @@ class CommandParser:
             help="outgroupoffset value. Highering this value may select more distant outgroup, default : 20",
             type=int,
         )
+        group_advanced.add_argument(
+            "--noambiguous",
+            action="store_true",
+            help="do not include ambiguous samples for sequence-set. Mostly for metabarcoding analysis",
+        )
 
         # Cache
         group_cache = self.parser.add_argument_group(

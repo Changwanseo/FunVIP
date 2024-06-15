@@ -484,7 +484,8 @@ def pipe_append_outgroup(V, path, opt):
         else:
             V.dict_dataset[group][gene].list_og_FI = outgroup
             # Add ambiguous group to FI
-            V.dict_dataset[group][gene].list_db_FI += ambiguous_group
+            if opt.ambiguous is True:
+                V.dict_dataset[group][gene].list_db_FI += ambiguous_group
             # Add outgroup and db in to dict_hash_FI
 
             # Should find out why this does not work at the end
