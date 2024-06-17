@@ -1,6 +1,6 @@
 [project]
 name = "FunVIP"
-version = "0.3.23"
+version = "0.3.23.1"
 description = "Fungal Validation & Identification Pipeline"
 authors = [{name = "Changwan Seo", email = "wan101010@snu.ac.kr"}]
 urls = { "Homepage" = "https://github.com/Changwanseo/FunVIP" }
@@ -14,7 +14,7 @@ dependencies = [
     "GenMine>=1.1.0, <1.2.0",
     "lxml",
     "matplotlib",
-    "numpy",
+    "numpy<2.0.0",
     "openpyxl==3.0.9",
     "pandas==1.4.2",
     "plotly==5.9.0",
