@@ -40,11 +40,10 @@ If this one fails, use next one
 
 ## Installation
 ### Windows
-1. Install visual c++ [here](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
-2. ```conda create -n FunVIP python>=3.8```
-3. ```conda activate FunVIP```
-4. ```pip install FunVIP```
-5. run ```FunVIP --test Terrei --email [your email] ``` to check installation
+1. ```conda create -n FunVIP python>=3.9```
+2. ```conda activate FunVIP```
+3. ```pip install FunVIP```
+4. run ```FunVIP --test Terrei --email [your email] ``` to check installation
 
 * For upgrade use this command
 ``` pip install FunVIP --upgrade ```
