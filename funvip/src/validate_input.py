@@ -70,9 +70,9 @@ class Funinfo:
         if gene in self.seq:
             error = f"In {self.source}, More than 1 sequence for {gene} found for {self.id} during update_seqrecord"
         elif gene is None:
-            self.unclassified_seq.append(str(seq.seq.ungap("-")))
+            self.unclassified_seq.append(str(seq.seq).replace("-", ""))
         else:
-            self.seq[gene] = str(seq.seq.ungap("-"))
+            self.seq[gene] = str(seq.seq).replace("-", "")
 
         self.bygene_species[gene] = self.ori_species
 
