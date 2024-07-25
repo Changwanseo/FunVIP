@@ -88,6 +88,7 @@ def merge_fragments(df) -> pd.DataFrame():
     # mismatch, gaps, and bitscore were calculated as sum of fragments
     # evalues were calculated by multiplying them, because they are probability
 
+    """
     df = df.groupby(["qseqid", "sseqid"], dropna=True, as_index=False).aggregate(
         {
             "qseqid": lambda x: set(x),
@@ -102,6 +103,24 @@ def merge_fragments(df) -> pd.DataFrame():
             "send": lambda x: tuple(x),
             "evalue": np.prod,
             "bitscore": np.sum,
+        }
+    )
+    """
+    # This part should be tested, especially in previous versions
+    df = df.groupby(["qseqid", "sseqid"], dropna=True, as_index=False).aggregate(
+        {
+            "qseqid": lambda x: set(x),
+            "sseqid": lambda x: set(x),
+            "pident": lambda x: tuple(x),
+            "length": lambda x: tuple(x),
+            "mismatch": "sum",
+            "gaps": "sum",
+            "qstart": lambda x: tuple(x),
+            "qend": lambda x: tuple(x),
+            "sstart": lambda x: tuple(x),
+            "send": lambda x: tuple(x),
+            "evalue": "prod",
+            "bitscore": "sum",
         }
     )
 

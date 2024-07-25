@@ -155,7 +155,30 @@ def concatenate_df(V, path, opt):
         # Leave non-empty dataframes
         if isinstance(V.dict_gene_SR[gene], pd.DataFrame):
             gene_list.append(gene)
+
             df = deepcopy(V.dict_gene_SR[gene].set_index(["qseqid", "sseqid"]))
+
+            """
+            df = deepcopy(
+                V.dict_gene_SR[gene]
+                .set_index(["qseqid", "sseqid"])
+                .drop(
+                    columns=[
+                        "pident",
+                        "length",
+                        "mismatch",
+                        "gaps",
+                        "qstart",
+                        "qend",
+                        "sstart",
+                        "send",
+                        "evalue",
+                        "bitscore",
+                        "subject_group",
+                    ]
+                )
+            )
+            """
             df_list.append(df)
 
     if len(df_list) <= 0:
@@ -179,6 +202,7 @@ def concatenate_df(V, path, opt):
         df_multigene_regression_ori = pd.concat(df_list, axis=1)
 
         # Drop unnecessary columns for processing
+
         df_multigene_regression_ori.drop(
             columns=[
                 "pident",
