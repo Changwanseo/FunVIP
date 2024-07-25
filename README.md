@@ -40,17 +40,16 @@ If this one fails, use next one
 
 ## Installation
 ### Windows
-1. Install visual c++ [here](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
-2. ```conda create -n FunVIP python>=3.8```
-3. ```conda activate FunVIP```
-4. ```pip install FunVIP```
-5. run ```FunVIP --test Terrei --email [your email] ``` to check installation
+1. ```conda create -n FunVIP python>=3.9```
+2. ```conda activate FunVIP```
+3. ```pip install FunVIP```
+4. run ```FunVIP --test Terrei --email [your email] ``` to check installation
 
 * For upgrade use this command
 ``` pip install FunVIP --upgrade ```
 
 ### Linux
-1. ```conda create -n FunVIP python>=3.8```
+1. ```conda create -n FunVIP python>=3.9```
 2. ```conda activate FunVIP```
 3. ```pip install FunVIP```
 4. ```conda config --add channels conda-forge```
@@ -61,13 +60,14 @@ If this one fails, use next one
 * For intel mac system, this method probably work, but we couldn't test it because we don't have any intel mac device. We're looking for feedbacks in intel mac
 
 ### Apple Silicon Mac
-1. ```CONDA_SUBDIR=osx-64 conda create -n FunVIP python>=3.8```
-2. ```conda activate FunVIP```
-3. ```conda config --env --set subdir osx-64```
-4. ```conda install pyqt```
-5. ```pip install FunVIP```
-6. ```conda install -c bioconda raxml iqtree mmseqs2 "blast>=2.12" mafft trimal gblocks fasttree```
-7. run ```FunVIP --test Terrei --email [your email] ``` to check installation
+1. ```softwareupdate --install-rosetta```
+2. ```CONDA_SUBDIR=osx-64 conda create -n FunVIP python>=3.9```
+3. ```conda activate FunVIP```
+4. ```conda config --env --set subdir osx-64```
+5. ```conda install pyqt```
+6. ```pip install FunVIP```
+7. ```conda install -c bioconda raxml iqtree mmseqs2 "blast>=2.12" mafft trimal gblocks fasttree```
+8. run ```FunVIP --test Terrei --email [your email] ``` to check installation
 
 ### Installation from source (For developers and core users)
 * this is for developmental steps
