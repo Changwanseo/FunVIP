@@ -101,7 +101,7 @@ If this one fails, use next one
 
 
 ## How to make database?
-![Fig 2 Database and command configuration of FunID (ver2) ](https://github.com/Changwanseo/FunVIP/assets/64393882/9ba71eb9-91e9-4c0b-ac60-b9b7be993694)
+![figure1 - ver17B](https://github.com/user-attachments/assets/0043e6f6-7470-4c2b-bc96-b51f41c43ee4)
 
 
 
@@ -133,7 +133,8 @@ tabular (```.xlsx```, ```.csv```,  ```.parquet```, ```.ftr```) form
 * ```/Tree/{section}_{gene}_original.svg ``` : Uncollapsed tree for inspection
 
 ## How does FunVIP work?
-![figure1 - ver4](https://github.com/Changwanseo/FunID/assets/64393882/6a366d32-6aaf-4d0c-8102-8c7dd5fda4c2)
+![figure1 - ver17A](https://github.com/user-attachments/assets/22a50a62-14e8-41a7-87a0-8f5a1f9c3f62)
+
 
 
 
