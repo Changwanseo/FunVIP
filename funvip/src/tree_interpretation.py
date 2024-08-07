@@ -1286,6 +1286,7 @@ class Tree_information:
 
         # Render it to temporary svg file and re-parse with xml
         self.t.render(f"{out}", tree_style=self.Tree_style.ts)
+
         tree_xml = ET.parse(f"{out}")
 
         # in tree_xml, find all group
@@ -1293,6 +1294,7 @@ class Tree_information:
         group_list = list(_group[0].findall("{http://www.w3.org/2000/svg}g"))
 
         # in tree_xml change all rectangles to polygon (trigangle)
+        # This action may change when ete version 4 is available
         for group in group_list:
             if len(list(group.findall("{http://www.w3.org/2000/svg}rect"))) == 1:
                 if group.get("fill") in (
@@ -1330,6 +1332,7 @@ class Tree_information:
             # relocate text position little bit for better visualization
             text.set("y", f'{int(float(text.get("y")))-2}')
 
+            # Problem here: taxon name with cff., aff. etc includes underscore
             if text_type == "taxon":
                 genus = taxon_string_dict[text.text][0]
                 species = taxon_string_dict[text.text][1]
@@ -1344,14 +1347,48 @@ class Tree_information:
                     tspan.set("font-style", "italic")
 
                 if species != "":
-                    tspan = ET.SubElement(text, "{http://www.w3.org/2000/svg}tspan")
-                    tspan.text = species
                     try:
                         int(species)
+                        tspan = ET.SubElement(text, "{http://www.w3.org/2000/svg}tspan")
+                        tspan.text = species
                     except:
                         if "sp." in species:
-                            pass
+                            tspan = ET.SubElement(
+                                text, "{http://www.w3.org/2000/svg}tspan"
+                            )
+                            tspan.text = species
+                        elif any(
+                            term in species
+                            for term in ["aff.", "f.", "var.", "cf.", "nom."]
+                        ):
+                            words = species.split(" ")
+                            for n, word in enumerate(words):
+                                tspan = ET.SubElement(
+                                    text, "{http://www.w3.org/2000/svg}tspan"
+                                )
+                                tspan.text = word
+                                if not (
+                                    any(
+                                        term in word
+                                        for term in [
+                                            "aff.",
+                                            "f.",
+                                            "var.",
+                                            "cf.",
+                                            "nom.",
+                                        ]
+                                    )
+                                ):
+                                    tspan.set("font-style", "italic")
+
+                                if n < len(words) - 1:
+                                    tspan.tail = " "
+
                         else:
+                            tspan = ET.SubElement(
+                                text, "{http://www.w3.org/2000/svg}tspan"
+                            )
+                            tspan.text = species
                             tspan.set("font-style", "italic")
 
                 if rest != "":
