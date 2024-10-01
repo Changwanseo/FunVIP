@@ -1,58 +1,62 @@
 
-# FunID Tutorial
+# FunVIP Tutorial
+* [Part 1 - Getting started](https://github.com/Changwanseo/FunVIP/edit/main/tutorial/tutorial.md) - this page
+* [Part 2 - Preparing database and query]()
+* [Part 3 - How to use FunVIP for final publication]()
 
-This is basic tutorial for how to run FunID
+This is basic tutorial for how to run FunVIP
+In this tutorial, we will run FunVIP with already prepared input files.
 
-  
 
 ## Prerequisites
-
+### Conda environment should be installed to follow the tutorial 
 * [Conda installation](https://www.anaconda.com/products/individual)
 
-* Database file
 
-* Query file
+### 1. Install FunVIP by following instructions, depending on your os system
 
-  
+* [Windows](https://github.com/Changwanseo/FunVIP/#Windows)
 
-### 1. Install FunID by following instructions
+* [Linux](https://github.com/Changwanseo/FunVIP/#Linux)
 
-* [Windows](https://github.com/Changwanseo/FunID/#Windows)
-
-* [Linux](https://github.com/Changwanseo/FunID/#Linux)
-
-* [Mac - Apple Silicon](https://github.com/Changwanseo/FunID/#Apple-Silicon-Mac)
-
+* [Mac - Apple Silicon](https://github.com/Changwanseo/FunVIP/#Apple-Silicon-Mac)
   
 
 ### 2. Prepare database and query file
 
 Here, we'll going to use *Aspergillus* section *Terrei* dataset from the paper ([link will be added after publication]())
 
-  
-
 Download database and query file by clicking
 
-* [Database](https://github.com/Changwanseo/FunID/blob/main/tutorial/FunID_Aspergillus_db.xlsx)
+* [Database](https://github.com/Changwanseo/FunVIP/tree/main/funvip/test_dataset/terrei/DB/FunVIP_Aspergillus_db.xlsx)
 
-* [Query](https://github.com/Changwanseo/FunID/blob/main/tutorial/FunID_Aspergillus_query.xlsx)
+* [Query](https://github.com/Changwanseo/FunVIP/tree/main/funvip/test_dataset/terrei/Query/FunVIP_Aspergillus_query.xlsx)
 
-  
-  
 
-### 3. Run FunID
+If your directory looks like this you are going well
 
-Turn on your FunID conda environment
+![image](https://github.com/user-attachments/assets/a6b65405-4828-4bf6-9589-1ffb3e7b4ae7)
 
-*  ```conda activate FunID```
 
-  
 
-Run FunID with single command.
+### 3. Run FunVIP
 
-*  ```FunID --db FunID_Aspergillus_db.xlsx --query FunID_Aspergillus_query.xlsx --email <your email> --gene ITS BenA CaM RPB2 --preset fast --level section```
+Turn on your FunVIP conda environment
 
-  
+*  ```conda activate FunVIP```
+
+![image](https://github.com/user-attachments/assets/4a28393c-3afe-45c0-a41e-38d7a2ed5380)
+
+A. Your environment should be "FunVIP"
+
+B. Your current directory should be the place where your database and query file exists
+ 
+   
+
+Now you are ready to go. Run FunVIP with single command.
+
+*  ```FunVIP --db FunVIP_Aspergillus_db.xlsx --query FunID_Aspergillus_query.xlsx --email <your email> --gene ITS BenA CaM RPB2 --preset fast --level section```
+
   
 
 ### 4. See results
