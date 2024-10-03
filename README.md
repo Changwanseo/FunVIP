@@ -1,34 +1,25 @@
-[![DOI](https://zenodo.org/badge/588465720.svg)](https://zenodo.org/doi/10.5281/zenodo.10714946)
 
-#### This is Beta release. Bug reports are welcomed
-
-## Scheduling
-### Beta release part 1 (2023 Feburary ~ As paper published, ver 0.3)
-- Will be tested by our lab memebers to fix bugs and advance features
-
-### Beta release part 2 (As paper published ~ When pipeline gets stabled, ver 0.4)
-- Will be tested by peer taxonomists
-
-### Stable release (ver 1.0)
-
-
-# FunVIP
-"Fun"gal "V"alidation & "I"dentification "P"ipeline
-
-An automatic tree-based sequence identification and validation pipeline for fungal species
+# FunVIP [![DOI](https://zenodo.org/badge/588465720.svg)](https://zenodo.org/doi/10.5281/zenodo.10714946)
+### **Fun**gal **V**alidation & **I**dentification **P**ipeline
+#### An automatic tree-based sequence identification and validation pipeline for fungal species
 
 - Automatic tree-based identification
 - Works with multigene
 - Data validation algorithm implemented
 
+This is Beta release. Bug reports are welcomed
+<br><br/>
 
-## See [tutorial](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/tutorial.md) for step by step tutorial
-## See [documentation](https://github.com/Changwanseo/FunVIP/blob/main/Documentation.md) for advanced usage
-
-
+## Tutorial
+* [Part 1 - Getting started](https://github.com/Changwanseo/FunVIP/edit/main/tutorial/tutorial.md)
+* [Part 2 - Preparing database and query]()
+* [Part 3 - Using FunVIP for final identification]()
+<br><br/>
+## Documentation
+* See [Documentation](https://github.com/Changwanseo/FunVIP/blob/main/Documentation.md) for advanced usage !
+<br><br/>
 ## Requirements
 - Conda environment (See [https://www.anaconda.com/products/individual](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) for how to install conda environment)
-
 <!--
 ## Installation with conda (May not work with Linux or Mac)
 1. ```conda create -n FunVO{ python=3.10```
@@ -37,8 +28,13 @@ An automatic tree-based sequence identification and validation pipeline for fung
 4. run ```FunVIP --test Terrei --email [your email] ``` to check installation
 If this one fails, use next one
 -->
-
+<br><br/>
 ## Installation
+* [Windows]()
+* [Mac (apple silicon)]()
+* [Linux]()
+* [from source]()
+<!--
 ### Windows
 1. ```conda create -n FunVIP python>=3.9```
 2. ```conda activate FunVIP```
@@ -57,7 +53,7 @@ If this one fails, use next one
 6. run ```FunVIP --test Terrei --email [your email] ``` to check installation
 
 
-* For intel mac system, this method probably work, but we couldn't test it because we don't have any intel mac device. We're looking for feedbacks in intel mac
+* For intel mac system, this method may work, but we couldn't test it because we don't have any intel mac device. We're looking for feedbacks in intel mac
 
 ### Apple Silicon Mac
 1. ```softwareupdate --install-rosetta```
@@ -77,11 +73,11 @@ If this one fails, use next one
 4. ```conda activate FunVIP```
 5. ```pip install ./```
 6. run ```FunVIP --test Terrei --email [your email]``` to check installation
-
-
+-->
+<br><br/>
 ## Usage
 ```FunVIP --db {Your database file} --query {Your query file} --email {Your email} --gene {Your genes} --preset {fast or accurate}```
-
+<br><br/>
 ### Example
 ```FunVIP --db Penicillium.xlsx --query Query.xlsx --email {Your email} --gene ITS BenA RPB2 CaM --preset fast```
 
@@ -134,6 +130,13 @@ tabular (```.xlsx```, ```.csv```,  ```.parquet```, ```.ftr```) form
 
 ## How does FunVIP work?
 ![figure1 - ver17A](https://github.com/user-attachments/assets/22a50a62-14e8-41a7-87a0-8f5a1f9c3f62)
+
+## Scheduling
+1. Beta release part 1 (2023 Feburary ~ As paper published, ver 0.3)
+Will be tested by our lab memebers to fix bugs and advance features
+2. Beta release part 2 (As paper published ~ When pipeline gets stabled, ver 0.4)
+Will be tested by peer taxonomists
+3. Stable release (ver 1.0)
 
 
 
