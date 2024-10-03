@@ -12,7 +12,7 @@ This is Beta release. Bug reports are welcomed
 
 ## Tutorial
 * [Part 1 - Getting started](https://github.com/Changwanseo/FunVIP/edit/main/tutorial/tutorial.md)
-* [Part 2 - Preparing database and query]()
+* [Part 2 - Preparing database and query](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/tutorial2.md)
 * [Part 3 - Using FunVIP for final identification]()
 <br><br/>
 ## Documentation
