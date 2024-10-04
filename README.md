@@ -1,17 +1,19 @@
 
 # FunVIP [![DOI](https://zenodo.org/badge/588465720.svg)](https://zenodo.org/doi/10.5281/zenodo.10714946)
 ### **Fun**gal **V**alidation & **I**dentification **P**ipeline
-#### An automatic tree-based sequence identification and validation pipeline for fungal species
+#### An automatic tree-based sequence identification and validation pipeline for fungal (or maybe other) species
 
 - Automatic tree-based identification
 - Works with multigene
 - Data validation algorithm implemented
 
+![figure1 - ver17A](https://github.com/user-attachments/assets/22a50a62-14e8-41a7-87a0-8f5a1f9c3f62)
+
 This is Beta release. Bug reports are welcomed
 <br><br/>
 
 ## Tutorial
-* [Part 1 - Getting started](https://github.com/Changwanseo/FunVIP/edit/main/tutorial/tutorial.md)
+* [Part 1 - Getting started!](https://github.com/Changwanseo/FunVIP/edit/main/tutorial/tutorial.md)
 * [Part 2 - Preparing database and query](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/tutorial2.md)
 * [Part 3 - Using FunVIP for final identification]()
 <br><br/>
@@ -19,15 +21,9 @@ This is Beta release. Bug reports are welcomed
 * See [Documentation](https://github.com/Changwanseo/FunVIP/blob/main/Documentation.md) for advanced usage !
 <br><br/>
 ## Requirements
-- Conda environment (See [https://www.anaconda.com/products/individual](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) for how to install conda environment)
-<!--
-## Installation with conda (May not work with Linux or Mac)
-1. ```conda create -n FunVO{ python=3.10```
-2. ```conda activate FunVIP```
-3. ```conda install -c cwseo FunVIP```
-4. run ```FunVIP --test Terrei --email [your email] ``` to check installation
-If this one fails, use next one
--->
+- Conda environment
+
+\* See [https://www.anaconda.com/products/individual](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) for how to install conda environment
 <br><br/>
 ## Installation
 * [Windows](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/installation.md##Windows)
@@ -39,20 +35,13 @@ If this one fails, use next one
 ```FunVIP --db {Your database file} --query {Your query file} --email {Your email} --gene {Your genes} --preset {fast or accurate}```
 <br><br/>
 ### Example
-```FunVIP --db Penicillium.xlsx --query Query.xlsx --email {Your email} --gene ITS BenA RPB2 CaM --preset fast```
-
+```FunVIP --db Penicillium.xlsx --query Query.xlsx --email {Your email} --thread 8 --gene ITS BenA RPB2 CaM --preset fast```
 
 \* See documentation for detailed usage
+<br><br/>
 
 
 
-<!--### GUI mode (\*Currently under development)
-1. Go to ~/FunID-dev
-2. ```streamlit run FunID_GUI.py```
-* GUI run is on experimental
-* If you want to edit GUI options, edit ```Option_manager.xlsx``` and variables in ```FunID_GUI.py```
-
-### Server mode (\* Currently under development)-->
 
 
 
@@ -88,9 +77,6 @@ tabular (```.xlsx```, ```.csv```,  ```.parquet```, ```.ftr```) form
 * ```/Tree/{section}_{gene}.svg``` : Final collapsed tree in svg format. Can be edited in vector graphics programs, or in powerpoint (by ungroup)
 * ```/Tree/{section}_{gene}_original.svg ``` : Uncollapsed tree for inspection
 
-## How does FunVIP work?
-![figure1 - ver17A](https://github.com/user-attachments/assets/22a50a62-14e8-41a7-87a0-8f5a1f9c3f62)
-
 ## Scheduling
 1. Beta release part 1 (2023 Feburary ~ As paper published, ver 0.3)
 Will be tested by our lab memebers to fix bugs and advance features
@@ -98,9 +84,21 @@ Will be tested by our lab memebers to fix bugs and advance features
 Will be tested by peer taxonomists
 3. Stable release (ver 1.0)
 
-
-
-
-
 ## License
 GPL 3.0
+
+
+<!--
+## Installation with conda (May not work with Linux or Mac)
+1. ```conda create -n FunVO{ python=3.10```
+2. ```conda activate FunVIP```
+3. ```conda install -c cwseo FunVIP```
+4. run ```FunVIP --test Terrei --email [your email] ``` to check installation
+If this one fails, use next one
+-->
+<!--### GUI mode (\*Currently under development)
+1. Go to ~/FunID-dev
+2. ```streamlit run FunID_GUI.py```
+* GUI run is on experimental
+* If you want to edit GUI options, edit ```Option_manager.xlsx``` and variables in ```FunID_GUI.py```
+### Server mode (\* Currently under development)-->
