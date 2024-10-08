@@ -5,9 +5,9 @@
 * [Part 3 - How to use FunVIP for final publication]()
 
 This is basic tutorial for how to run FunVIP
-In this tutorial, we will prepare own Sanghuangporus database and identify unknown Sanghuangporus sequneces from GenBank
+In this tutorial, we will prepare own Sanghuangporus database and identify unknown _Sanghuangporus_ sequneces from GenBank
 
-### 1. Generate Sanghuangporus database from [Zhou et al. 2021](https://link.springer.com/article/10.1186/s43008-021-00059-x)
+### 1. Generate _Sanghuangporus_ ITS database from [Zhou et al. 2021](https://link.springer.com/article/10.1186/s43008-021-00059-x)
 Open the following link about [work of Zhou et al. 2021](https://link.springer.com/article/10.1186/s43008-021-00059-x)
 
 Copy the table from [Table 1](https://link.springer.com/article/10.1186/s43008-021-00059-x/tables/1) like this
@@ -63,8 +63,14 @@ If you got table like this, now you have a good database for FunVIP!
 
 
 
-### 2. Generate Sanghuangporus query from GenBank
+### 2. Generate _Sanghuangporus_ query from GenBank
 
+In the case of genus _Sanghaungporus_, the database only includes single genetic marker, ITS
+
+So in this case, FunVIP can accept FASTA file as query input.
+
+
+![image](https://github.com/user-attachments/assets/9f88fb26-0c2e-4417-ad18-0517fde70c72)
 
 
 
