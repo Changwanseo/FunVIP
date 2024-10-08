@@ -1,4 +1,4 @@
-![20241008-163746_Terrei_concatenated](https://github.com/user-attachments/assets/fa219f5c-cf29-40ec-a103-2be528992c65)
+
 # FunVIP Tutorial
 * [Part 1 - Getting started](https://github.com/Changwanseo/FunVIP/edit/main/tutorial/tutorial.md) - this page
 * [Part 2 - Preparing database and query]()
