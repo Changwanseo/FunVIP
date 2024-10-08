@@ -9,6 +9,7 @@ Try to use "From web" function of Microsoft Excel
 
 #### If only pdf is available
 Use ABBYY Finereader pdf if you have enough funding
+![image](https://github.com/user-attachments/assets/5f504692-88f6-41ac-ac16-8372591c8307)
 
 An alternative open source option is camelot. It is quite tricky to install, but better than writing all values one by one
 
