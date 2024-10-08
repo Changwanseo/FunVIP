@@ -130,9 +130,11 @@ class Funinfo:
         if pd.isnull(species):
             species = ""
 
-        # Genus with space causes error while mafft
+        # Genus with space causes error while mafft - but causing bad visualization with cf. aff. etc.
         # Genus with slash causes error while tree construction
-        species = species.strip().replace(" ", "_").replace("/", "_")
+
+        # species = species.strip().replace(" ", "_").replace("/", "_")
+        species = species.strip().replace("/", "_")
         species = manage_unicode(species, column="Species")
 
         # Check ambiguity
@@ -666,7 +668,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
             df["genus"] = df["genus"].apply(lambda x: x.replace(" ", "_"))
             df["genus"] = df["genus"].apply(lambda x: x.replace("/", "_"))
         if "species" in df.columns:
-            df["species"] = df["species"].apply(lambda x: x.replace(" ", "_"))
+            # df["species"] = df["species"].apply(lambda x: x.replace(" ", "_"))
             df["species"] = df["species"].apply(lambda x: x.replace("/", "_"))
 
         # Empty id check
