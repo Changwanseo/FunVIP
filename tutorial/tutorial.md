@@ -7,12 +7,12 @@
 This is basic tutorial for how to run FunVIP
 In this tutorial, we will run FunVIP with already prepared input files.
 
-
+<br></br>
 ## Prerequisites
 ### Conda environment should be installed to follow the tutorial 
 * [Conda installation](https://www.anaconda.com/products/individual)
 
-
+<br></br>
 ### 1. Install FunVIP by following instructions, depending on your os system
 
 * [Windows](https://github.com/Changwanseo/FunVIP/#Windows)
@@ -20,7 +20,8 @@ In this tutorial, we will run FunVIP with already prepared input files.
 * [Linux](https://github.com/Changwanseo/FunVIP/#Linux)
 
 * [Mac - Apple Silicon](https://github.com/Changwanseo/FunVIP/#Apple-Silicon-Mac)
-  
+
+<br></br>
 
 ### 2. Prepare database and query file
 
@@ -38,7 +39,7 @@ If your directory looks like this you are going well
 ![image](https://github.com/user-attachments/assets/a6b65405-4828-4bf6-9589-1ffb3e7b4ae7)
 
 
-
+<br></br>
 ### 3. Run FunVIP
 
 Turn on your FunVIP conda environment
@@ -58,7 +59,7 @@ Now you are ready to go. Run FunVIP with single command.
 *  ```FunVIP --db FunVIP_Aspergillus_db.xlsx --query FunID_Aspergillus_query.xlsx --email <your email> --gene ITS BenA CaM RPB2 --preset fast --level section```
 
   
-
+<br></br>
 ### 4. See results
 
 Open the result directory. The basic result directory will be named by timestamp when you run the program.
