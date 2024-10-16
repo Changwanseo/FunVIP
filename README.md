@@ -15,7 +15,7 @@ This is Beta release. Bug reports are welcomed
 ## Tutorial
 * [Part 1 - Getting started!](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/tutorial.md)
 * [Part 2 - Preparing database and query](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/tutorial2.md)
-* [Part 3 - Using FunVIP for final identification]()
+* [Advacned tips](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/advanced.md)
 <br><br/>
 ## Documentation
 * See [Documentation](https://github.com/Changwanseo/FunVIP/blob/main/Documentation.md) for advanced usage !
