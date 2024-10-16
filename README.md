@@ -85,7 +85,7 @@ Will be tested by peer taxonomists
 3. Stable release (ver 1.0)
 
 ## License
-GPL 3.0
+[GPL 3.0](https://github.com/Changwanseo/FunVIP/blob/main/LICENSE)
 
 
 <!--
