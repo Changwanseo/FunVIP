@@ -30,10 +30,21 @@ Do this iteratively until your dataset seems to be fine.
 At the last run, run with the accurate mode.
 
 ### SVG files are good at searching and editing
-The visualized tree are exported in svg format.
+The visualized tree are exported in svg format. 
+
+They can be edited with Microsoft Powerpoint, Adobe Illustrator/Indesign, Affinity Designer/Publisher, and Inkscape.
+
+Also, using internet browser such as chrome, you can search trees with Ctrl + F
 
 
 ### Change the criteria using --continue
-FunVIP --continue option
+FunVIP --continue option enables running FunVIP again with other options!
+
+1. Copy previous FunVIP run for backup
+2. From the previous command, add this command
+```
+--continue --outdir <location_of_the_previous_output> --runname <runname_of_previous_output> --step <step_you_want_to_restart>
+```
+3. Run it again with different criteria!
 
 
