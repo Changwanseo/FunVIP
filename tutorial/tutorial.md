@@ -56,7 +56,7 @@ B. Your current directory should be the place where your database and query file
 
 Now you are ready to go. Run FunVIP with single command.
 
-*  ```FunVIP --db FunVIP_Aspergillus_db.xlsx --query FunID_Aspergillus_query.xlsx --email <your email> --gene ITS BenA CaM RPB2 --preset fast --level section```
+*  ```FunVIP --db FunVIP_Aspergillus_db.xlsx --query FunVIP_Aspergillus_query.xlsx --email <your email> --gene ITS BenA CaM RPB2 --preset fast --level section```
 
 ![image](https://github.com/user-attachments/assets/95e02283-3cb8-4e18-b5ed-8f7529769dd5)
 
