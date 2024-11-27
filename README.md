@@ -13,9 +13,9 @@ This is Beta release. Bug reports are welcomed
 <br><br/>
 
 ## Tutorial
-* [Part 1 - Getting started!](https://github.com/Changwanseo/FunVIP/edit/main/tutorial/tutorial.md)
+* [Part 1 - Getting started!](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/tutorial.md)
 * [Part 2 - Preparing database and query](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/tutorial2.md)
-* [Part 3 - Using FunVIP for final identification]()
+* [Advacned tips](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/advanced.md)
 <br><br/>
 ## Documentation
 * See [Documentation](https://github.com/Changwanseo/FunVIP/blob/main/Documentation.md) for advanced usage !
@@ -85,7 +85,7 @@ Will be tested by peer taxonomists
 3. Stable release (ver 1.0)
 
 ## License
-GPL 3.0
+[GPL 3.0](https://github.com/Changwanseo/FunVIP/blob/main/LICENSE)
 
 
 <!--

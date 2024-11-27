@@ -1,7 +1,7 @@
 
 # FunVIP Tutorial
-* [Part 1 - Getting started](https://github.com/Changwanseo/FunVIP/edit/main/tutorial/tutorial.md)
-* [Part 2 - Preparing database and query]() - this page
+* [Part 1 - Getting started](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/tutorial.md)
+* [Part 2 - Preparing database and query](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/tutorial2.md) - this page
 * [Part 3 - How to use FunVIP for final publication]()
 
 This is basic tutorial for how to run FunVIP
