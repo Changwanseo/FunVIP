@@ -249,6 +249,50 @@ def taxon_count(
     return taxon_dict
 
 
+def genus_count(funinfo_dict, gene, clade):
+    taxon_dict = {}
+
+    for leaf in clade.iter_leaves():
+        if (
+            decide_type(
+                query_list=self.query_list,
+                db_list=self.db_list,
+                outgroup=self.outgroup,
+                string=leaf.name,
+            )
+            == "db"
+            or decide_type(
+                query_list=self.query_list,
+                db_list=self.db_list,
+                outgroup=self.outgroup,
+                string=leaf.name,
+            )
+            == "outgroup"
+        ):
+            if not (
+                (
+                    funinfo_dict[leaf.name].genus,
+                    funinfo_dict[leaf.name].bygene_species[gene],
+                )
+                in taxon_dict
+            ):
+                taxon_dict[
+                    (
+                        funinfo_dict[leaf.name].genus,
+                        funinfo_dict[leaf.name].bygene_species[gene],
+                    )[0]
+                ] = 1
+            else:
+                taxon_dict[
+                    (
+                        funinfo_dict[leaf.name].genus,
+                        funinfo_dict[leaf.name].bygene_species[gene],
+                    )[0]
+                ] += 1
+
+    return taxon_dict
+
+
 # Main tree information class
 class Tree_information:
     def __init__(self, tree, Tree_style, group, gene, opt):
@@ -534,9 +578,10 @@ class Tree_information:
         self.Tree_style.ts.show_leaf_name = False
 
     @lru_cache(maxsize=10000)
-    def genus_count(self, gene, clade):
-        taxon_dict = {}
+    def designate_genus(self, gene, clade):
+        genus_dict = {}
 
+        # Get genus_count
         for leaf in clade.iter_leaves():
             if (
                 decide_type(
@@ -559,27 +604,21 @@ class Tree_information:
                         self.funinfo_dict[leaf.name].genus,
                         self.funinfo_dict[leaf.name].bygene_species[gene],
                     )
-                    in taxon_dict
+                    in genus_dict
                 ):
-                    taxon_dict[
+                    genus_dict[
                         (
                             self.funinfo_dict[leaf.name].genus,
                             self.funinfo_dict[leaf.name].bygene_species[gene],
                         )[0]
                     ] = 1
                 else:
-                    taxon_dict[
+                    genus_dict[
                         (
                             self.funinfo_dict[leaf.name].genus,
                             self.funinfo_dict[leaf.name].bygene_species[gene],
                         )[0]
                     ] += 1
-
-        return taxon_dict
-
-    @lru_cache(maxsize=10000)
-    def designate_genus(self, gene, clade):
-        genus_dict = self.genus_count(gene, clade)
 
         if len(genus_dict) >= 2:  # if genus is not clear
             return "AMBIGUOUSGENUS"

@@ -64,8 +64,75 @@ pipe_module_tree_interpretation:
 - run ladderize
 - run tree_search
 	- run local_check_monophyletic
-		- run local_generate_collapse_information if ended
-		- run tree_search with subclades if not ended
+		- run decide_clade
+		- run find majortaxon
+		- run is_monophyletic
+	- run local_generate_collapse_information if ended
+	- run tree_search with subclades if not ended
+
+## is_monophyletic code is same
+	dependency: taxon_count, 
+
+
+## the result differs because of "self"
+
+# Global is_monophyletic code
+def is_monophyletic(self, clade, gene, taxon):
+    taxon_dict = self.taxon_count(clade, gene)
+    if len(taxon_dict.keys()) == 0:
+        for children in clade.children:
+            if children.dist > self.opt.collapsedistcutoff:
+                return False
+            elif children.support > self.opt.collapsebscutoff:
+                return False
+        return True
+    elif len(taxon_dict.keys()) == 1:
+        for children in clade.children:
+            other_children = list(set(clade.children) - set([children]))[0]
+            if self.find_majortaxon(children, gene)[1].startswith("sp."):
+                if children.dist > self.opt.collapsedistcutoff:
+                    return False
+                elif children.support > self.opt.collapsebscutoff:
+                    return False
+                elif other_children.dist > self.opt.collapsebscutoff:
+                    return False
+                elif other_children.dist > self.opt.collapsedistcutoff:
+                    return False
+        return True
+    else:
+        return False
+
+# tree_search is_monophyletic code
+def is_monophyletic(self, clade, gene, taxon):
+    taxon_dict = self.taxon_count(clade, gene)
+    if len(taxon_dict.keys()) == 0:
+        for children in clade.children:
+            if children.dist > self.opt.collapsedistcutoff:
+                return False
+            elif children.support > self.opt.collapsebscutoff:
+                return False
+        return True
+    elif len(taxon_dict.keys()) == 1:
+        for children in clade.children:
+            other_children = list(set(clade.children) - set([children]))[0]
+            if self.find_majortaxon(children, gene)[1].startswith("sp."):
+                if children.dist > self.opt.collapsedistcutoff:
+                    return False
+                elif children.support > self.opt.collapsebscutoff:
+                    return False
+                elif other_children.dist > self.opt.collapsebscutoff:
+                    return False
+                elif other_children.dist > self.opt.collapsedistcutoff:
+                    return False
+        return True
+    else:
+        return False
 
 
 
+
+
+
+
+
+genus_count(funinfo_dict, gene, clade)
