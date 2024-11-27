@@ -316,6 +316,11 @@ def main():
         # Running visualization
         V, path, opt = tree_interpretation_pipe.pipe_tree_interpretation(V, path, opt)
 
+        """
+        # For final visualization
+        V, path, opt = visualize.visualize(V, path, opt)
+        """
+
         # move tree image files
         tool.cleanup_tree(path)
         tool.cleanup_tree_image(path)

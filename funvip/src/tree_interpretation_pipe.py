@@ -72,9 +72,9 @@ def pipe_module_tree_interpretation(
     )
 
     # Give necessary variables parsed from dataset
-    tree_info.db_list = db_list
-    tree_info.query_list = query_list
-    tree_info.outgroup = outgroup
+    tree_info.db_list = tuple(db_list)
+    tree_info.query_list = tuple(query_list)
+    tree_info.outgroup = tuple(outgroup)
     tree_info.funinfo_dict = funinfo_dict
 
     # Main phase

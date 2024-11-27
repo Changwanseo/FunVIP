@@ -180,6 +180,32 @@ class Tree_style:
         self.ts.show_leaf_name = False
 
 
+@lru_cache(maxsize=10000)
+def decide_type(query_list, db_list, outgroup, string, by="hash", priority="query"):
+    query = False
+    db = False
+
+    query_hash_list = [FI.hash for FI in query_list]
+    db_hash_list = [FI.hash for FI in db_list]
+    outgroup_hash_list = [FI.hash for FI in outgroup]
+
+    if by == "hash":
+        if string in query_hash_list:
+            return "query"
+        elif string in db_hash_list:
+            return "db"
+        elif string in outgroup_hash_list:
+            return "outgroup"
+        else:
+            return "none"
+
+    else:
+        print(
+            f"{bold_red}[ERROR] DEVELOPMENTAL ERROR, UNEXPECTED by for decide_type{reset}"
+        )
+        raise Exception
+
+
 # Main tree information class
 class Tree_information:
     def __init__(self, tree, Tree_style, group, gene, opt):
@@ -228,7 +254,7 @@ class Tree_information:
 
     # to find out already existing new species number to avoid overlapping
     # e.g. avoid sp 5 if P. sp 5 already exsits in database
-    def reserve_sp(self):
+    def reserve_sp(self):  # does not seems to be working currently
         for leaf in self.t.iter_leaves():
             sys.stdout.flush()
             taxon = (
@@ -238,32 +264,6 @@ class Tree_information:
             sys.stdout.flush()
             if taxon[1].split(" ")[0] in ("sp", "sp."):
                 self.reserved_sp.add(" ".join(taxon[1].split(" ")[1:]))
-
-    # this function decides whether the string is db or query
-    @lru_cache(maxsize=10000)
-    def decide_type(self, string, by="hash", priority="query"):
-        query = False
-        db = False
-
-        query_list = [FI.hash for FI in self.query_list]
-        db_list = [FI.hash for FI in self.db_list]
-        outgroup_list = [FI.hash for FI in self.outgroup]
-
-        if by == "hash":
-            if string in query_list:
-                return "query"
-            elif string in db_list:
-                return "db"
-            elif string in outgroup_list:
-                return "outgroup"
-            else:
-                return "none"
-
-        else:
-            print(
-                f"{bold_red}[ERROR] DEVELOPMENTAL ERROR, UNEXPECTED by for decide_type{reset}"
-            )
-            raise Exception
 
     # Calculate zero length branch length cutoff with given tree and alignment
     def calculate_zero(self, alignment_file, gene, partition_dict):
@@ -503,8 +503,20 @@ class Tree_information:
                     self.funinfo_dict[leaf.name].bygene_species[gene],
                 )
             elif (
-                self.decide_type(leaf.name) == "db"
-                or self.decide_type(leaf.name) == "outgroup"
+                decide_type(
+                    query_list=self.query_list,
+                    db_list=self.db_list,
+                    outgroup=self.outgroup,
+                    string=leaf.name,
+                )
+                == "db"
+                or decide_type(
+                    query_list=self.query_list,
+                    db_list=self.db_list,
+                    outgroup=self.outgroup,
+                    string=leaf.name,
+                )
+                == "outgroup"
             ):
                 taxon = (
                     self.funinfo_dict[leaf.name].genus,
@@ -525,8 +537,20 @@ class Tree_information:
 
         for leaf in clade.iter_leaves():
             if (
-                self.decide_type(leaf.name) == "db"
-                or self.decide_type(leaf.name) == "outgroup"
+                decide_type(
+                    query_list=self.query_list,
+                    db_list=self.db_list,
+                    outgroup=self.outgroup,
+                    string=leaf.name,
+                )
+                == "db"
+                or decide_type(
+                    query_list=self.query_list,
+                    db_list=self.db_list,
+                    outgroup=self.outgroup,
+                    string=leaf.name,
+                )
+                == "outgroup"
             ):
                 if not (
                     (
@@ -616,7 +640,16 @@ class Tree_information:
             raise Exception
 
         if (
-            any(self.decide_type(leaf.name) == "query" for leaf in clade.iter_leaves())
+            any(
+                decide_type(
+                    query_list=self.query_list,
+                    db_list=self.db_list,
+                    outgroup=self.outgroup,
+                    string=leaf.name,
+                )
+                == "query"
+                for leaf in clade.iter_leaves()
+            )
             == True
         ):
             collapse_info.color = self.opt.visualize.highlight
@@ -632,12 +665,32 @@ class Tree_information:
         # count query, db, others
         for leaf in clade.iter_leaves():
             if (
-                self.decide_type(leaf.name) == "db"
-                or self.decide_type(leaf.name) == "outgroup"
+                decide_type(
+                    query_list=self.query_list,
+                    db_list=self.db_list,
+                    outgroup=self.outgroup,
+                    string=leaf.name,
+                )
+                == "db"
+                or decide_type(
+                    query_list=self.query_list,
+                    db_list=self.db_list,
+                    outgroup=self.outgroup,
+                    string=leaf.name,
+                )
+                == "outgroup"
             ):
                 collapse_info.leaf_list.append((leaf.name, "#000000", leaf.name))
                 collapse_info.n_db += 1
-            elif self.decide_type(leaf.name) == "query":
+            elif (
+                decide_type(
+                    query_list=self.query_list,
+                    db_list=self.db_list,
+                    outgroup=self.outgroup,
+                    string=leaf.name,
+                )
+                == "query"
+            ):
                 collapse_info.leaf_list.append(
                     (leaf.name, self.opt.visualize.highlight, leaf.name)
                 )
@@ -851,7 +904,25 @@ class Tree_information:
             def consist(c):
                 db, query = 0, 0
                 for leaf in c:
-                    if self.decide_type(leaf.name) in ("db", "outgroup"):
+                    print(type(self.query_list))
+                    print(type(self.db_list))
+                    print(type(self.outgroup))
+
+                    print(
+                        decide_type(
+                            query_list=self.query_list,
+                            db_list=self.db_list,
+                            outgroup=self.outgroup,
+                            string=leaf.name,
+                        )
+                    )
+
+                    if decide_type(
+                        query_list=self.query_list,
+                        db_list=self.db_list,
+                        outgroup=self.outgroup,
+                        string=leaf.name,
+                    ) in ("db", "outgroup"):
                         db += 1
                     else:
                         query += 1
@@ -943,15 +1014,38 @@ class Tree_information:
                     for leaf in c:
                         condition = False
                         # parse condition
-                        if self.decide_type(leaf.name, priority="query") == "db":
+                        if (
+                            decide_type(
+                                query_list=self.query_list,
+                                db_list=self.db_list,
+                                outgroup=self.outgroup,
+                                string=leaf.name,
+                                priority="query",
+                            )
+                            == "db"
+                        ):
                             condition = True
                         elif (
-                            self.decide_type(leaf.name, priority="query") == "outgroup"
+                            decide_type(
+                                query_list=self.query_list,
+                                db_list=self.db_list,
+                                outgroup=self.outgroup,
+                                string=leaf.name,
+                                priority="query",
+                            )
+                            == "outgroup"
                         ):
                             condition = True
                         elif (
                             opt.mode == "identification"
-                            and self.decide_type(leaf.name, priority="query") == "query"
+                            and decide_type(
+                                query_list=self.query_list,
+                                db_list=self.db_list,
+                                outgroup=self.outgroup,
+                                string=leaf.name,
+                                priority="query",
+                            )
+                            == "query"
                         ):
                             condition = True
 
@@ -1415,7 +1509,16 @@ class Tree_information:
                                 print("DEVELOPMENTAL ERROR: Failed coloring tree")
                                 raise Exception
 
-                        elif self.decide_type(word, by="hash") == "query":
+                        elif (
+                            decide_type(
+                                query_list=self.query_list,
+                                db_list=self.db_list,
+                                outgroup=self.outgroup,
+                                string=word,
+                                by="hash",
+                            )
+                            == "query"
+                        ):
                             tspan.set("fill", self.opt.visualize.highlight)
                     except:
                         pass
