@@ -293,6 +293,138 @@ def genus_count(funinfo_dict, gene, clade):
     return taxon_dict
 
 
+def designate_genus(funinfo_dict, query_list, db_list, outgroup, gene, clade):
+    genus_dict = {}
+
+    # Get genus_count
+    for leaf in clade.iter_leaves():
+        if (
+            decide_type(
+                query_list=query_list,
+                db_list=db_list,
+                outgroup=outgroup,
+                string=leaf.name,
+            )
+            == "db"
+            or decide_type(
+                query_list=query_list,
+                db_list=db_list,
+                outgroup=outgroup,
+                string=leaf.name,
+            )
+            == "outgroup"
+        ):
+            if not (
+                (
+                    funinfo_dict[leaf.name].genus,
+                    funinfo_dict[leaf.name].bygene_species[gene],
+                )
+                in genus_dict
+            ):
+                genus_dict[
+                    (
+                        funinfo_dict[leaf.name].genus,
+                        funinfo_dict[leaf.name].bygene_species[gene],
+                    )[0]
+                ] = 1
+            else:
+                genus_dict[
+                    (
+                        funinfo_dict[leaf.name].genus,
+                        funinfo_dict[leaf.name].bygene_species[gene],
+                    )[0]
+                ] += 1
+
+    if len(genus_dict) >= 2:  # if genus is not clear
+        return "AMBIGUOUSGENUS"
+    elif len(genus_dict) == 1:
+        return list(genus_dict.keys())[0]
+    else:
+        return designate_genus(
+            funinfo_dict, query_list, db_list, outgroup, gene, clade.up
+        )
+
+
+# this function finds major species of the clade
+def find_majortaxon(
+    funinfo_dict, query_list, db_list, outgroup, sp_cnt, clade, gene, opt=None
+):
+    taxon_dict = taxon_count(
+        funinfo_dict=funinfo_dict,
+        query_list=query_list,
+        db_list=db_list,
+        outgroup=outgroup,
+        clade=clade,
+        gene=gene,
+    )
+    max_value = 0
+    major_taxon = ""
+
+    for taxon in taxon_dict:
+        if taxon_dict[taxon] > max_value:
+            max_value = taxon_dict[taxon]
+            major_taxon = taxon
+
+    if major_taxon == "":
+        if opt is None:
+            # if major species not selected, try to match genus at least
+            major_taxon = (
+                designate_genus(
+                    funinfo_dict,
+                    query_list,
+                    db_list,
+                    outgroup,
+                    gene,
+                    clade,
+                ),
+                f"sp. {sp_cnt}",
+            )
+
+        elif opt.mode == "validation":  # in validation mode, try to follow query sp
+            taxon_dict = taxon_count(
+                funinfo_dict=funinfo_dict,
+                query_list=query_list,
+                db_list=db_list,
+                outgroup=outgroup,
+                clade=clade,
+                gene=gene,
+                count_query=True,
+            )
+            max_value = 0
+            for taxon in taxon_dict:
+                if taxon_dict[taxon] > max_value:
+                    max_value = taxon_dict[taxon]
+                    major_taxon = taxon
+
+            if not (major_taxon[1].startswith("sp")):
+                major_taxon = (
+                    designate_genus(
+                        funinfo_dict,
+                        query_list,
+                        db_list,
+                        outgroup,
+                        gene,
+                        clade,
+                    ),
+                    f"sp. {sp_cnt}",
+                )
+
+        else:
+            major_taxon = (
+                designate_genus(
+                    funinfo_dict,
+                    query_list,
+                    db_list,
+                    outgroup,
+                    gene,
+                    clade,
+                ),
+                f"sp. {sp_cnt}",
+            )
+
+    return major_taxon
+
+
 # Main tree information class
 class Tree_information:
     def __init__(self, tree, Tree_style, group, gene, opt):
@@ -577,113 +709,6 @@ class Tree_information:
         self.t.render(f"{out}", tree_style=self.Tree_style.ts)
         self.Tree_style.ts.show_leaf_name = False
 
-    @lru_cache(maxsize=10000)
-    def designate_genus(self, gene, clade):
-        genus_dict = {}
-
-        # Get genus_count
-        for leaf in clade.iter_leaves():
-            if (
-                decide_type(
-                    query_list=self.query_list,
-                    db_list=self.db_list,
-                    outgroup=self.outgroup,
-                    string=leaf.name,
-                )
-                == "db"
-                or decide_type(
-                    query_list=self.query_list,
-                    db_list=self.db_list,
-                    outgroup=self.outgroup,
-                    string=leaf.name,
-                )
-                == "outgroup"
-            ):
-                if not (
-                    (
-                        self.funinfo_dict[leaf.name].genus,
-                        self.funinfo_dict[leaf.name].bygene_species[gene],
-                    )
-                    in genus_dict
-                ):
-                    genus_dict[
-                        (
-                            self.funinfo_dict[leaf.name].genus,
-                            self.funinfo_dict[leaf.name].bygene_species[gene],
-                        )[0]
-                    ] = 1
-                else:
-                    genus_dict[
-                        (
-                            self.funinfo_dict[leaf.name].genus,
-                            self.funinfo_dict[leaf.name].bygene_species[gene],
-                        )[0]
-                    ] += 1
-
-        if len(genus_dict) >= 2:  # if genus is not clear
-            return "AMBIGUOUSGENUS"
-        elif len(genus_dict) == 1:
-            return list(genus_dict.keys())[0]
-        else:
-            return self.designate_genus(gene, clade.up)
-
-    # this function finds major species of the clade
-    @lru_cache(maxsize=10000)
-    def find_majortaxon(self, clade, gene, opt=None):
-        taxon_dict = taxon_count(
-            funinfo_dict=self.funinfo_dict,
-            query_list=self.query_list,
-            db_list=self.db_list,
-            outgroup=self.outgroup,
-            clade=clade,
-            gene=gene,
-        )
-        max_value = 0
-        major_taxon = ""
-
-        for taxon in taxon_dict:
-            if taxon_dict[taxon] > max_value:
-                max_value = taxon_dict[taxon]
-                major_taxon = taxon
-
-        if major_taxon == "":
-            if opt is None:
-                # if major species not selected, try to match genus at least
-                major_taxon = (
-                    self.designate_genus(gene, clade),
-                    f"sp. {self.sp_cnt}",
-                )
-
-            elif opt.mode == "validation":  # in validation mode, try to follow query sp
-                taxon_dict = taxon_count(
-                    funinfo_dict=self.funinfo_dict,
-                    query_list=self.query_list,
-                    db_list=self.db_list,
-                    outgroup=self.outgroup,
-                    clade=clade,
-                    gene=gene,
-                    count_query=True,
-                )
-                max_value = 0
-                for taxon in taxon_dict:
-                    if taxon_dict[taxon] > max_value:
-                        max_value = taxon_dict[taxon]
-                        major_taxon = taxon
-
-                if not (major_taxon[1].startswith("sp")):
-                    major_taxon = (
-                        self.designate_genus(gene, clade),
-                        f"sp. {self.sp_cnt}",
-                    )
-
-            else:
-                major_taxon = (
-                    self.designate_genus(gene, clade),
-                    f"sp. {self.sp_cnt}",
-                )
-
-        return major_taxon
-
     def collapse(self, collapse_info, clade, taxon):
         collapse_info.clade = clade
         collapse_info.taxon = taxon
@@ -802,7 +827,15 @@ class Tree_information:
                 other_children = list(set(clade.children) - set([children]))[0]
 
                 # check query branch
-                if self.find_majortaxon(children, gene)[1].startswith("sp."):
+                if find_majortaxon(
+                    funinfo_dict=self.funinfo_dict,
+                    query_list=self.query_list,
+                    db_list=self.db_list,
+                    outgroup=self.outgroup,
+                    sp_cnt=self.sp_cnt,
+                    clade=children,
+                    gene=gene,
+                )[1].startswith("sp."):
                     if children.dist > self.opt.collapsedistcutoff:
                         return False
                     elif children.support > self.opt.collapsebscutoff:
@@ -826,7 +859,15 @@ class Tree_information:
             return datatype, True
 
         # Find candidate taxon name for clade
-        taxon = self.find_majortaxon(clade, gene)
+        taxon = find_majortaxon(
+            funinfo_dict=self.funinfo_dict,
+            query_list=self.query_list,
+            db_list=self.db_list,
+            outgroup=self.outgroup,
+            sp_cnt=self.sp_cnt,
+            clade=clade,
+            gene=gene,
+        )
 
         # Check if basal group includes query seqs
         # if self.additional_clustering == False:
@@ -884,7 +925,15 @@ class Tree_information:
                     for children in clade.children:
                         other_children = list(set(clade.children) - set([children]))[0]
 
-                        if self.find_majortaxon(children, gene)[1].startswith("sp."):
+                        if find_majortaxon(
+                            funinfo_dict=self.funinfo_dict,
+                            query_list=self.query_list,
+                            db_list=self.db_list,
+                            outgroup=self.outgroup,
+                            sp_cnt=self.sp_cnt,
+                            clade=children,
+                            gene=gene,
+                        )[1].startswith("sp."):
                             if children.dist > self.opt.collapsedistcutoff:
                                 return False
                             elif children.support > self.opt.collapsebscutoff:
@@ -906,7 +955,21 @@ class Tree_information:
                 return datatype, True
 
             # if additional_clustering option is on, check if basal group includes query seqs
-            taxon = self.find_majortaxon(clade, gene)
+            print(self.funinfo_dict)
+            print(self.query_list)
+            print(self.db_list)
+            print(self.outgroup)
+            print(self.sp_cnt)
+
+            taxon = find_majortaxon(
+                funinfo_dict=self.funinfo_dict,
+                query_list=self.query_list,
+                db_list=self.db_list,
+                outgroup=self.outgroup,
+                sp_cnt=self.sp_cnt,
+                clade=clade,
+                gene=gene,
+            )
 
             if is_monophyletic(self, clade, gene, taxon):
                 return datatype, True
@@ -920,7 +983,16 @@ class Tree_information:
             collapse_info.query_list = self.query_list
             collapse_info.db_list = self.db_list
             collapse_info.outgroup = self.outgroup
-            taxon = self.find_majortaxon(clade, gene, opt)
+            taxon = find_majortaxon(
+                funinfo_dict=self.funinfo_dict,
+                query_list=self.query_list,
+                db_list=self.db_list,
+                outgroup=self.outgroup,
+                sp_cnt=self.sp_cnt,
+                clade=clade,
+                gene=gene,
+                opt=opt,
+            )
             self.collapse(collapse_info, clade, taxon)
 
             # counting new species
