@@ -345,6 +345,24 @@ def designate_genus(funinfo_dict, query_list, db_list, outgroup, gene, clade):
         )
 
 
+def decide_clade(
+    funinfo_dict, query_list, db_list, outgroup, clade, gene, count_query=True
+):
+    taxon_dict = taxon_count(
+        funinfo_dict=funinfo_dict,
+        query_list=query_list,
+        db_list=db_list,
+        outgroup=outgroup,
+        clade=clade,
+        gene=gene,
+        count_query=count_query,
+    )
+    if len(taxon_dict.keys()) == 0:
+        return "query"
+    else:
+        return "db"
+
+
 # this function finds major species of the clade
 def find_majortaxon(
     funinfo_dict, query_list, db_list, outgroup, sp_cnt, clade, gene, opt=None
@@ -838,24 +856,18 @@ class Tree_information:
                 print(f"Outgroup: {sorted([FI.hash for FI in self.outgroup])}")
                 raise Exception
 
-    def decide_clade(self, clade, gene):
-        taxon_dict = taxon_count(
+    # Check if clade is monophyletic
+    def check_monophyletic(self, clade, gene):
+        # check if clade only has query species or not
+        datatype = decide_clade(
             funinfo_dict=self.funinfo_dict,
             query_list=self.query_list,
             db_list=self.db_list,
             outgroup=self.outgroup,
             clade=clade,
             gene=gene,
+            count_query=True,
         )
-        if len(taxon_dict.keys()) == 0:
-            return "query"
-        else:
-            return "db"
-
-    # Check if clade is monophyletic
-    def check_monophyletic(self, clade, gene):
-        # check if clade only has query species or not
-        datatype = self.decide_clade(clade, gene)
 
         # if only one leaf in clade, it is confirmly monophyletic
         if len(clade.children) == 1:
@@ -895,75 +907,19 @@ class Tree_information:
     # Species level delimitaion on tree
     def tree_search(self, clade, gene, opt=None):
         def local_check_monophyletic(self, clade, gene):
-            # decide if given clade is clade with db or only query
-            def decide_clade(clade, gene):
-                taxon_dict = taxon_count(
-                    funinfo_dict=self.funinfo_dict,
-                    query_list=self.query_list,
-                    db_list=self.db_list,
-                    outgroup=self.outgroup,
-                    clade=clade,
-                    gene=gene,
-                    count_query=False,
-                )
-                if len(taxon_dict.keys()) == 0:
-                    return "query"
-                else:
-                    return "db"
-
-            # decides if the clade is monophyletic
-            # Warning there are other is_monophyletic function
-            """
-            def is_monophyletic(self, clade, gene, taxon):
-                taxon_dict = taxon_count(
-                    funinfo_dict=self.funinfo_dict,
-                    query_list=self.query_list,
-                    db_list=self.db_list,
-                    outgroup=self.outgroup,
-                    clade=clade,
-                    gene=gene,
-                )
-                # print(taxon_dict)
-                # if taxon dict.keys() have 0 species: all query
-                # if any of the branch length was too long or bootstrap is to distinctive : False
-                if len(taxon_dict.keys()) == 0:
-                    for children in clade.children:
-                        if children.dist > self.opt.collapsedistcutoff:
-                            return False
-                        elif children.support > self.opt.collapsebscutoff:
-                            return False
-                    return True
-
-                # if taxon dict.keys() have only 1 species: group assigned
-                elif len(taxon_dict.keys()) == 1:
-                    for children in clade.children:
-                        other_children = list(set(clade.children) - set([children]))[0]
-
-                        if find_majortaxon(
-                            funinfo_dict=self.funinfo_dict,
-                            query_list=self.query_list,
-                            db_list=self.db_list,
-                            outgroup=self.outgroup,
-                            sp_cnt=self.sp_cnt,
-                            clade=children,
-                            gene=gene,
-                        )[1].startswith("sp."):
-                            if children.dist > self.opt.collapsedistcutoff:
-                                return False
-                            elif children.support > self.opt.collapsebscutoff:
-                                return False
-                            elif other_children.dist > self.opt.collapsebscutoff:
-                                return False
-                            elif other_children.dist > self.opt.collapsedistcutoff:
-                                return False
-                    return True
-                else:  # more than 2 species : not monophyletic
-                    return False
-            """
-
             ## Start of local_check_monophyletic
             # if clade only has query species or not
-            datatype = decide_clade(clade, gene)
+            # datatype = decide_clade(clade, gene)
+
+            datatype = decide_clade(
+                funinfo_dict=self.funinfo_dict,
+                query_list=self.query_list,
+                db_list=self.db_list,
+                outgroup=self.outgroup,
+                clade=clade,
+                gene=gene,
+                count_query=False,
+            )
 
             # if only one clade, it is confirmly monophyletic
             if len(clade.children) == 1:
