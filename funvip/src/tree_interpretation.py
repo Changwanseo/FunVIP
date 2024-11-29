@@ -856,54 +856,6 @@ class Tree_information:
                 print(f"Outgroup: {sorted([FI.hash for FI in self.outgroup])}")
                 raise Exception
 
-    # Check if clade is monophyletic
-    def check_monophyletic(self, clade, gene):
-        # check if clade only has query species or not
-        datatype = decide_clade(
-            funinfo_dict=self.funinfo_dict,
-            query_list=self.query_list,
-            db_list=self.db_list,
-            outgroup=self.outgroup,
-            clade=clade,
-            gene=gene,
-            count_query=True,
-        )
-
-        # if only one leaf in clade, it is confirmly monophyletic
-        if len(clade.children) == 1:
-            return datatype, True
-
-        # Find candidate taxon name for clade
-        taxon = find_majortaxon(
-            funinfo_dict=self.funinfo_dict,
-            query_list=self.query_list,
-            db_list=self.db_list,
-            outgroup=self.outgroup,
-            sp_cnt=self.sp_cnt,
-            clade=clade,
-            gene=gene,
-        )
-
-        # Check if basal group includes query seqs
-        # if self.additional_clustering == False:
-        #    self.opt.collapsedistcutoff = 0
-
-        # Check if clade is monophyletic to given taxon
-        if is_monophyletic(
-            self.funinfo_dict,
-            self.query_list,
-            self.db_list,
-            self.outgroup,
-            self.opt,
-            self.sp_cnt,
-            clade,
-            gene,
-            taxon,
-        ):
-            return True
-        else:
-            return False
-
     # Species level delimitaion on tree
     def tree_search(self, clade, gene, opt=None):
         def local_check_monophyletic(self, clade, gene):
