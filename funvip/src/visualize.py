@@ -178,15 +178,19 @@ def visualize(
             return get_genus_species(df["SPECIES_ASSIGNED"][n])
 
     # Update background color for monophyletic clade
+    # input tree
     def find_and_color_monophyletic_clade(t):
-        for child in t.children:
-            if monophyletic(child):
-                if query_found(child):
-                    if new_species(child):
+        for clade in t.children:
+            # Check if clade is monophyletic
+            if is_monophyletic(funinfo_dict, query_list, db_list, outgroup, opt, sp_cnt, clade, gene, taxon):
+                # If query is in it
+                if query_found(clade):
+                    if new_species(clade):
                         # Color with new species color
                         child.img_style["bgcolor"] = "paleturquoise"
                         # Change abbreviate to False if you want to show full name of new species
 
+                        '''
                         for leaf in child.iter_leaves():
                             print(leaf.name)
 
@@ -194,6 +198,7 @@ def visualize(
                         print(
                             f"DEBUG point 2: {get_taxon(list(child.iter_leaves())[0])}"
                         )
+                        '''
 
                         taxon = get_taxon(list(child.iter_leaves())[0])
                         print(f"Taxon: {taxon}")
@@ -227,10 +232,10 @@ def visualize(
             else:
                 find_and_color_monophyletic_clade(child)
 
-    ml_tree = f"{path.out_tree}/hash/hash_{opt.runname}_{group}_{gene}.nwk"
 
-    ## Now merge two trees
-    t_ml = Tree(ml_tree)
+    ## Start of the function
+    # Read hashed tree
+    t_ml = Tree(f"{path.out_tree}/hash/hash_{opt.runname}_{group}_{gene}.nwk")
 
     '''
     t_ml_leaves = set(str(l.name).replace("-", "_").replace("/", "") for l in t_ml)

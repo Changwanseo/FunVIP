@@ -213,12 +213,10 @@ def taxon_count(
     taxon_dict = {}
 
     for leaf in clade:
+        FI = funinfo_dict[leaf.name]
         taxon = None
         if count_query == True:
-            taxon = (
-                funinfo_dict[leaf.name].genus,
-                funinfo_dict[leaf.name].bygene_species[gene],
-            )
+            taxon = (FI.genus, FI.bygene_species[gene])
         elif (
             decide_type(
                 query_list=query_list,
@@ -235,10 +233,7 @@ def taxon_count(
             )
             == "outgroup"
         ):
-            taxon = (
-                funinfo_dict[leaf.name].genus,
-                funinfo_dict[leaf.name].bygene_species[gene],
-            )
+            taxon = (FI.genus, FI.bygene_species[gene])
 
         if not (taxon is None):
             if not (taxon in taxon_dict):
@@ -253,6 +248,7 @@ def genus_count(funinfo_dict, gene, clade):
     taxon_dict = {}
 
     for leaf in clade.iter_leaves():
+        FI = funinfo_dict[leaf.name]
         if (
             decide_type(
                 query_list=self.query_list,
@@ -269,26 +265,10 @@ def genus_count(funinfo_dict, gene, clade):
             )
             == "outgroup"
         ):
-            if not (
-                (
-                    funinfo_dict[leaf.name].genus,
-                    funinfo_dict[leaf.name].bygene_species[gene],
-                )
-                in taxon_dict
-            ):
-                taxon_dict[
-                    (
-                        funinfo_dict[leaf.name].genus,
-                        funinfo_dict[leaf.name].bygene_species[gene],
-                    )[0]
-                ] = 1
+            if not ((FI.genus, FI.bygene_species[gene]) in taxon_dict):
+                taxon_dict[(FI.genus, FI.bygene_species[gene])[0]] = 1
             else:
-                taxon_dict[
-                    (
-                        funinfo_dict[leaf.name].genus,
-                        funinfo_dict[leaf.name].bygene_species[gene],
-                    )[0]
-                ] += 1
+                taxon_dict[(FI.genus, FI.bygene_species[gene])[0]] += 1
 
     return taxon_dict
 
@@ -298,6 +278,7 @@ def designate_genus(funinfo_dict, query_list, db_list, outgroup, gene, clade):
 
     # Get genus_count
     for leaf in clade.iter_leaves():
+        FI = funinfo_dict[leaf.name]
         if (
             decide_type(
                 query_list=query_list,
@@ -314,26 +295,10 @@ def designate_genus(funinfo_dict, query_list, db_list, outgroup, gene, clade):
             )
             == "outgroup"
         ):
-            if not (
-                (
-                    funinfo_dict[leaf.name].genus,
-                    funinfo_dict[leaf.name].bygene_species[gene],
-                )
-                in genus_dict
-            ):
-                genus_dict[
-                    (
-                        funinfo_dict[leaf.name].genus,
-                        funinfo_dict[leaf.name].bygene_species[gene],
-                    )[0]
-                ] = 1
+            if not ((FI.genus, FI.bygene_species[gene]) in genus_dict):
+                genus_dict[(FI.genus, FI.bygene_species[gene])[0]] = 1
             else:
-                genus_dict[
-                    (
-                        funinfo_dict[leaf.name].genus,
-                        funinfo_dict[leaf.name].bygene_species[gene],
-                    )[0]
-                ] += 1
+                genus_dict[(FI.genus, FI.bygene_species[gene])[0]] += 1
 
     if len(genus_dict) >= 2:  # if genus is not clear
         return "AMBIGUOUSGENUS"
@@ -341,7 +306,12 @@ def designate_genus(funinfo_dict, query_list, db_list, outgroup, gene, clade):
         return list(genus_dict.keys())[0]
     else:
         return designate_genus(
-            funinfo_dict, query_list, db_list, outgroup, gene, clade.up
+            funinfo_dict=funinfo_dict,
+            query_list=query_list,
+            db_list=db_list,
+            outgroup=outgroup,
+            gene=gene,
+            clade=clade.up,
         )
 
 
@@ -495,6 +465,52 @@ def is_monophyletic(
         return False
 
 
+def check_monophyletic(
+    funinfo_dict, query_list, db_list, outgroup, opt, sp_cnt, clade, gene
+):
+    ## Start of local_check_monophyletic
+    # if clade only has query species or not
+    datatype = decide_clade(
+        funinfo_dict=funinfo_dict,
+        query_list=query_list,
+        db_list=db_list,
+        outgroup=outgroup,
+        clade=clade,
+        gene=gene,
+        count_query=False,
+    )
+
+    # if only one clade, it is confirmly monophyletic
+    if len(clade.children) == 1:
+        return datatype, True
+
+    # if additional_clustering option is on, check if basal group includes query seqs
+    taxon = find_majortaxon(
+        funinfo_dict=funinfo_dict,
+        query_list=query_list,
+        db_list=db_list,
+        outgroup=outgroup,
+        sp_cnt=sp_cnt,
+        clade=clade,
+        gene=gene,
+    )
+
+    if is_monophyletic(
+        funinfo_dict,
+        query_list,
+        db_list,
+        outgroup,
+        opt,
+        sp_cnt,
+        clade,
+        gene,
+        taxon,
+    ):
+        return datatype, True
+    else:
+        return datatype, False
+
+
 # Main tree information class
 class Tree_information:
     def __init__(self, tree, Tree_style, group, gene, opt):
@@ -545,11 +561,8 @@ class Tree_information:
     # e.g. avoid sp 5 if P. sp 5 already exsits in database
     def reserve_sp(self):  # does not seems to be working currently
         for leaf in self.t.iter_leaves():
-            sys.stdout.flush()
-            taxon = (
-                self.funinfo_dict[leaf.name].genus,
-                self.funinfo_dict[leaf.name].ori_species,
-            )
+            FI = self.funinfo_dict[leaf.name]
+            taxon = (FI.genus, FI.ori_species)
             sys.stdout.flush()
             if taxon[1].split(" ")[0] in ("sp", "sp."):
                 self.reserved_sp.add(" ".join(taxon[1].split(" ")[1:]))
@@ -707,6 +720,7 @@ class Tree_information:
         for leaf in self.t:
             if any(outgroup.hash in leaf.name for outgroup in self.outgroup):
                 outgroup_leaves.append(leaf)
+
         self.outgroup_leaf_name_list = [leaf.name for leaf in outgroup_leaves]
         self.outgroup_group = list(
             set(self.funinfo_dict[leaf.name].adjusted_group for leaf in outgroup_leaves)
@@ -858,53 +872,6 @@ class Tree_information:
 
     # Species level delimitaion on tree
     def tree_search(self, clade, gene, opt=None):
-        def local_check_monophyletic(self, clade, gene):
-            ## Start of local_check_monophyletic
-            # if clade only has query species or not
-            # datatype = decide_clade(clade, gene)
-
-            datatype = decide_clade(
-                funinfo_dict=self.funinfo_dict,
-                query_list=self.query_list,
-                db_list=self.db_list,
-                outgroup=self.outgroup,
-                clade=clade,
-                gene=gene,
-                count_query=False,
-            )
-
-            # if only one clade, it is confirmly monophyletic
-            if len(clade.children) == 1:
-                return datatype, True
-
-            # if additional_clustering option is on, check if basal group includes query seqs
-            taxon = find_majortaxon(
-                funinfo_dict=self.funinfo_dict,
-                query_list=self.query_list,
-                db_list=self.db_list,
-                outgroup=self.outgroup,
-                sp_cnt=self.sp_cnt,
-                clade=clade,
-                gene=gene,
-            )
-
-            if is_monophyletic(
-                self.funinfo_dict,
-                self.query_list,
-                self.db_list,
-                self.outgroup,
-                self.opt,
-                self.sp_cnt,
-                clade,
-                gene,
-                taxon,
-            ):
-                return datatype, True
-            else:
-                return datatype, False
-
-            ## End of local_check_monophyletic
-
         def local_generate_collapse_information(self, clade, opt=None):
             collapse_info = Collapse_information()
             collapse_info.query_list = self.query_list
@@ -958,8 +925,15 @@ class Tree_information:
                 )
 
                 # Check if child clades are monophyletic
-                datatype, monophyletic = local_check_monophyletic(
-                    self, child_clade, gene
+                datatype, monophyletic = check_monophyletic(
+                    self.funinfo_dict,
+                    self.query_list,
+                    self.db_list,
+                    self.outgroup,
+                    self.opt,
+                    self.sp_cnt,
+                    child_clade,
+                    gene,
                 )
 
                 # If monophyletic clade, generate collapse_info and finish
@@ -1016,10 +990,8 @@ class Tree_information:
                 # t for taxon : get taxon of the leaf
                 def t(leaf):
                     try:
-                        return (
-                            self.funinfo_dict[leaf.name].genus,
-                            self.funinfo_dict[leaf.name].bygene_species[gene],
-                        )
+                        FI = self.funinfo_dict[leaf.name]
+                        return (FI.genus, FI.bygene_species[gene])
                     except:
                         print(
                             f"{bold_red}[DEVELOPMENTAL ERROR] in leaf.name tree_interpretation.py line 869 {resety}"
@@ -1593,9 +1565,6 @@ class Tree_information:
                             tspan.set("fill", self.opt.visualize.highlight)
                     except:
                         pass
-
-        # raise Exception
-
         # fit size of tree_xml to svg
         # find svg from tree_xml
         svg = list(tree_xml.iter("{http://www.w3.org/2000/svg}svg"))[0]
