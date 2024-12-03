@@ -15,7 +15,6 @@ import lxml.etree as ET
 import pandas as pd
 from functools import lru_cache
 from funvip.src.tool import get_id, get_genus_species
-from funvip.src.patch import patch
 import dendropy
 import collections
 import os
