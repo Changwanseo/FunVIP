@@ -6,6 +6,7 @@ import os, sys, subprocess
 from copy import deepcopy
 from functools import lru_cache
 from time import sleep
+from time import time
 
 # from Bio.Blast import NCBIXML
 from Bio import SeqIO
@@ -96,6 +97,8 @@ def assign_gene(result_dict, V, cutoff=0.99):
 
 # cluster each of FI object and assign group
 def cluster(FI, V, path, opt):
+    start_time = time()
+
     list_group = deepcopy(V.list_group)
 
     # Reduce search df space by selecting only FI related ones
@@ -336,6 +339,8 @@ def append_outgroup(V, df_search, gene, group, path, opt):
 
 
 def group_cluster_opt_generator(V, opt, path):
+    opt_cluster = []
+
     # cluster(FO, df_search, V, path, opt)
     if len(V.list_qr_gene) == 0:
         logging.error(
@@ -347,11 +352,12 @@ def group_cluster_opt_generator(V, opt, path):
     else:
         # cluster group by concatenated search result
         list_id = list(set(V.cSR["qseqid"]))
+
         for FI in V.list_FI:
             if FI.hash in list_id:
-                V.opt_cluster.append((FI, V, path, opt))
+                opt_cluster.append((FI, V, path, opt))
 
-    return V
+    return opt_cluster
 
 
 # opts ready for multithreading in outgroup append
@@ -389,36 +395,39 @@ def pipe_cluster(V, opt, path):
 
         # cluster opt generation for multiprocessing
         # (FI, V, path, opt)
-        V = group_cluster_opt_generator(V, opt, path)
+        opt_cluster = group_cluster_opt_generator(V, opt, path)
 
         # run multiprocessing start
         if opt.verbose < 3:
             p = mp.Pool(opt.thread)
-            V.rslt_cluster = p.starmap(cluster, V.opt_cluster)
+            rslt_cluster = p.starmap(cluster, opt_cluster)
             p.close()
             p.join()
         else:
             # non-multithreading mode for debugging
-            V.rslt_cluster = [cluster(*o) for o in V.opt_cluster]
+            rslt_cluster = [cluster(*o) for o in opt_cluster]
         # gather cluster result
-        for cluster_result in V.rslt_cluster:
+        for cluster_result in rslt_cluster:
             FI = cluster_result[0]
             logging.debug((FI.id, FI.datatype, FI.group, FI.adjusted_group))
 
         # replace group assigning result
         # collect FI from cluster result
-        replace_FI = [r[0] for r in V.rslt_cluster]
+        # somethings been duplicated here
+        replace_FI = [r[0] for r in rslt_cluster]
+
         # collect hash
         replace_hash_FI = [FI.hash for FI in replace_FI]
+
         # maintain not clustered result and append clustered result
-        V.list_FI = [
-            FI for FI in V.list_FI if not (FI.hash in replace_hash_FI)
-        ] + replace_FI
+        V.list_FI = [FI for FI in V.list_FI if not (FI.hash in replace_hash_FI)]
+        V.list_FI += replace_FI
+
         # For syncyhronizing FI in dict_hash_FI to prevent error
         for FI in replace_FI:
             V.dict_hash_FI[FI.hash] = FI
 
-        V.list_group = list(set([r[1] for r in V.rslt_cluster if (not (r[1] is None))]))
+        V.list_group = list(set([r[1] for r in rslt_cluster if (not (r[1] is None))]))
 
         if opt.queryonly is True:
             for FI in V.list_FI:

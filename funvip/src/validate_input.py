@@ -917,6 +917,10 @@ def data_input(V, R, opt, path):
     # combine all data
     V.list_FI = [funinfo_dict[key] for key in funinfo_dict]
 
+    # reset final_species of V.list_FI for resume
+    for FI in V.list_FI:
+        FI.final_species = ""
+
     # hashing data for safety in tree analysis
     V.list_FI = hash_funinfo_list(V.list_FI)
 

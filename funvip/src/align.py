@@ -4,6 +4,7 @@ import logging
 from Bio import SeqIO
 import multiprocessing as mp
 import math
+import os
 
 
 # Each module to be run in alignment multiprocessing
@@ -49,6 +50,25 @@ def module_alignment(
 # Alignment pipeline
 def pipe_alignment(V, path, opt):
     alignment_opt = opt_generator(V, opt, path, step="alignment")
+
+    # Before running alignment, clear previous files
+    for file in os.listdir(path.out_alignment):
+        if any(file.endswith(x) for x in [".fasta", ".partition", ".colnumbering"]):
+            os.remove(
+                f"{path.out_alignment}/{file}",
+            )
+
+    for file in os.listdir(f"{path.out_alignment}/failed/"):
+        if any(file.endswith(x) for x in [".fasta", ".partition", ".colnumbering"]):
+            os.remove(
+                f"{path.out_alignment}/failed/{file}",
+            )
+
+    for file in os.listdir(f"{path.out_alignment}/hash/"):
+        if any(file.endswith(x) for x in [".fasta", ".partition", ".colnumbering"]):
+            os.remove(
+                f"{path.out_alignment}/hash/{file}",
+            )
 
     # Multiprocessing start
     # Thread optimizations

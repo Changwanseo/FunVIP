@@ -178,8 +178,11 @@ def main():
         # Pushing all v to multiprocessing requires too much memory
         V, path, opt = cluster.pipe_append_outgroup(V, path, opt)
 
+        print("Check point 5")
+
         # remove invalid dataset from downstream analysis
         V.remove_invalid_dataset()
+
         # Save dataset to outgroups
         V.save_dataset(path, opt)
 

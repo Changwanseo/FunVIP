@@ -609,6 +609,7 @@ class Tree_information:
                     # To prevent distance among different region detected as zero in concatenated analysis
                     overlapping_cnt = 0
 
+                    # For concatenated sequence alignment, identical sequnece should be checked by each partitions
                     if gene == "concatenated":
                         len_dict = partition_dict["len"]
                         gene_order = partition_dict["order"]
@@ -622,6 +623,7 @@ class Tree_information:
                             start = previous_index
                             end = previous_index + len_dict[gene] - 1
 
+                            # Find the starting point
                             for n in range(
                                 previous_index, len_dict[gene] + previous_index
                             ):
@@ -629,6 +631,7 @@ class Tree_information:
                                     start = n
                                     break
 
+                            # Compare from the start
                             for n in range(
                                 len_dict[gene] + previous_index - 1,
                                 previous_index - 1,
