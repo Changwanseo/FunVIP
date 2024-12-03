@@ -15,6 +15,7 @@ import lxml.etree as ET
 import pandas as pd
 from functools import lru_cache
 from funvip.src.tool import get_id, get_genus_species
+from funvip.src.patch import patch
 import dendropy
 import collections
 import os
@@ -1314,14 +1315,14 @@ class Tree_information:
 
                 taxon_text = TextFace(
                     taxon_string,
-                    fsize=self.opt.visualize.fsize,
+                    fsize=int(self.opt.visualize.fsize),
                     ftype=self.opt.visualize.ftype,
                     fgcolor=collapse_info.color,
                 )
 
                 space_text = TextFace(
                     "  ",
-                    fsize=self.opt.visualize.fsize,
+                    fsize=int(self.opt.visualize.fsize),
                     ftype=self.opt.visualize.ftype,
                     fgcolor=collapse_info.color,
                 )
@@ -1339,7 +1340,7 @@ class Tree_information:
 
                 id_text = TextFace(
                     id_string,
-                    fsize=self.opt.visualize.fsize,
+                    fsize=int(self.opt.visualize.fsize),
                     ftype=self.opt.visualize.ftype,
                 )
 

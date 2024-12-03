@@ -28,7 +28,7 @@ dependencies = [
     "xlrd==2.0.1",
     "xlsxwriter",
     "xmltodict==0.12.0",
-    "PyQt5>=5.9.2; sys_platform!='darwin'"
+    "PyQt5>=5.15.0; sys_platform!='darwin'"
 ]
 
 [project.scripts]
