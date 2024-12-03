@@ -162,15 +162,21 @@ def save_mergedfasta(fasta_list, out_path):
 
 # save dataframe
 def save_df(df, out, fmt="csv"):
-    if fmt == "csv" or fmt == "tsv":
-        df.to_csv(out, index=False)
+    if fmt == "csv":
+        df.to_csv(out, index=False, encoding="UTF-8")
+
+    elif fmt == "tsv":
+        df.to_csv(out, index=False, encoding="UTF-8", sep="\t")
+
     # For excel size limit
     elif fmt == "xlsx" or fmt == "excel":
         # Limit is 1048576 rows with 16384 column, exlcuding one for column
         if len(df) <= 1048575 and df.shape[1] <= 16383:
             df.to_excel(out, index=False)
         else:
-            logging.warning(f"Dataframe size exceeds excel limit. Using csv instead")
+            logging.warning(
+                f"Dataframe size exceeds excel limit, 1048575 rows and 16384 columns. Using csv instead"
+            )
             df.to_csv(out, index=False)
     elif fmt == "parquet":
         df.to_parquet(out, index=False)

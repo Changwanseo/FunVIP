@@ -121,7 +121,6 @@ def main():
         )
 
         # logging works well from here
-
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_setup = time()

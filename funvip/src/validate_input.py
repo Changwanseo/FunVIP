@@ -436,7 +436,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
     # extensionto filetype translation
     dict_extension = {
         ".csv": "csv",
-        ".tsv": "csv",
+        ".tsv": "tsv",
         ".xlsx": "excel",
         ".xls": "excel",
         ".parquet": "parquet",
@@ -453,7 +453,14 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
             if table.endswith(extension):
                 try:
                     if dict_extension[extension] == "csv":
-                        df = pd.read_csv(table)
+                        df = pd.read_csv(
+                            table, sep=",", encoding="UTF-8", keep_default_na=False
+                        )
+                        flag_read_table = 1
+                    elif dict_extension[extension] == "tsv":
+                        df = pd.read_csv(
+                            table, sep="\t", encoding="UTF-8", keep_default_na=False
+                        )
                         flag_read_table = 1
                     elif dict_extension[extension] == "excel":
                         df = pd.read_excel(table)
