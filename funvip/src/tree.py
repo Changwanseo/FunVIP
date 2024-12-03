@@ -194,6 +194,18 @@ def pipe_tree(V, path, opt, model_dict):
         for gene in tree_dataset[group]:
             try:
                 if gene != "concatenated":
+                    # Decode adjusted
+                    os.rename(
+                        f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta",
+                        f"{path.out_adjusted}/hash/{opt.runname}_hash_Adjusted_{group}_{gene}.fasta",
+                    )
+                    hasher.decode(
+                        tree_hash_dict,
+                        f"{path.out_adjusted}/hash/{opt.runname}_hash_Adjusted_{group}_{gene}.fasta",
+                        f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta",
+                    )
+
+                    # Decode alignment
                     os.rename(
                         f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
                         f"{path.out_alignment}/hash/{opt.runname}_hash_MAFFT_{group}_{gene}.fasta",
@@ -204,6 +216,7 @@ def pipe_tree(V, path, opt, model_dict):
                         f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
                     )
 
+                # Decode trimmed file
                 os.rename(
                     f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
                     f"{path.out_alignment}/hash/{opt.runname}_hash_trimmed_{group}_{gene}.fasta",
