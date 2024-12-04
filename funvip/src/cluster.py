@@ -242,13 +242,13 @@ def cluster(FI, V_list_group, V_cSR, path, opt):
 
 
 ### Append outgroup to given group-gene dataset by search matrix
-def append_outgroup(V, df_search, gene, group, path, opt):
+def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
     logging.info(f"Appending outgroup on group: {group}, Gene: {gene}")
-    list_FI = deepcopy(V.list_FI)
+    list_FI = V_list_FI
 
     # In multiprocessing, delete V to reduce memory consumption
-    del V
-    gc.collect()
+    # del V
+    # gc.collect()
 
     # ready for by sseqid hash, which group to append
     # this time, append adjusted group
@@ -420,7 +420,15 @@ def group_cluster_opt_generator(V, opt, path):
 
         for FI in V.list_FI:
             if FI.hash in list_id:
-                opt_cluster.append((FI, V.list_group, V.cSR, path, opt))
+                opt_cluster.append(
+                    (
+                        FI,
+                        V.list_group,
+                        V.cSR[["qseqid", "bitscore", "subject_group"]],
+                        path,
+                        opt,
+                    )
+                )
 
     return opt_cluster
 
@@ -442,7 +450,9 @@ def outgroup_append_opt_generator(V, path, opt):
                 df_group_ = df_group.get_group(group)
                 # Generating outgroup opt for multiprocessing
                 for gene in V.dict_dataset[group]:
-                    opt_append_outgroup.append((V, df_group_, gene, group, path, opt))
+                    opt_append_outgroup.append(
+                        (V.list_FI, df_group_, gene, group, path, opt)
+                    )
 
             except:
                 logging.warning(
