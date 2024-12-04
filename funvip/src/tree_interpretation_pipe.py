@@ -19,27 +19,34 @@ def pipe_module_tree_interpretation(
     out,
     group,
     gene,
-    V,
+    V_tup_genus,
+    funinfo_dict,
+    funinfo_list,
+    hash_dict,
+    query_list,
+    outgroup,
+    partition,
     path,
     opt,
 ):
     # To reduce memory usage in multithreaded performance, copy necessary objects and then remove V
+
+    """
     funinfo_dict = V.dict_hash_FI
     funinfo_list = V.list_FI
     hash_dict = V.dict_hash_name
     query_list = V.dict_dataset[group][gene].list_qr_FI
     outgroup = V.dict_dataset[group][gene].list_og_FI
     partition = V.partition[group]
+    """
 
     # for unexpectively included sequence during clustering
     db_list = list(
-        set([FI for FI in V.list_FI if FI.datatype == "db"])
+        set([FI for FI in funinfo_list if FI.datatype == "db"])
         - set(outgroup)
         - set(query_list)
     )
-    genus_list = V.tup_genus
-
-    del V
+    genus_list = V_tup_genus
 
     # For get_genus_species
     initialize_path(path)
@@ -440,15 +447,18 @@ def synchronize(V, path, tree_info_list):
 ### Visualization after synchronization
 def pipe_module_tree_visualization(
     tree_info,
-    V,
+    V_tup_genus,
+    V_dict_hash_FI,
     path,
     opt,
 ):
     ######### Fix collapse_dict.keys()
+    # V.tup_genus
+    # V.dict_hash_FI
 
     group = tree_info.group
     gene = tree_info.gene
-    genus_list = list(V.tup_genus)
+    genus_list = list(V_tup_genus)
     genus_list.append("AMBIGUOUSGENUS")
     genus_list = tuple(genus_list)
 
@@ -487,9 +497,9 @@ def pipe_module_tree_visualization(
             # Get each of the leaf result to report
             for leaf in collapse_info.leaf_list:
                 report = Singlereport()
-                report.id = V.dict_hash_FI[leaf[0]].original_id
-                report.hash = V.dict_hash_FI[leaf[0]].hash
-                report.update_group(V.dict_hash_FI[leaf[0]].adjusted_group)
+                report.id = V_dict_hash_FI[leaf[0]].original_id
+                report.hash = V_dict_hash_FI[leaf[0]].hash
+                report.update_group(V_dict_hash_FI[leaf[0]].adjusted_group)
                 report.update_group_analysis(group)
                 report.update_gene(gene)
                 report.update_species_original(
@@ -508,9 +518,9 @@ def pipe_module_tree_visualization(
             for n, collapse_info in enumerate(tree_info.collapse_dict[taxon]):
                 for leaf in collapse_info.leaf_list:
                     report = Singlereport()
-                    report.id = V.dict_hash_FI[leaf[0]].original_id
-                    report.hash = V.dict_hash_FI[leaf[0]].hash
-                    report.update_group(V.dict_hash_FI[leaf[0]].adjusted_group)
+                    report.id = V_dict_hash_FI[leaf[0]].original_id
+                    report.hash = V_dict_hash_FI[leaf[0]].hash
+                    report.update_group(V_dict_hash_FI[leaf[0]].adjusted_group)
                     report.update_group_analysis(group)
                     report.update_gene(gene)
                     report.update_species_original(
@@ -536,8 +546,17 @@ def pipe_tree_interpretation(V, path, opt):
         for gene in V.dict_hash_FI[key].bygene_species:
             V.dict_hash_FI[key].bygene_species[gene] = V.dict_hash_FI[key].ori_species
 
+    # common variable preparation
+    funinfo_dict = V.dict_hash_FI
+    funinfo_list = V.list_FI
+    hash_dict = V.dict_hash_name
+
+    # make option variables
     for group in V.dict_dataset:
+        partition = V.partition[group]
         for gene in V.dict_dataset[group]:
+            query_list = V.dict_dataset[group][gene].list_qr_FI
+            outgroup = V.dict_dataset[group][gene].list_og_FI
             logging.debug(f"pipe_tree_interpretation {group} {gene}")
             # Condition 1 : draw all trees
             cond1 = opt.queryonly is False
@@ -566,7 +585,13 @@ def pipe_tree_interpretation(V, path, opt):
                             f"{opt.runname}_{group}_{gene}",
                             group,
                             gene,
-                            V,
+                            V.tup_genus,
+                            funinfo_dict,
+                            funinfo_list,
+                            hash_dict,
+                            query_list,
+                            outgroup,
+                            partition,
                             path,
                             opt,
                         )
@@ -604,7 +629,9 @@ def pipe_tree_interpretation(V, path, opt):
     # Generate visualization option to run
     tree_visualization_opt = []
     for tree_info in tree_info_list:
-        tree_visualization_opt.append((tree_info, V, path, opt))
+        tree_visualization_opt.append(
+            (tree_info, V.tup_genus, V.dict_hash_FI, path, opt)
+        )
 
     ## Tree visualization
     if opt.verbose < 3:
