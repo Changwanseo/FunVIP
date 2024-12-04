@@ -52,9 +52,9 @@ def main():
     # Argument parsing in commandline mode
     args = CommandParser().get_args()
 
-    ############################################################################
-    #     Start of initializing blocks should not be moved for function!!!     #
-    ############################################################################
+    #############################################################################
+    #     Start of initializing blocks should not be moved for function!!!      #
+    #############################################################################
 
     # initialize working directories, and opts
     opt, path, list_info, list_warning, list_error = initialize.initialize(
