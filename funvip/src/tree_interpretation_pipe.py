@@ -539,7 +539,7 @@ def pipe_module_tree_visualization(
 ### For all datasets, multiprocessing part
 def pipe_tree_interpretation(V, path, opt):
     # Generate tree_interpretation opt to run
-    tree_interpretation_opt = []
+    # tree_interpretation_opt = []
 
     # Reset bygene_species for rerun
     for key in V.dict_hash_FI:  # funinfo_dict
@@ -551,65 +551,69 @@ def pipe_tree_interpretation(V, path, opt):
     funinfo_list = V.list_FI
     hash_dict = V.dict_hash_name
 
-    # make option variables
-    for group in V.dict_dataset:
-        partition = V.partition[group]
-        for gene in V.dict_dataset[group]:
-            query_list = V.dict_dataset[group][gene].list_qr_FI
-            outgroup = V.dict_dataset[group][gene].list_og_FI
-            logging.debug(f"pipe_tree_interpretation {group} {gene}")
-            # Condition 1 : draw all trees
-            cond1 = opt.queryonly is False
-            # Condition 2 : When query included
-            cond2 = len(V.dict_dataset[group][gene].list_qr_FI) > 0
-            # Condition 3 : When any of the branches of the tree is valid in concatenated analysis
-            cond3 = (len(V.dict_dataset[group]["concatenated"].list_qr_FI) > 0) and any(
-                FI.hash
-                in [
-                    x.hash
-                    for x in V.dict_dataset[group][gene].list_qr_FI
-                    + V.dict_dataset[group][gene].list_db_FI
-                    + V.dict_dataset[group][gene].list_og_FI
-                ]
-                for FI in V.dict_dataset[group]["concatenated"].list_qr_FI
-                + V.dict_dataset[group]["concatenated"].list_db_FI
-                + V.dict_dataset[group]["concatenated"].list_og_FI
-            )
+    # Generate options using generator
+    def generate_interpretation_opt():
+        # make option variables
+        for group in V.dict_dataset:
+            partition = V.partition[group]
+            for gene in V.dict_dataset[group]:
+                query_list = V.dict_dataset[group][gene].list_qr_FI
+                outgroup = V.dict_dataset[group][gene].list_og_FI
+                logging.debug(f"pipe_tree_interpretation {group} {gene}")
+                # Condition 1 : draw all trees
+                cond1 = opt.queryonly is False
+                # Condition 2 : When query included
+                cond2 = len(V.dict_dataset[group][gene].list_qr_FI) > 0
+                # Condition 3 : When any of the branches of the tree is valid in concatenated analysis
+                cond3 = (
+                    len(V.dict_dataset[group]["concatenated"].list_qr_FI) > 0
+                ) and any(
+                    FI.hash
+                    in [
+                        x.hash
+                        for x in V.dict_dataset[group][gene].list_qr_FI
+                        + V.dict_dataset[group][gene].list_db_FI
+                        + V.dict_dataset[group][gene].list_og_FI
+                    ]
+                    for FI in V.dict_dataset[group]["concatenated"].list_qr_FI
+                    + V.dict_dataset[group]["concatenated"].list_db_FI
+                    + V.dict_dataset[group]["concatenated"].list_og_FI
+                )
 
-            # Interpret tree when valid condition
-            if cond1 or cond2 or cond3:
-                if len(V.dict_dataset[group][gene].list_og_FI) > 0:
-                    # Generating tree_interpretation opts for multithreading support
-                    tree_interpretation_opt.append(
-                        (
-                            f"{opt.runname}_{group}_{gene}",
-                            group,
-                            gene,
-                            V.tup_genus,
-                            funinfo_dict,
-                            funinfo_list,
-                            hash_dict,
-                            query_list,
-                            outgroup,
-                            partition,
-                            path,
-                            opt,
+                # Interpret tree when valid condition
+                if cond1 or cond2 or cond3:
+                    if len(V.dict_dataset[group][gene].list_og_FI) > 0:
+                        # Generating tree_interpretation opts for multithreading support
+                        yield (
+                            (
+                                f"{opt.runname}_{group}_{gene}",
+                                group,
+                                gene,
+                                V.tup_genus,
+                                funinfo_dict,
+                                funinfo_list,
+                                hash_dict,
+                                query_list,
+                                outgroup,
+                                partition,
+                                path,
+                                opt,
+                            )
                         )
-                    )
-                # However, if outgroup does not exists, warn it
-                else:
-                    logging.warning(
-                        f"Failed interpreting tree {group} {gene} because no outgroup available"
-                    )
+                    # However, if outgroup does not exists, warn it
+                    else:
+                        logging.warning(
+                            f"Failed interpreting tree {group} {gene} because no outgroup available"
+                        )
+
+    tree_interpretation_opt = generate_interpretation_opt()
 
     ## Tree interpretation - outgroup, reconstruction(solve_flat), collapsing
     if opt.verbose < 3:
-        p = mp.Pool(opt.thread)
-        tree_info_list = p.starmap(
-            pipe_module_tree_interpretation, tree_interpretation_opt
-        )
-        p.close()
-        p.join()
+        with mp.Pool(opt.thread) as p:
+            tree_info_list = p.starmap(
+                pipe_module_tree_interpretation, tree_interpretation_opt
+            )
 
     else:
         # non-multithreading mode for debugging
@@ -626,21 +630,20 @@ def pipe_tree_interpretation(V, path, opt):
 
     synchronized_tree_info_list = synchronize(V, path, tree_info_list)
     tree_info_list = synchronized_tree_info_list
-    # Generate visualization option to run
-    tree_visualization_opt = []
-    for tree_info in tree_info_list:
-        tree_visualization_opt.append(
-            (tree_info, V.tup_genus, V.dict_hash_FI, path, opt)
-        )
 
+    # Generate options using generator
+    def generate_visualization_opt():
+        for tree_info in tree_info_list:
+            yield (tree_info, V.tup_genus, V.dict_hash_FI, path, opt)
+
+    # Generate visualization option to run
+    tree_visualization_opt = generate_visualization_opt()
     ## Tree visualization
     if opt.verbose < 3:
-        p = mp.Pool(opt.thread)
-        tree_visualization_result = p.starmap(
-            pipe_module_tree_visualization, tree_visualization_opt
-        )
-        p.close()
-        p.join()
+        with mp.Pool(opt.thread) as p:
+            tree_visualization_result = p.starmap(
+                pipe_module_tree_visualization, tree_visualization_opt
+            )
 
     else:
         # non-multithreading mode for debugging
