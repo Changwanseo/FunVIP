@@ -52,9 +52,9 @@ def main():
     # Argument parsing in commandline mode
     args = CommandParser().get_args()
 
-    ############################################################################
-    #     Start of initializing blocks should not be moved for function!!!     #
-    ############################################################################
+    #############################################################################
+    #     Start of initializing blocks should not be moved for function!!!      #
+    #############################################################################
 
     # initialize working directories, and opts
     opt, path, list_info, list_warning, list_error = initialize.initialize(
@@ -121,7 +121,6 @@ def main():
         )
 
         # logging works well from here
-
         save.save_session(opt=opt, path=path, global_var=locals(), var=vars())
 
         time_setup = time()
@@ -173,7 +172,7 @@ def main():
         V.generate_dataset(opt)
 
         # Appending outgroup
-        logging.info("Appending outgroup")
+        logging.info("APPENDING OUTGROUP")
         # For non-concatenated outgroup
         # ready for multiprocessing run
         # Pushing all v to multiprocessing requires too much memory
@@ -181,6 +180,7 @@ def main():
 
         # remove invalid dataset from downstream analysis
         V.remove_invalid_dataset()
+
         # Save dataset to outgroups
         V.save_dataset(path, opt)
 
@@ -315,6 +315,11 @@ def main():
         # The genus duplication occurs here
         # Running visualization
         V, path, opt = tree_interpretation_pipe.pipe_tree_interpretation(V, path, opt)
+
+        """
+        # For final visualization
+        V, path, opt = visualize.visualize(V, path, opt)
+        """
 
         # move tree image files
         tool.cleanup_tree(path)

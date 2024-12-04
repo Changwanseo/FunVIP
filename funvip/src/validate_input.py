@@ -436,7 +436,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
     # extensionto filetype translation
     dict_extension = {
         ".csv": "csv",
-        ".tsv": "csv",
+        ".tsv": "tsv",
         ".xlsx": "excel",
         ".xls": "excel",
         ".parquet": "parquet",
@@ -453,7 +453,14 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
             if table.endswith(extension):
                 try:
                     if dict_extension[extension] == "csv":
-                        df = pd.read_csv(table)
+                        df = pd.read_csv(
+                            table, sep=",", encoding="UTF-8", keep_default_na=False
+                        )
+                        flag_read_table = 1
+                    elif dict_extension[extension] == "tsv":
+                        df = pd.read_csv(
+                            table, sep="\t", encoding="UTF-8", keep_default_na=False
+                        )
                         flag_read_table = 1
                     elif dict_extension[extension] == "excel":
                         df = pd.read_excel(table)
@@ -909,6 +916,10 @@ def data_input(V, R, opt, path):
 
     # combine all data
     V.list_FI = [funinfo_dict[key] for key in funinfo_dict]
+
+    # reset final_species of V.list_FI for resume
+    for FI in V.list_FI:
+        FI.final_species = ""
 
     # hashing data for safety in tree analysis
     V.list_FI = hash_funinfo_list(V.list_FI)

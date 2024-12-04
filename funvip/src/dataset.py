@@ -320,16 +320,18 @@ class FunVIP_var:
         for FI in self.list_FI:
             if FI.hash in self.dict_hash_FI:
                 h = FI.hash
-
                 # final species
                 if FI.final_species != self.dict_hash_FI[h].final_species:
+                    # If final species was empty
                     if FI.final_species == "":
                         FI.final_species = self.dict_hash_FI[h].final_species
+                    # If final species in hash dict was empty
                     elif self.dict_hash_FI[h].final_species == "":
                         self.dict_hash_FI[h].final_species = FI.final_species
+                    # If they collides, it is error
                     else:
                         logging.error(
-                            f"DEVELOPMNETAL ERROR Both list_FI and dict_hash_FI have conflicting final species, {FI.final_species} and {self.dict_hash_FI[h].final_species}"
+                            f"DEVELOPMNETAL ERROR Both list_FI and dict_hash_FI have conflicting final species, {FI.final_species} and {self.dict_hash_FI[h].final_species} for hash {h}"
                         )
                         raise Exception
 
@@ -403,6 +405,15 @@ class FunVIP_var:
 
     # save fasta for outgroup adjusted fasta
     def save_dataset(self, path, opt):
+        # Before save_dataset, remove pre-existing results
+        for file in os.listdir(path.out_adjusted):
+            if file.endswith(".fasta"):
+                os.remove(f"{path.out_adjusted}/{file}")
+
+        for file in os.listdir(f"{path.out_adjusted}/hash/"):
+            if file.endswith(".fasta"):
+                os.remove(f"{path.out_adjusted}/hash/{file}")
+
         for group in self.dict_dataset:
             for gene in self.dict_dataset[group]:
                 if not (gene == "concatenated"):

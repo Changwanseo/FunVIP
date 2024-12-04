@@ -444,7 +444,7 @@ class Report:
             if index_step(step) >= 0:
                 f.write(f"[COMMAND]\n")
                 f.write(f"If you want to regenerate this result, use\n")
-                f.write(f"\n\tFUNVIP {' '.join(sys.argv[:-1])}\n\n")
+                f.write(f"\n\tFunVIP {' '.join(sys.argv[1:])}\n\n")
 
             ## Write options used (in concise form)
             if index_step(step) >= 0:

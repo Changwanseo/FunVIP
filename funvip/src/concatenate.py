@@ -37,25 +37,13 @@ def combine_alignment(V, opt, path):
                         )
                         len_dict[gene] = len(fasta_list[0].seq)
                         seq_dict[gene] = {}
+
+                        V_concat = V.dict_dataset[group]["concatenated"]
+
                         total_dataset = (
-                            [
-                                FI.hash
-                                for FI in V.dict_dataset[group][
-                                    "concatenated"
-                                ].list_qr_FI
-                            ]
-                            + [
-                                FI.hash
-                                for FI in V.dict_dataset[group][
-                                    "concatenated"
-                                ].list_db_FI
-                            ]
-                            + [
-                                FI.hash
-                                for FI in V.dict_dataset[group][
-                                    "concatenated"
-                                ].list_og_FI
-                            ]
+                            [FI.hash for FI in V_concat.list_qr_FI]
+                            + [FI.hash for FI in V_concat.list_db_FI]
+                            + [FI.hash for FI in V_concat.list_og_FI]
                         )
                         for seq in fasta_list:
                             # if available hash

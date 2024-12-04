@@ -54,7 +54,7 @@ class CommandParser:
         )
         group_test.add_argument(
             "--test",
-            help="Use test dataset, [Penicillium]",
+            help="Use test dataset, [Penicillium, Terrei, Sanghuangporus]",
             type=str,
         )
 

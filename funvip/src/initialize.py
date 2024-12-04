@@ -258,6 +258,8 @@ class Path:
         # Outgroup adjusted before aligned sequence file
         self.out_adjusted = f"{self.root}/04_Dataset"
         mkdir(self.out_adjusted)
+        # Also make dataset hash directory
+        mkdir(f"{self.out_adjusted}/hash")
 
         # Alignment file directory (non-trimmed, trimmed and concatenated)
         self.out_alignment = f"{self.root}/05_Alignment"

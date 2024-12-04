@@ -6,6 +6,7 @@ import os, sys, subprocess
 from copy import deepcopy
 from functools import lru_cache
 from time import sleep
+from time import time
 
 # from Bio.Blast import NCBIXML
 from Bio import SeqIO
@@ -28,6 +29,8 @@ def append_query_group(V):
         group_dict[FI.hash] = FI.adjusted_group
 
     V.cSR["query_group"] = V.cSR["qseqid"].apply(lambda x: group_dict.get(x))
+
+    logging.debug(V.cSR["query_group"])
 
     # Indicate queries without any corresponding group
     for FI in V.list_FI:
@@ -95,17 +98,14 @@ def assign_gene(result_dict, V, cutoff=0.99):
 
 
 # cluster each of FI object and assign group
-def cluster(FI, V, path, opt):
-    list_group = deepcopy(V.list_group)
+"""
+def cluster(FI, V_list_group, V_cSR, path, opt):
+    list_group = deepcopy(V_list_group)
 
     # Reduce search df space by selecting only FI related ones
-    df_group = V.cSR.groupby(V.cSR["qseqid"])
-    list_id = list(set(V.cSR["qseqid"]))
+    df_group = V_cSR.groupby(V_cSR["qseqid"])
+    list_id = list(set(V_cSR["qseqid"]))
     df_search = df_group.get_group(FI.hash)
-
-    # delete V to reduce memory assumption
-    del V
-    gc.collect()
 
     # If no evidence available, return it
     if df_search is None:
@@ -124,6 +124,11 @@ def cluster(FI, V, path, opt):
     else:
         # sorting has peformed after split for better performance
         sorted_df_search = df_search.sort_values(by=["bitscore"], ascending=False)
+
+        # Garbage collection
+        del df_search
+        gc.collect()
+
         # reset index to easily get maximum
         sorted_df_search.reset_index(inplace=True, drop=True)
         # get result stasifies over cutoff
@@ -133,7 +138,6 @@ def cluster(FI, V, path, opt):
         ]
 
         # Garbage collection
-        del df_search
         del sorted_df_search
         gc.collect()
 
@@ -141,7 +145,7 @@ def cluster(FI, V, path, opt):
         list_group = list(set(cutoff_df["subject_group"]))
 
         # if first time of group update
-        if FI.adjusted_group == "" or FI.adjusted_group == "":
+        if FI.adjusted_group == "":
             # if only 1 group available, take it
             if group_count == 1:
                 FI.adjusted_group = list_group[0]
@@ -171,16 +175,80 @@ def cluster(FI, V, path, opt):
             return FI, list_group[0]
         else:
             return FI, None
+"""
+
+
+def cluster(FI, V_list_group, V_cSR, path, opt):
+    # Reduce memory by focusing on relevant rows
+    df_search = V_cSR[V_cSR["qseqid"] == FI.hash]
+
+    if df_search.empty:
+        # If confident is False and FI datatype is "db"
+        if opt.confident is False and FI.datatype is "db":
+            logging.warning(f"No adjusted_group assigned to {FI}")
+        FI.adjusted_group = FI.group
+        return FI
+
+    # For db sequence with group, retain it
+    elif not (FI.group == "") and FI.datatype == "db":
+        FI.adjusted_group = FI.group
+        return FI
+
+    # Update group if sequence doesn't have one
+    else:
+        df_search = df_search.sort_values(by=["bitscore"], ascending=False)
+
+        # Apply cutoff filter to reduce DataFrame size
+        cutoff = df_search["bitscore"].iloc[0] * opt.cluster.cutoff
+        cutoff_df = df_search[df_search["bitscore"] > cutoff]
+
+        # Clear unused data
+        del df_search
+        gc.collect()
+
+        # Extract group information
+        unique_groups = set(cutoff_df["subject_group"])
+        group_count = len(unique_groups)
+
+    if FI.adjusted_group == "":
+        if group_count == 1:
+            FI.adjusted_group = unique_groups.pop()
+        elif group_count == 0:
+            logging.warning(
+                f"Query seq in {FI.id} cannot be assigned to group. Check sequence."
+            )
+        elif group_count >= 2:
+            logging.warning(
+                f"Query seq in {FI.id} has multiple matches to groups: {list(unique_groups)}"
+            )
+            FI.adjusted_group = next(
+                iter(unique_groups)
+            )  # Pick one (deterministic for testing)
+        else:
+            logging.error("DEVELOPMENTAL ERROR IN GROUP ASSIGN")
+            raise Exception
+
+        logging.info(f"{FI.id} has clustered to {FI.adjusted_group}")
+
+    # if group already updated
+    else:
+        if not (FI.adjusted_group in unique_groups):
+            logging.warning(f"Clustering result collides for {FI.id}")
+
+    if unique_groups:
+        return FI
+    else:
+        return FI
 
 
 ### Append outgroup to given group-gene dataset by search matrix
-def append_outgroup(V, df_search, gene, group, path, opt):
+def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
     logging.info(f"Appending outgroup on group: {group}, Gene: {gene}")
-    list_FI = deepcopy(V.list_FI)
+    list_FI = V_list_FI
 
     # In multiprocessing, delete V to reduce memory consumption
-    del V
-    gc.collect()
+    # del V
+    # gc.collect()
 
     # ready for by sseqid hash, which group to append
     # this time, append adjusted group
@@ -336,6 +404,8 @@ def append_outgroup(V, df_search, gene, group, path, opt):
 
 
 def group_cluster_opt_generator(V, opt, path):
+    opt_cluster = []
+
     # cluster(FO, df_search, V, path, opt)
     if len(V.list_qr_gene) == 0:
         logging.error(
@@ -347,11 +417,20 @@ def group_cluster_opt_generator(V, opt, path):
     else:
         # cluster group by concatenated search result
         list_id = list(set(V.cSR["qseqid"]))
+
         for FI in V.list_FI:
             if FI.hash in list_id:
-                V.opt_cluster.append((FI, V, path, opt))
+                opt_cluster.append(
+                    (
+                        FI,
+                        V.list_group,
+                        V.cSR[["qseqid", "bitscore", "subject_group"]],
+                        path,
+                        opt,
+                    )
+                )
 
-    return V
+    return opt_cluster
 
 
 # opts ready for multithreading in outgroup append
@@ -371,7 +450,9 @@ def outgroup_append_opt_generator(V, path, opt):
                 df_group_ = df_group.get_group(group)
                 # Generating outgroup opt for multiprocessing
                 for gene in V.dict_dataset[group]:
-                    opt_append_outgroup.append((V, df_group_, gene, group, path, opt))
+                    opt_append_outgroup.append(
+                        (V.list_FI, df_group_, gene, group, path, opt)
+                    )
 
             except:
                 logging.warning(
@@ -389,36 +470,47 @@ def pipe_cluster(V, opt, path):
 
         # cluster opt generation for multiprocessing
         # (FI, V, path, opt)
-        V = group_cluster_opt_generator(V, opt, path)
+        opt_cluster = group_cluster_opt_generator(V, opt, path)
 
         # run multiprocessing start
         if opt.verbose < 3:
             p = mp.Pool(opt.thread)
-            V.rslt_cluster = p.starmap(cluster, V.opt_cluster)
+            rslt_cluster = p.starmap(cluster, opt_cluster)
             p.close()
             p.join()
         else:
             # non-multithreading mode for debugging
-            V.rslt_cluster = [cluster(*o) for o in V.opt_cluster]
+            rslt_cluster = [cluster(*o) for o in opt_cluster]
         # gather cluster result
-        for cluster_result in V.rslt_cluster:
-            FI = cluster_result[0]
+        for cluster_result in rslt_cluster:
+            FI = cluster_result
             logging.debug((FI.id, FI.datatype, FI.group, FI.adjusted_group))
 
         # replace group assigning result
         # collect FI from cluster result
-        replace_FI = [r[0] for r in V.rslt_cluster]
+        # somethings been duplicated here
+        replace_FI = [r for r in rslt_cluster]
+
         # collect hash
         replace_hash_FI = [FI.hash for FI in replace_FI]
+
         # maintain not clustered result and append clustered result
-        V.list_FI = [
-            FI for FI in V.list_FI if not (FI.hash in replace_hash_FI)
-        ] + replace_FI
+        V.list_FI = [FI for FI in V.list_FI if not (FI.hash in replace_hash_FI)]
+        V.list_FI += replace_FI
+
         # For syncyhronizing FI in dict_hash_FI to prevent error
         for FI in replace_FI:
             V.dict_hash_FI[FI.hash] = FI
 
-        V.list_group = list(set([r[1] for r in V.rslt_cluster if (not (r[1] is None))]))
+        V.list_group = list(
+            set(
+                [
+                    r.adjusted_group
+                    for r in rslt_cluster
+                    if (not (r.adjusted_group == ""))
+                ]
+            )
+        )
 
         if opt.queryonly is True:
             for FI in V.list_FI:
@@ -429,6 +521,7 @@ def pipe_cluster(V, opt, path):
             for FI in V.list_FI:
                 V.dict_hash_FI[FI.hash] = FI
 
+        # For debugging
         for FI in V.list_FI:
             logging.debug((FI.id, FI.datatype, FI.group, FI.adjusted_group))
 
