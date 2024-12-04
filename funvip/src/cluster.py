@@ -15,6 +15,23 @@ import logging
 import gc
 from funvip.src.ext import mmseqs
 
+import sys
+
+
+def cluster_unpack(args):
+    return cluster(*args)
+
+
+def batched_generator(generator, batch_size):
+    batch = []
+    for item in generator:
+        batch.append(item)
+        if len(batch) == batch_size:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
+
 
 # return list of original group of given FI
 def get_naive_group(V):
@@ -95,87 +112,6 @@ def assign_gene(result_dict, V, cutoff=0.99):
                 logging.error("DEVELOPMENTAL ERROR IN GENE ASSIGN")
                 raise Exception
     return V
-
-
-# cluster each of FI object and assign group
-"""
-def cluster(FI, V_list_group, V_cSR, path, opt):
-    list_group = deepcopy(V_list_group)
-
-    # Reduce search df space by selecting only FI related ones
-    df_group = V_cSR.groupby(V_cSR["qseqid"])
-    list_id = list(set(V_cSR["qseqid"]))
-    df_search = df_group.get_group(FI.hash)
-
-    # If no evidence available, return it
-    if df_search is None:
-        # if confident is True, no adjusted_group for db is normal situation
-        if opt.confident is False and FI.datatype is "db":
-            logging.warning(f"No adjusted_group assigned to {FI}")
-        FI.adjusted_group = FI.group
-        return FI, None
-
-    # for db sequence with group, retain it
-    elif not (FI.group == "") and FI.datatype == "db":  # or type(FI.group) != str):
-        FI.adjusted_group = FI.group
-        return FI, FI.adjusted_group
-
-    # update group if sequence does not have group
-    else:
-        # sorting has peformed after split for better performance
-        sorted_df_search = df_search.sort_values(by=["bitscore"], ascending=False)
-
-        # Garbage collection
-        del df_search
-        gc.collect()
-
-        # reset index to easily get maximum
-        sorted_df_search.reset_index(inplace=True, drop=True)
-        # get result stasifies over cutoff
-        cutoff_df = sorted_df_search[
-            sorted_df_search["bitscore"]
-            > sorted_df_search["bitscore"][0] * opt.cluster.cutoff
-        ]
-
-        # Garbage collection
-        del sorted_df_search
-        gc.collect()
-
-        group_count = len(set(cutoff_df["subject_group"]))
-        list_group = list(set(cutoff_df["subject_group"]))
-
-        # if first time of group update
-        if FI.adjusted_group == "":
-            # if only 1 group available, take it
-            if group_count == 1:
-                FI.adjusted_group = list_group[0]
-            # if no group matched, warn it
-            elif group_count == 0:
-                logging.warning(
-                    f"Query seq in {FI.id} cannot be assigned to group. Check sequence"
-                )
-            elif group_count >= 2:
-                logging.warning(
-                    f"Query seq in {FI.id} has multiple matches to group, {list_group}."
-                )
-                FI.adjusted_group = list_group[0]
-            else:
-                logging.error("DEVELOPMENTAL ERROR IN GROUP ASSIGN")
-                raise Exception
-
-            logging.info(f"{FI.id} has clustered to {FI.adjusted_group}")
-
-        # if group already updated
-        else:
-            if not (FI.adjusted_group == ""):
-                if not (FI.adjusted_group in list_group):
-                    logging.warning(f"Clustering result colliding in {FI.id}")
-
-        if len(list_group) > 0:
-            return FI, list_group[0]
-        else:
-            return FI, None
-"""
 
 
 def cluster(FI, V_list_group, V_cSR, path, opt):
@@ -404,7 +340,7 @@ def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
 
 
 def group_cluster_opt_generator(V, opt, path):
-    opt_cluster = []
+    # opt_cluster = []
 
     # cluster(FO, df_search, V, path, opt)
     if len(V.list_qr_gene) == 0:
@@ -415,22 +351,24 @@ def group_cluster_opt_generator(V, opt, path):
 
     # For concatenated analysis
     else:
-        # cluster group by concatenated search result
-        list_id = list(set(V.cSR["qseqid"]))
+        # Use a set for faster membership testing
+        set_id = set(V.cSR["qseqid"])
 
-        for FI in V.list_FI:
-            if FI.hash in list_id:
-                opt_cluster.append(
-                    (
-                        FI,
-                        V.list_group,
-                        V.cSR[["qseqid", "bitscore", "subject_group"]],
-                        path,
-                        opt,
-                    )
-                )
+        # Pre-select the relevant DataFrame slice once
+        cSR_subset = V.cSR[["qseqid", "bitscore", "subject_group"]]
 
-    return opt_cluster
+        # Filter `V.list_FI` to relevant entries
+        relevant_FIs = (FI for FI in V.list_FI if FI.hash in set_id)
+
+        # Yield results as a generator
+        for FI in relevant_FIs:
+            yield (
+                FI,
+                V.list_group,  # Assuming V.list_group is small and static
+                cSR_subset,  # Pre-selected DataFrame slice
+                path,
+                opt,
+            )
 
 
 # opts ready for multithreading in outgroup append
@@ -468,16 +406,25 @@ def pipe_cluster(V, opt, path):
     if opt.method.search in ("blast", "mmseqs"):
         logging.info("group clustering")
 
+        rslt_cluster = []
+
         # cluster opt generation for multiprocessing
         # (FI, V, path, opt)
         opt_cluster = group_cluster_opt_generator(V, opt, path)
 
+        # print(f"opt_cluster : {sys.getsizeof(opt_cluster)}")
+
+        batch_size = opt.thread * 100
+        opt_cluster_batches = batched_generator(opt_cluster, batch_size)
+
         # run multiprocessing start
         if opt.verbose < 3:
-            p = mp.Pool(opt.thread)
-            rslt_cluster = p.starmap(cluster, opt_cluster)
-            p.close()
-            p.join()
+            for batch in opt_cluster_batches:
+                batch_list = list(batch)
+
+                with mp.Pool(opt.thread) as p:
+                    rslt_cluster.extend(p.starmap(cluster, batch_list))
+
         else:
             # non-multithreading mode for debugging
             rslt_cluster = [cluster(*o) for o in opt_cluster]
@@ -580,14 +527,6 @@ def pipe_append_outgroup(V, path, opt):
             if opt.ambiguous is True:
                 V.dict_dataset[group][gene].list_db_FI += ambiguous_group
             # Add outgroup and db in to dict_hash_FI
-
-            # Should find out why this does not work at the end
-            """
-            for FI in outgroup + ambiguous_group:
-                # If already in dict_hash_FI, they have priority
-                if not (FI.hash in V.dict_hash_FI):
-                    V.dict_hash_FI[FI.hash] = FI
-            """
 
     groups = deepcopy(list(V.dict_dataset.keys()))
 
