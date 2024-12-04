@@ -640,8 +640,11 @@ class Tree_information:
                                     end = n
                                     break
 
+                            """
                             for n in range(start, end + 1):
                                 valid_index.append(n)
+                            """
+                            valid_index.extend(range(start, end + 1))
 
                             previous_index += len_dict[gene]
 

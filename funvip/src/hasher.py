@@ -22,9 +22,19 @@ def encode(funinfo_list: list, newick: bool = False) -> dict:
     hash_dict = {}
 
     if newick is False:
+        return {funinfo.hash: f"{funinfo.id}" for funinfo in funinfo_list}
+
+        """
         for funinfo in funinfo_list:
             hash_dict[funinfo.hash] = f"{funinfo.id}"
+        """
     else:
+        return {
+            funinfo.hash: f"{funinfo.id}_{funinfo.genus}_{getattr(funinfo, 'species', funinfo.ori_species)}"
+            for funinfo in funinfo_list
+        }
+
+        """
         for funinfo in funinfo_list:
             try:
                 hash_dict[
@@ -34,11 +44,31 @@ def encode(funinfo_list: list, newick: bool = False) -> dict:
                 hash_dict[
                     funinfo.hash
                 ] = f"{funinfo.id}_{funinfo.genus}_{funinfo.ori_species}"
+        """
 
-    return hash_dict
+    # return hash_dict
 
 
 # Decode given file with given hash_dict
+
+
+def decode(hash_dict: dict, file: str, out: str, newick: bool = True) -> None:
+    with open(file, "rt") as fp:
+        content = fp.read()
+
+    hash_dict = {
+        re.escape(k): (newick_legal(v) if newick else v) for k, v in hash_dict.items()
+    }
+    pattern = re.compile("|".join(hash_dict.keys()))
+
+    # Perform the substitution
+    decoded_content = pattern.sub(lambda m: hash_dict[re.escape(m.group(0))], content)
+
+    with open(out, "w") as fw:
+        fw.write(decoded_content)
+
+
+"""
 def decode(hash_dict: dict, file: str, out: str, newick: bool = True) -> None:
     with open(file, "rt") as fp:
         line = fp.read()
@@ -54,6 +84,7 @@ def decode(hash_dict: dict, file: str, out: str, newick: bool = True) -> None:
 
         with open(out, "w") as fw:
             fw.write(line)
+"""
 
 
 # Decode given dataframe with given hash_dict
