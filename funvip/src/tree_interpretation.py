@@ -14,6 +14,7 @@ from time import sleep
 import lxml.etree as ET
 import pandas as pd
 from functools import lru_cache
+from funvip.src.tool import sizeof_fmt
 from funvip.src.tool import get_id, get_genus_species
 import dendropy
 import collections
@@ -958,6 +959,15 @@ class Tree_information:
             raise Exception
         # end of tree_search
 
+        print("In tree search")
+        for name, size in sorted(
+            ((name, sys.getsizeof(value)) for name, value in list(locals().items())),
+            key=lambda x: -x[1],
+        )[:10]:
+            print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+
+        print("===========================")
+
     # Reconstruct tree tree to solve flat branches
     def reconstruct(self, clade, gene, opt):
         sys.stdout.flush()  # for logging
@@ -1581,3 +1591,12 @@ class Tree_information:
             encoding="utf-8",
             xml_declaration=True,
         )
+
+        print("In tree visualization")
+        for name, size in sorted(
+            ((name, sys.getsizeof(value)) for name, value in list(locals().items())),
+            key=lambda x: -x[1],
+        )[:10]:
+            print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+
+        print("===========================")

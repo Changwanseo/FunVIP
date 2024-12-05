@@ -2,12 +2,14 @@
 from ete3 import Tree
 from funvip.src import tree_interpretation
 from funvip.src.tool import initialize_path, get_genus_species
+from funvip.src.tool import sizeof_fmt
 from funvip.src.hasher import encode, decode
 from funvip.src.reporter import Singlereport
 from copy import deepcopy
 import pandas as pd
 import re
-import sys, os
+import sys
+import os
 import shutil
 import logging
 import multiprocessing as mp
@@ -462,6 +464,8 @@ def pipe_module_tree_visualization(
     genus_list.append("AMBIGUOUSGENUS")
     genus_list = tuple(genus_list)
 
+    del V_tup_genus
+
     # Collapse tree branches for visualization
     taxon_string_dict = tree_info.collapse_tree()
 
@@ -473,6 +477,14 @@ def pipe_module_tree_visualization(
         taxon_string_dict,
         genus_list,
     )
+
+    for name, size in sorted(
+        ((name, sys.getsizeof(value)) for name, value in list(locals().items())),
+        key=lambda x: -x[1],
+    )[:10]:
+        print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+
+    raise Exception
 
     # sort taxon order
     list_taxon_1 = [
