@@ -478,14 +478,6 @@ def pipe_module_tree_visualization(
         genus_list,
     )
 
-    for name, size in sorted(
-        ((name, sys.getsizeof(value)) for name, value in list(locals().items())),
-        key=lambda x: -x[1],
-    )[:10]:
-        print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
-
-    raise Exception
-
     # sort taxon order
     list_taxon_1 = [
         taxon
@@ -509,9 +501,9 @@ def pipe_module_tree_visualization(
             # Get each of the leaf result to report
             for leaf in collapse_info.leaf_list:
                 report = Singlereport()
-                report.id = V_dict_hash_FI[leaf[0]].original_id
-                report.hash = V_dict_hash_FI[leaf[0]].hash
-                report.update_group(V_dict_hash_FI[leaf[0]].adjusted_group)
+                report.id = V_dict_hash_FI[leaf[0]][0]
+                report.hash = V_dict_hash_FI[leaf[0]][1]
+                report.update_group(V_dict_hash_FI[leaf[0]][2])
                 report.update_group_analysis(group)
                 report.update_gene(gene)
                 report.update_species_original(
@@ -530,9 +522,9 @@ def pipe_module_tree_visualization(
             for n, collapse_info in enumerate(tree_info.collapse_dict[taxon]):
                 for leaf in collapse_info.leaf_list:
                     report = Singlereport()
-                    report.id = V_dict_hash_FI[leaf[0]].original_id
-                    report.hash = V_dict_hash_FI[leaf[0]].hash
-                    report.update_group(V_dict_hash_FI[leaf[0]].adjusted_group)
+                    report.id = V_dict_hash_FI[leaf[0]][0]
+                    report.hash = V_dict_hash_FI[leaf[0]][1]
+                    report.update_group(V_dict_hash_FI[leaf[0]][2])
                     report.update_group_analysis(group)
                     report.update_gene(gene)
                     report.update_species_original(
@@ -544,6 +536,14 @@ def pipe_module_tree_visualization(
                     report.flat = collapse_info.flat
 
                     report_list.append(report)
+
+    for name, size in sorted(
+        ((name, sys.getsizeof(value)) for name, value in list(locals().items())),
+        key=lambda x: -x[1],
+    )[:10]:
+        print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+
+    raise Exception
 
     return report_list
 
@@ -643,10 +643,16 @@ def pipe_tree_interpretation(V, path, opt):
     synchronized_tree_info_list = synchronize(V, path, tree_info_list)
     tree_info_list = synchronized_tree_info_list
 
+    # V.dict_hash_FI is too large for multiprocessing, extract only necessary part
+    V_dict_hash_FI = {}
+    for key in V.dict_hash_FI:
+        FI = V.dict_hash_FI[key]
+        V_dict_hash_FI[key] = (FI.original_id, FI.hash, FI.adjusted_group)
+
     # Generate options using generator
     def generate_visualization_opt():
         for tree_info in tree_info_list:
-            yield (tree_info, V.tup_genus, V.dict_hash_FI, path, opt)
+            yield (tree_info, V.tup_genus, V_dict_hash_FI, path, opt)
 
     # Generate visualization option to run
     tree_visualization_opt = generate_visualization_opt()
