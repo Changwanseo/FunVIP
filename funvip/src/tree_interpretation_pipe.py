@@ -105,6 +105,10 @@ def pipe_module_tree_interpretation(
     tree_info.reroot_outgroup(
         f"{path.out_tree}/hash_{opt.runname}_{group}_{gene}_original.svg"
     )
+
+    print(f"End of reroot_outgroup {group} {gene}")
+    sys.stdout.flush()
+
     # Decode hash of image
     # Should work more on non-safe characters
     tree_hash_dict = encode(funinfo_list, newick=True)
@@ -116,6 +120,9 @@ def pipe_module_tree_interpretation(
         newick=True,
     )
 
+    print(f"End of decode 1 {group} {gene}")
+    sys.stdout.flush()
+
     # In validation mode, use original sp. number
     if opt.mode == "validation":
         tree_info.reserve_sp()
@@ -126,14 +133,23 @@ def pipe_module_tree_interpretation(
             clade=tree_info.t.copy("newick"), gene=gene, opt=opt
         )
 
+    print(f"End of reconstruct {group} {gene}")
+    sys.stdout.flush()
+
     # reorder tree for pretty look
     tree_info.t.ladderize(direction=1)
 
+    print(f"End of ladderize {group} {gene}")
+    sys.stdout.flush()
+
     # save current status into save version of tree
-    tree_info.t_publish = deepcopy(tree_info.t)
+    # Is not currently used
+    # tree_info.t_publish = deepcopy(tree_info.t)
 
     # Search tree and delimitate species
     tree_info.tree_search(tree_info.t, gene)
+    print(f"End of tree_search {group} {gene}")
+    sys.stdout.flush()
 
     # Move original newick and replace with adjusted ones
     shutil.move(
@@ -475,7 +491,6 @@ def pipe_module_tree_visualization(
     tree_info.polish_image(
         f"{path.out_tree}/{opt.runname}_{group}_{gene}.svg",
         taxon_string_dict,
-        genus_list,
     )
 
     # sort taxon order
@@ -537,11 +552,13 @@ def pipe_module_tree_visualization(
 
                     report_list.append(report)
 
+    print(f"End of pipe module visualization")
     for name, size in sorted(
         ((name, sys.getsizeof(value)) for name, value in list(locals().items())),
         key=lambda x: -x[1],
     )[:10]:
         print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+    print("==============================")
 
     raise Exception
 
@@ -620,11 +637,13 @@ def pipe_tree_interpretation(V, path, opt):
 
     tree_interpretation_opt = generate_interpretation_opt()
 
+    tree_info_list = []
+
     ## Tree interpretation - outgroup, reconstruction(solve_flat), collapsing
     if opt.verbose < 3:
         with mp.Pool(opt.thread) as p:
-            tree_info_list = p.starmap(
-                pipe_module_tree_interpretation, tree_interpretation_opt
+            tree_info_list.extend(
+                p.starmap(pipe_module_tree_interpretation, tree_interpretation_opt)
             )
 
     else:

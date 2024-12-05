@@ -16,6 +16,7 @@ import pandas as pd
 from functools import lru_cache
 from funvip.src.tool import sizeof_fmt
 from funvip.src.tool import get_id, get_genus_species
+import tracemalloc
 import dendropy
 import collections
 import os
@@ -919,8 +920,31 @@ class Tree_information:
 
         ## start of tree_search
         # at the last leaf
+        tracemalloc.start()
+
         if len(clade.children) == 1:
             local_generate_collapse_information(clade, opt=opt)
+
+            print("tree search part 1")
+            for name, size in sorted(
+                (
+                    (name, sys.getsizeof(value))
+                    for name, value in list(locals().items())
+                ),
+                key=lambda x: -x[1],
+            )[:10]:
+                print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+
+            snapshot = tracemalloc.take_snapshot()
+            top_stats = snapshot.statistics("lineno")
+
+            # Print the top memory usage lines
+            print("[ Top 10 ]")
+            for stat in top_stats[:10]:
+                print(stat)
+
+            print("===========================")
+
             return
 
         # In bifurcated clades
@@ -949,6 +973,27 @@ class Tree_information:
                 # Else, do recursive tree search to divide clades
                 else:
                     self.tree_search(child_clade, gene, opt=opt)
+
+            print("tree search part 2")
+            for name, size in sorted(
+                (
+                    (name, sys.getsizeof(value))
+                    for name, value in list(locals().items())
+                ),
+                key=lambda x: -x[1],
+            )[:10]:
+                print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+
+            snapshot = tracemalloc.take_snapshot()
+            top_stats = snapshot.statistics("lineno")
+
+            # Print the top memory usage lines
+            print("[ Top 10 ]")
+            for stat in top_stats[:10]:
+                print(stat)
+
+            print("===========================")
+
             return
 
         # if error (more than two branches or no branches)
@@ -958,15 +1003,6 @@ class Tree_information:
             )
             raise Exception
         # end of tree_search
-
-        print("In tree search")
-        for name, size in sorted(
-            ((name, sys.getsizeof(value)) for name, value in list(locals().items())),
-            key=lambda x: -x[1],
-        )[:10]:
-            print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
-
-        print("===========================")
 
     # Reconstruct tree tree to solve flat branches
     def reconstruct(self, clade, gene, opt):
@@ -1282,6 +1318,19 @@ class Tree_information:
                 root_dist=clade.dist,
                 root_support=clade.support,
             ).copy("newick")
+
+            print(f"Reconstruct")
+            for name, size in sorted(
+                (
+                    (name, sys.getsizeof(value))
+                    for name, value in list(locals().items())
+                ),
+                key=lambda x: -x[1],
+            )[:30]:
+                print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+            print("==============================")
+            sys.stdout.flush()
+
             return concatanated_clade
 
         else:
@@ -1433,7 +1482,7 @@ class Tree_information:
     ### end of collapse tree
 
     ### edit svg image from initial output from ete3
-    def polish_image(self, out, taxon_string_dict, genus_list):
+    def polish_image(self, out, taxon_string_dict):
         # runname_group_gene.svg file enters here
         # the tree has rectangle collapsed group, tmpseperator, and hash
 
