@@ -90,6 +90,7 @@ def pipe_tree(V, path, opt, model_dict):
                         thread=opt.thread,
                         bootstrap=opt.bootstrap,
                         model=model_dict[group][gene],
+                        version=path.raxml_version,
                     )
 
                 elif opt.method.tree.lower() == "iqtree":
@@ -131,6 +132,7 @@ def pipe_tree(V, path, opt, model_dict):
                         bootstrap=opt.bootstrap,
                         partition=f"{path.out_alignment}/{opt.runname}_{group}.partition",
                         model=model_dict[group][gene],
+                        version=path.raxml_version,
                     )
 
                 elif opt.method.tree.lower() == "iqtree":

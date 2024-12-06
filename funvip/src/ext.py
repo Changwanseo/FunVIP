@@ -310,6 +310,7 @@ def RAxML(
     bootstrap=100,
     partition=None,
     model="-m GTRGAMMA",
+    version="old",
 ):
     if model == "skip":
         model = ""
@@ -328,7 +329,13 @@ def RAxML(
     elif platform == "darwin":
         CMD = f"raxmlHPC-PTHREADS -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
     else:
-        CMD = f"raxmlHPC-PTHREADS-AVX -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
+        if version == "old":
+            CMD = f"raxmlHPC-PTHREADS-AVX -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
+        elif version == "new"
+            CMD = f"raxmlHPC -PTHREADS-AVX -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
+        else:
+            logging.error(f"DEVELOPMENTAL ERROR - unexpected RAxML version, {version} in ext.py")
+            raise Exception
 
     if not (partition is None):
         CMD += f" -q {partition}"
