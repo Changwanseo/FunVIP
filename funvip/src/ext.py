@@ -331,10 +331,12 @@ def RAxML(
     else:
         if version == "old":
             CMD = f"raxmlHPC-PTHREADS-AVX -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
-        elif version == "new"
+        elif version == "new":
             CMD = f"raxmlHPC -PTHREADS-AVX -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
         else:
-            logging.error(f"DEVELOPMENTAL ERROR - unexpected RAxML version, {version} in ext.py")
+            logging.error(
+                f"DEVELOPMENTAL ERROR - unexpected RAxML version, {version} in ext.py"
+            )
             raise Exception
 
     if not (partition is None):
