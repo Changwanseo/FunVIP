@@ -3,6 +3,7 @@ import re
 from Bio import SeqIO
 import copy
 import pandas as pd
+import sys
 
 
 # Remove all newick illegal strings
@@ -119,11 +120,16 @@ def hasher(funinfo_list: list, path, option, outgroup: bool = False):
     return group_result
 
 
-def hash_funinfo_list(list_funinfo: list) -> list:
+def hash_funinfo_list(list_FI: list) -> list:
     """
     Generate hash numbers
     """
-    for n, funinfo in enumerate(list_funinfo):
-        funinfo.update_hash(n)
 
-    return list_funinfo
+    for n, FI in enumerate(list_FI):
+        FI.update_hash(n)
+
+        # To reduce memory
+        sys.intern(FI.hash)
+        sys.intern(FI.id)
+
+    return list_FI

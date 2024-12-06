@@ -571,6 +571,7 @@ class Tree_information:
 
     # Calculate zero length branch length cutoff with given tree and alignment
     def calculate_zero(self, alignment_file, gene, partition_dict):
+        tracemalloc.start()
         # Parse alignment
         seq_list = list(SeqIO.parse(alignment_file, "fasta"))
 
@@ -712,6 +713,24 @@ class Tree_information:
         if diff_min < self.zero:
             self.zero = diff_min - 0.00000001
 
+        print("Calculate zero")
+
+        for name, size in sorted(
+            ((name, sys.getsizeof(value)) for name, value in list(locals().items())),
+            key=lambda x: -x[1],
+        )[:10]:
+            print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+
+        snapshot = tracemalloc.take_snapshot()
+        top_stats = snapshot.statistics("lineno")
+
+        # Print the top memory usage lines
+        print("[ Top 10 ]")
+        for stat in top_stats[:10]:
+            print(stat)
+
+        print("===========================")
+
         # I think also finding minimal distance between non-identical sequences are also needed
         return self.zero
 
@@ -800,6 +819,23 @@ class Tree_information:
 
         self.t.render(f"{out}", tree_style=self.Tree_style.ts)
         self.Tree_style.ts.show_leaf_name = False
+
+        print("reroot outgroup")
+        for name, size in sorted(
+            ((name, sys.getsizeof(value)) for name, value in list(locals().items())),
+            key=lambda x: -x[1],
+        )[:10]:
+            print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+
+        snapshot = tracemalloc.take_snapshot()
+        top_stats = snapshot.statistics("lineno")
+
+        # Print the top memory usage lines
+        print("[ Top 10 ]")
+        for stat in top_stats[:10]:
+            print(stat)
+
+        print("===========================")
 
     def collapse(self, collapse_info, clade, taxon):
         collapse_info.clade = clade

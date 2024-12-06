@@ -560,7 +560,7 @@ def pipe_module_tree_visualization(
         print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
     print("==============================")
 
-    raise Exception
+    # raise Exception
 
     return report_list
 
