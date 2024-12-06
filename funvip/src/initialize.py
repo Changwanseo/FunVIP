@@ -139,6 +139,9 @@ def check(
 # Use print instead of logging here, because logging has not been defined here
 class Path:
     def __init__(self, root):
+        # For RAxML updates
+        self.raxml_version = "old"
+
         # For universal data used in every run
         self.sys_path = os.path.abspath(f"{os.path.dirname(__file__)}/../")
 
@@ -174,7 +177,6 @@ class Path:
                 }
             else:
                 check_commands = {
-                    "RAxML": "raxmlHPC-PTHREADS-AVX -h",
                     "Modeltest-NG": "modeltest-ng --help",
                     "IQTREE": "iqtree -h",
                     "MMseqs2": "mmseqs -h",
@@ -191,6 +193,21 @@ class Path:
                 if return_code != 0:
                     print(f"[ERROR] {program} not installed!")
                     install_flag = 1
+
+            # For RAxML, there are two versions
+            return_code_1 = subprocess.call(
+                "raxmlHPC-PTHREADS-AVX -h", shell=True, stdout=open(os.devnull, "wb")
+            )
+            return_code_2 = subprocess.call(
+                "raxmlHPC-PTHREADS-AVX2 -h", shell=True, stdout=open(os.devnull, "wb")
+            )
+
+            if return_code_1 != 0 and return_code_2 != 0:
+                print(f"[ERROR] RAxML not installed!")
+                install_flag = 1
+
+            if return_code_2 == 0:
+                self.raxml_version = "new"
 
             if install_flag == 1:
                 if sys.platform == "darwin":
