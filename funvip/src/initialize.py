@@ -196,10 +196,10 @@ class Path:
 
             # For RAxML, there are two versions
             return_code_1 = subprocess.call(
-                "raxmlHPC-PTHREADS-AVX -h", shell=True, stdout=(os.devnull, "wb")
+                "raxmlHPC-PTHREADS-AVX -h", shell=True, stdout=(open(os.devnull), "wb")
             )
             return_code_2 = subprocess.call(
-                "raxmlHPC -PTHREADS-AVX -h", shell=True, stdout=(os.devnull, "wb")
+                "raxmlHPC -PTHREADS-AVX -h", shell=True, stdout=(open(os.devnull), "wb")
             )
 
             if return_code_1 != 0 and return_code_2 != 0:
