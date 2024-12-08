@@ -195,6 +195,9 @@ class Path:
                     install_flag = 1
 
             # For RAxML, there are two versions
+            # I don't know why, but apt install RAxML can use raxmlHPC-PTHREADS-AVX,
+            # while conda install RAxML can use raxmlHPC -PTHREADS-AVX / raxmlHPC-PTHREADS-AVX2 (blank between raxmlHPC and -PTHREADS-AVX)
+            # However, if using 'raxmlHPC -PTHREADS-AVX', the computer cannot utilize full threads
             return_code_1 = subprocess.call(
                 "raxmlHPC-PTHREADS-AVX -h", shell=True, stdout=open(os.devnull, "wb")
             )
