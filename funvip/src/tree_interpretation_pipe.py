@@ -11,8 +11,10 @@ import re
 import sys
 import os
 import shutil
+import psutil
 import logging
 import multiprocessing as mp
+from time import time
 
 
 ### For single dataset
@@ -41,6 +43,8 @@ def pipe_module_tree_interpretation(
     outgroup = V.dict_dataset[group][gene].list_og_FI
     partition = V.partition[group]
     """
+
+    time_start = time()
 
     # for unexpectively included sequence during clustering
     db_list = list(
@@ -101,13 +105,14 @@ def pipe_module_tree_interpretation(
             partition_dict=None,
         )
 
+    print(f"Calculate zero {time() - time_start}")
+
     # Reroot outgroup and save original tree into image
     tree_info.reroot_outgroup(
         f"{path.out_tree}/hash_{opt.runname}_{group}_{gene}_original.svg"
     )
 
-    print(f"End of reroot_outgroup {group} {gene}")
-    sys.stdout.flush()
+    print(f"Reroot outgroup {time() - time_start}")
 
     # Decode hash of image
     # Should work more on non-safe characters
@@ -120,8 +125,7 @@ def pipe_module_tree_interpretation(
         newick=True,
     )
 
-    print(f"End of decode 1 {group} {gene}")
-    sys.stdout.flush()
+    print(f"Decode {time() - time_start}")
 
     # In validation mode, use original sp. number
     if opt.mode == "validation":
@@ -133,14 +137,12 @@ def pipe_module_tree_interpretation(
             clade=tree_info.t.copy("newick"), gene=gene, opt=opt
         )
 
-    print(f"End of reconstruct {group} {gene}")
-    sys.stdout.flush()
+    print(f"Reconstruct {time() - time_start}")
 
     # reorder tree for pretty look
     tree_info.t.ladderize(direction=1)
 
-    print(f"End of ladderize {group} {gene}")
-    sys.stdout.flush()
+    print(f"Ladderize {time() - time_start}")
 
     # save current status into save version of tree
     # Is not currently used
@@ -148,8 +150,8 @@ def pipe_module_tree_interpretation(
 
     # Search tree and delimitate species
     tree_info.tree_search(tree_info.t, gene)
-    print(f"End of tree_search {group} {gene}")
-    sys.stdout.flush()
+
+    print(f"Tree search {time() - time_start}")
 
     # Move original newick and replace with adjusted ones
     shutil.move(
@@ -165,6 +167,8 @@ def pipe_module_tree_interpretation(
         f"{path.out_tree}/{opt.runname}_{group}_{gene}.nwk",
         newick=True,
     )
+
+    print(f"Tree interpretation ended {time() - time_start}")
 
     return tree_info
 
@@ -552,13 +556,21 @@ def pipe_module_tree_visualization(
 
                     report_list.append(report)
 
+    """
     print(f"End of pipe module visualization")
+    
     for name, size in sorted(
         ((name, sys.getsizeof(value)) for name, value in list(locals().items())),
         key=lambda x: -x[1],
     )[:10]:
         print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+        
+
+    process = psutil.Process(os.getpid())
+    memory_info = process.memory_info()
+    print(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
     print("==============================")
+    """
 
     # raise Exception
 
