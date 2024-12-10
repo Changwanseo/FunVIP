@@ -19,6 +19,7 @@ from funvip.src.tool import get_id, get_genus_species
 import tracemalloc
 import dendropy
 import collections
+import psutil
 import os
 import re
 import sys
@@ -729,6 +730,10 @@ class Tree_information:
         for stat in top_stats[:10]:
             print(stat)
 
+        process = psutil.Process(os.getpid())
+        memory_info = process.memory_info()
+        print(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
+
         print("===========================")
 
         # I think also finding minimal distance between non-identical sequences are also needed
@@ -979,6 +984,10 @@ class Tree_information:
             for stat in top_stats[:10]:
                 print(stat)
 
+            process = psutil.Process(os.getpid())
+            memory_info = process.memory_info()
+            print(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
+
             print("===========================")
 
             return
@@ -1027,6 +1036,10 @@ class Tree_information:
             print("[ Top 10 ]")
             for stat in top_stats[:10]:
                 print(stat)
+
+            process = psutil.Process(os.getpid())
+            memory_info = process.memory_info()
+            print(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
             print("===========================")
 
@@ -1364,6 +1377,10 @@ class Tree_information:
                 key=lambda x: -x[1],
             )[:30]:
                 print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+
+            process = psutil.Process(os.getpid())
+            memory_info = process.memory_info()
+            print(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
             print("==============================")
             sys.stdout.flush()
 
@@ -1683,5 +1700,9 @@ class Tree_information:
             key=lambda x: -x[1],
         )[:10]:
             print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+
+        process = psutil.Process(os.getpid())
+        memory_info = process.memory_info()
+        print(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
         print("===========================")

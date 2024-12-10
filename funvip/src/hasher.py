@@ -129,7 +129,8 @@ def hash_funinfo_list(list_FI: list) -> list:
         FI.update_hash(n)
 
         # To reduce memory
-        sys.intern(FI.hash)
-        sys.intern(FI.id)
+
+        # sys.intern(FI.hash)
+        # sys.intern(FI.id)
 
     return list_FI
