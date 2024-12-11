@@ -702,39 +702,10 @@ class Tree_information:
                     if pdc[id1][id2] > self.zero:
                         self.zero = pdc[id1][id2]
 
-                    """
-                    identical_pairs.append(
-                        tuple(sorted([str(seq1.id).strip(), str(seq2.id).strip()]))
-                    )
-                    """
-
                 # if different pairs
                 elif identical_flag is False:
                     if pdc[id1][id2] < diff_min:
                         diff_min = pdc[id1][id2]
-
-                    """
-                    different_pairs.append(
-                        tuple(sorted([str(seq1.id).strip(), str(seq2.id).strip()]))
-                    )
-                    """
-
-        # print(pdc)
-
-        # For each alignment identical_pairs, find tree length
-        """
-        for pair in identical_pairs:
-            if pdc[pair[0]][pair[1]] > self.zero:
-                # print(f"Updated zero to {pdc[pair[0]][pair[1]]} from {pair}")
-                self.zero = pdc[pair[0]][pair[1]]
-
-        
-
-        for pair in different_pairs:
-            if pdc[pair[0]][pair[1]] < diff_min:
-                # print(f"Updated diff_min to {pdc[pair[0]][pair[1]]} from {pair}")
-                diff_min = pdc[pair[0]][pair[1]]
-        """
 
         if diff_min < self.zero:
             self.zero = diff_min - 0.00000001
@@ -756,13 +727,15 @@ class Tree_information:
         print("[ Top 10 ]")
         for stat in top_stats[:10]:
             print(stat)
-        
-        process = psutil.Process(os.getpid())
-        memory_info = process.memory_info()
-        print(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
         print("===========================")
         """
+
+        if self.opt.verbose >= 3:
+            print(f"[DEBUG] End of calculate zero")
+            process = psutil.Process(os.getpid())
+            memory_info = process.memory_info()
+            print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
         # I think also finding minimal distance between non-identical sequences are also needed
         return self.zero
@@ -872,11 +845,14 @@ class Tree_information:
         for stat in top_stats[:10]:
             print(stat)
        
-        process = psutil.Process(os.getpid())
-        memory_info = process.memory_info()
-        print(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
         print("===========================")
         """
+
+        if self.opt.verbose >= 3:
+            print(f"[DEBUG] End of reroot outgroup")
+            process = psutil.Process(os.getpid())
+            memory_info = process.memory_info()
+            print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
     def collapse(self, collapse_info, clade, taxon):
         collapse_info.clade = clade
@@ -1020,14 +996,15 @@ class Tree_information:
             print("[ Top 10 ]")
             for stat in top_stats[:10]:
                 print(stat)
-                
-
-            process = psutil.Process(os.getpid())
-            memory_info = process.memory_info()
-            print(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
-
+ 
             print("===========================")
             """
+
+            if self.opt.verbose >= 3:
+                print(f"[DEBUG] End of Tree search with monophyletic branches")
+                process = psutil.Process(os.getpid())
+                memory_info = process.memory_info()
+                print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
             return
 
@@ -1077,13 +1054,15 @@ class Tree_information:
             print("[ Top 10 ]")
             for stat in top_stats[:10]:
                 print(stat)
-            
-            process = psutil.Process(os.getpid())
-            memory_info = process.memory_info()
-            print(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
             print("===========================")
             """
+
+            if self.opt.verbose >= 3:
+                print(f"[DEBUG] End of Tree search with bifurcated branches")
+                process = psutil.Process(os.getpid())
+                memory_info = process.memory_info()
+                print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
             return
 
@@ -1420,14 +1399,16 @@ class Tree_information:
                 key=lambda x: -x[1],
             )[:30]:
                 print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
-            
 
-            process = psutil.Process(os.getpid())
-            memory_info = process.memory_info()
-            print(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
             print("==============================")
             sys.stdout.flush()
             """
+
+            if self.opt.verbose >= 3:
+                print(f"[DEBUG] End of reconstruct")
+                process = psutil.Process(os.getpid())
+                memory_info = process.memory_info()
+                print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
             return concatanated_clade
 
@@ -1747,9 +1728,13 @@ class Tree_information:
         )[:10]:
             print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
         
-        process = psutil.Process(os.getpid())
-        memory_info = process.memory_info()
-        print(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
-
         print("===========================")
+
+
         """
+
+        if self.opt.verbose >= 3:
+            print(f"[DEBUG] End of Tree visualization")
+            process = psutil.Process(os.getpid())
+            memory_info = process.memory_info()
+            print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")

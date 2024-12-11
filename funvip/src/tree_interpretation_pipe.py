@@ -400,8 +400,6 @@ def synchronize(V, path, tree_info_list):
                                 # print(group, _hash, taxon, n + 1)
 
     """
-    
-
     # Now update from concatenated
     # Remove original taxon, and add by clade taxon
     for group in tree_info_dict:
@@ -565,20 +563,19 @@ def pipe_module_tree_visualization(
         # print(f"Visualize report {time() - time_start}")
 
     """
-    print(f"End of pipe module visualization")
-    
     for name, size in sorted(
         ((name, sys.getsizeof(value)) for name, value in list(locals().items())),
         key=lambda x: -x[1],
     )[:10]:
         print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
-        
-
-    process = psutil.Process(os.getpid())
-    memory_info = process.memory_info()
-    print(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
     print("==============================")
     """
+
+    if opt.verbose >= 3:
+        logging.debug(f"End of pipe module visualization")
+        process = psutil.Process(os.getpid())
+        memory_info = process.memory_info()
+        logging.debug(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
     # raise Exception
 
