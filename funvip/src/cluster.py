@@ -134,6 +134,10 @@ def cluster(FI, V_list_group, V_cSR, path, opt):
     else:
         df_search = df_search.sort_values(by=["bitscore"], ascending=False)
 
+        if FI.hash == "HS723HE":
+            print(df_search)
+            raise Exception
+
         # Apply cutoff filter to reduce DataFrame size
         cutoff = df_search["bitscore"].iloc[0] * opt.cluster.cutoff
         cutoff_df = df_search[df_search["bitscore"] > cutoff]
