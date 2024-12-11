@@ -44,7 +44,7 @@ def pipe_module_tree_interpretation(
     partition = V.partition[group]
     """
 
-    time_start = time()
+    # time_start = time()
 
     # for unexpectively included sequence during clustering
     db_list = list(
@@ -105,14 +105,14 @@ def pipe_module_tree_interpretation(
             partition_dict=None,
         )
 
-    print(f"Calculate zero {time() - time_start}")
+    # print(f"Calculate zero {time() - time_start}")
 
     # Reroot outgroup and save original tree into image
     tree_info.reroot_outgroup(
         f"{path.out_tree}/hash_{opt.runname}_{group}_{gene}_original.svg"
     )
 
-    print(f"Reroot outgroup {time() - time_start}")
+    # print(f"Reroot outgroup {time() - time_start}")
 
     # Decode hash of image
     # Should work more on non-safe characters
@@ -125,7 +125,7 @@ def pipe_module_tree_interpretation(
         newick=True,
     )
 
-    print(f"Decode {time() - time_start}")
+    # print(f"Decode {time() - time_start}")
 
     # In validation mode, use original sp. number
     if opt.mode == "validation":
@@ -137,12 +137,12 @@ def pipe_module_tree_interpretation(
             clade=tree_info.t.copy("newick"), gene=gene, opt=opt
         )
 
-    print(f"Reconstruct {time() - time_start}")
+    # print(f"Reconstruct {time() - time_start}")
 
     # reorder tree for pretty look
     tree_info.t.ladderize(direction=1)
 
-    print(f"Ladderize {time() - time_start}")
+    # print(f"Ladderize {time() - time_start}")
 
     # save current status into save version of tree
     # Is not currently used
@@ -151,7 +151,7 @@ def pipe_module_tree_interpretation(
     # Search tree and delimitate species
     tree_info.tree_search(tree_info.t, gene)
 
-    print(f"Tree search {time() - time_start}")
+    # print(f"Tree search {time() - time_start}")
 
     # Move original newick and replace with adjusted ones
     shutil.move(
@@ -168,7 +168,7 @@ def pipe_module_tree_interpretation(
         newick=True,
     )
 
-    print(f"Tree interpretation ended {time() - time_start}")
+    # print(f"Tree interpretation ended {time() - time_start}")
 
     return tree_info
 
@@ -474,6 +474,8 @@ def pipe_module_tree_visualization(
     path,
     opt,
 ):
+    # time_start = time()
+
     ######### Fix collapse_dict.keys()
     # V.tup_genus
     # V.dict_hash_FI
@@ -489,6 +491,8 @@ def pipe_module_tree_visualization(
     # Collapse tree branches for visualization
     taxon_string_dict = tree_info.collapse_tree()
 
+    # print(f"Visualize Collapse tree {time() - time_start}")
+
     # print(f"taxon_string_list | {group} {gene}:\n {taxon_string_list}\n")
 
     # Polish tree image
@@ -496,6 +500,8 @@ def pipe_module_tree_visualization(
         f"{path.out_tree}/{opt.runname}_{group}_{gene}.svg",
         taxon_string_dict,
     )
+
+    # print(f"Visualize polish image {time() - time_start}")
 
     # sort taxon order
     list_taxon_1 = [
@@ -555,6 +561,8 @@ def pipe_module_tree_visualization(
                     report.flat = collapse_info.flat
 
                     report_list.append(report)
+
+        # print(f"Visualize report {time() - time_start}")
 
     """
     print(f"End of pipe module visualization")

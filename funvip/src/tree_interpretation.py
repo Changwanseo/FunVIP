@@ -573,7 +573,7 @@ class Tree_information:
 
     # Calculate zero length branch length cutoff with given tree and alignment
     def calculate_zero(self, alignment_file, gene, partition_dict):
-        tracemalloc.start()
+        # tracemalloc.start()
         # Parse alignment
         seq_list = list(SeqIO.parse(alignment_file, "fasta"))
 
@@ -997,7 +997,7 @@ class Tree_information:
 
         ## start of tree_search
         # at the last leaf
-        tracemalloc.start()
+        # tracemalloc.start()
 
         if len(clade.children) == 1:
             local_generate_collapse_information(clade, opt=opt)
