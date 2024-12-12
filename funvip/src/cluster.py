@@ -134,10 +134,6 @@ def cluster(FI, V_list_group, V_cSR, path, opt):
     else:
         df_search = df_search.sort_values(by=["bitscore"], ascending=False)
 
-        if FI.hash == "HS723HE":
-            print(df_search)
-            raise Exception
-
         # Apply cutoff filter to reduce DataFrame size
         cutoff = df_search["bitscore"].iloc[0] * opt.cluster.cutoff
         cutoff_df = df_search[df_search["bitscore"] > cutoff]
@@ -159,11 +155,12 @@ def cluster(FI, V_list_group, V_cSR, path, opt):
             )
         elif group_count >= 2:
             logging.warning(
-                f"Query seq in {FI.id} has multiple matches to groups: {list(unique_groups)}"
+                f"Query seq in {FI.id} has multiple matches to groups within {opt.cluster.cutoff} cutoff: {list(unique_groups)}"
             )
-            FI.adjusted_group = next(
-                iter(unique_groups)
-            )  # Pick one (deterministic for testing)
+
+            # Among the multiple matches, get the best group
+            FI.adjusted_group = cutoff_df["subject_group"].iloc[0]
+
         else:
             logging.error("DEVELOPMENTAL ERROR IN GROUP ASSIGN")
             raise Exception
