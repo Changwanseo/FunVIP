@@ -14,9 +14,13 @@ from time import sleep
 import lxml.etree as ET
 import pandas as pd
 from functools import lru_cache
+from funvip.src.tool import sizeof_fmt
 from funvip.src.tool import get_id, get_genus_species
+from itertools import combinations
+import tracemalloc
 import dendropy
 import collections
+import psutil
 import os
 import re
 import sys
@@ -569,6 +573,7 @@ class Tree_information:
 
     # Calculate zero length branch length cutoff with given tree and alignment
     def calculate_zero(self, alignment_file, gene, partition_dict):
+        # tracemalloc.start()
         # Parse alignment
         seq_list = list(SeqIO.parse(alignment_file, "fasta"))
 
@@ -586,129 +591,151 @@ class Tree_information:
 
         # Find identical or including pairs in alignment
         identical_pairs = []
-        different_pairs = []
-        for seq1 in seq_list:
-            for seq2 in seq_list:
-                if not (
-                    str(seq1.id).strip() == str(seq2.id).strip()
-                    or (seq1.id, seq2.id) in identical_pairs
-                    or (seq2.id, seq1.id) in identical_pairs
-                ):
-                    # Chenge unusable chars into gap
-                    seq1_str = str(seq1.seq).lower()
-                    seq2_str = str(seq2.seq).lower()
-
-                    for char in set(seq1_str) - {"a", "t", "g", "c", "-"}:
-                        seq1_str = seq1_str.replace(char, "-")
-
-                    for char in set(seq2_str) - {"a", "t", "g", "c", "-"}:
-                        seq2_str = seq2_str.replace(char, "-")
-
-                    identical_flag = True
-                    # To prevent distance among different region detected as zero in concatenated analysis
-                    overlapping_cnt = 0
-
-                    # For concatenated sequence alignment, identical sequnece should be checked by each partitions
-                    if gene == "concatenated":
-                        len_dict = partition_dict["len"]
-                        gene_order = partition_dict["order"]
-
-                        valid_index = []
-
-                        # calculate valid index to check
-                        previous_index = 0
-
-                        for gene in gene_order:
-                            start = previous_index
-                            end = previous_index + len_dict[gene] - 1
-
-                            # Find the starting point
-                            for n in range(
-                                previous_index, len_dict[gene] + previous_index
-                            ):
-                                if seq1_str[n] != "-" and seq2_str[n] != "-":
-                                    start = n
-                                    break
-
-                            # Compare from the start
-                            for n in range(
-                                len_dict[gene] + previous_index - 1,
-                                previous_index - 1,
-                                -1,
-                            ):
-                                if seq1_str[n] != "-" and seq2_str[n] != "-":
-                                    end = n
-                                    break
-
-                            """
-                            for n in range(start, end + 1):
-                                valid_index.append(n)
-                            """
-                            valid_index.extend(range(start, end + 1))
-
-                            previous_index += len_dict[gene]
-
-                        # for valid part
-                        for n in valid_index:
-                            # connected with or to evaluate insertions or deletions
-                            if seq1_str[n] != seq2_str[n]:
-                                identical_flag = False
-                            else:
-                                overlapping_cnt += 1
-
-                    else:
-                        start = 0
-                        end = len(seq1_str) - 1
-                        # calculate start and end
-                        for n in range(len(seq1_str)):
-                            if seq1_str[n] != "-" and seq2_str[n] != "-":
-                                start = n
-                                break
-
-                        for n in range(len(seq1_str)):
-                            if (
-                                seq1_str[len(seq1_str) - n - 1] != "-"
-                                and seq2_str[len(seq1_str) - n - 1] != "-"
-                            ):
-                                end = len(seq1_str) - n
-                                break
-
-                        # for valid part
-                        for n in range(start, end):
-                            # connected with or to evaluate insertions or deletions
-                            if seq1_str[n] != seq2_str[n]:
-                                identical_flag = False
-                            else:
-                                overlapping_cnt += 1
-
-                    if identical_flag is True and overlapping_cnt > 0:
-                        identical_pairs.append(
-                            tuple(sorted([str(seq1.id).strip(), str(seq2.id).strip()]))
-                        )
-                    elif identical_flag is False:
-                        different_pairs.append(
-                            tuple(sorted([str(seq1.id).strip(), str(seq2.id).strip()]))
-                        )
+        # different_pairs = []
 
         # make phylogenetic distance matrix
         pdc = self.dendro_t.phylogenetic_distance_matrix().as_data_table()._data
 
-        # print(pdc)
-
-        # For each alignment identical_pairs, find tree length
-        for pair in identical_pairs:
-            if pdc[pair[0]][pair[1]] > self.zero:
-                # print(f"Updated zero to {pdc[pair[0]][pair[1]]} from {pair}")
-                self.zero = pdc[pair[0]][pair[1]]
-
         diff_min = 999999
-        for pair in different_pairs:
-            if pdc[pair[0]][pair[1]] < diff_min:
-                # print(f"Updated diff_min to {pdc[pair[0]][pair[1]]} from {pair}")
-                diff_min = pdc[pair[0]][pair[1]]
+        for seq1, seq2 in combinations(seq_list, 2):
+            if not (
+                str(seq1.id).strip() == str(seq2.id).strip()
+                or (seq1.id, seq2.id) in identical_pairs
+                or (seq2.id, seq1.id) in identical_pairs
+            ):
+                """
+                # Chenge unusable chars into gap
+                seq1_str = str(seq1.seq).lower()
+                seq2_str = str(seq2.seq).lower()
+
+                for char in set(seq1_str) - {"a", "t", "g", "c", "-"}:
+                    seq1_str = seq1_str.replace(char, "-")
+
+                for char in set(seq2_str) - {"a", "t", "g", "c", "-"}:
+                    seq2_str = seq2_str.replace(char, "-")
+                """
+
+                seq1_str, seq2_str = str(seq1.seq).lower(), str(seq2.seq).lower()
+                seq1_str = "".join(
+                    "-" if char not in "atgc-" else char for char in seq1_str
+                )
+                seq2_str = "".join(
+                    "-" if char not in "atgc-" else char for char in seq2_str
+                )
+
+                identical_flag = True
+                # To prevent distance among different region detected as zero in concatenated analysis
+                overlapping_cnt = 0
+
+                # For concatenated sequence alignment, identical sequnece should be checked by each partitions
+                if gene == "concatenated":
+                    len_dict = partition_dict["len"]
+                    gene_order = partition_dict["order"]
+
+                    valid_index = []
+
+                    # calculate valid index to check
+                    previous_index = 0
+
+                    for gene in gene_order:
+                        start = previous_index
+                        end = previous_index + len_dict[gene] - 1
+
+                        # Find the starting point
+                        for n in range(previous_index, len_dict[gene] + previous_index):
+                            if seq1_str[n] != "-" and seq2_str[n] != "-":
+                                start = n
+                                break
+
+                        # Compare from the start
+                        for n in range(
+                            len_dict[gene] + previous_index - 1,
+                            previous_index - 1,
+                            -1,
+                        ):
+                            if seq1_str[n] != "-" and seq2_str[n] != "-":
+                                end = n
+                                break
+
+                        valid_index.extend(range(start, end + 1))
+
+                        previous_index += len_dict[gene]
+
+                    # for valid part
+                    for n in valid_index:
+                        # connected with or to evaluate insertions or deletions
+                        if seq1_str[n] != seq2_str[n]:
+                            identical_flag = False
+                        else:
+                            overlapping_cnt += 1
+
+                else:
+                    start = 0
+                    end = len(seq1_str) - 1
+                    # calculate start and end
+                    for n in range(len(seq1_str)):
+                        if seq1_str[n] != "-" and seq2_str[n] != "-":
+                            start = n
+                            break
+
+                    for n in range(len(seq1_str)):
+                        if (
+                            seq1_str[len(seq1_str) - n - 1] != "-"
+                            and seq2_str[len(seq1_str) - n - 1] != "-"
+                        ):
+                            end = len(seq1_str) - n
+                            break
+
+                    # for valid part
+                    for n in range(start, end):
+                        # connected with or to evaluate insertions or deletions
+                        if seq1_str[n] != seq2_str[n]:
+                            identical_flag = False
+                        else:
+                            overlapping_cnt += 1
+
+                # if identical pairs
+                id1 = str(seq1.id).strip()
+                id2 = str(seq2.id).strip()
+
+                if identical_flag is True and overlapping_cnt > 0:
+                    if pdc[id1][id2] > self.zero:
+                        self.zero = pdc[id1][id2]
+
+                # if different pairs
+                elif identical_flag is False:
+                    if pdc[id1][id2] < diff_min:
+                        diff_min = pdc[id1][id2]
 
         if diff_min < self.zero:
             self.zero = diff_min - 0.00000001
+        """
+        print("Calculate zero")
+
+        for name, size in sorted(
+            ((name, sys.getsizeof(value)) for name, value in list(locals().items())),
+            key=lambda x: -x[1],
+        )[:10]:
+            # print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+            pass
+
+        snapshot = tracemalloc.take_snapshot()
+        top_stats = snapshot.statistics("lineno")
+
+        # Print the top memory usage lines
+        
+        print("[ Top 10 ]")
+        for stat in top_stats[:10]:
+            print(stat)
+
+        print("===========================")
+        """
+
+        if self.opt.verbose >= 3:
+            print(f"[DEBUG] End of calculate zero")
+            process = psutil.Process(os.getpid())
+            memory_info = process.memory_info()
+            print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
         # I think also finding minimal distance between non-identical sequences are also needed
         return self.zero
@@ -798,6 +825,34 @@ class Tree_information:
 
         self.t.render(f"{out}", tree_style=self.Tree_style.ts)
         self.Tree_style.ts.show_leaf_name = False
+
+        """
+        print("reroot outgroup")
+       
+        for name, size in sorted(
+            ((name, sys.getsizeof(value)) for name, value in list(locals().items())),
+            key=lambda x: -x[1],
+        )[:10]:
+            print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+           
+
+        snapshot = tracemalloc.take_snapshot()
+        top_stats = snapshot.statistics("lineno")
+
+        # Print the top memory usage lines
+        
+        print("[ Top 10 ]")
+        for stat in top_stats[:10]:
+            print(stat)
+       
+        print("===========================")
+        """
+
+        if self.opt.verbose >= 3:
+            print(f"[DEBUG] End of reroot outgroup")
+            process = psutil.Process(os.getpid())
+            memory_info = process.memory_info()
+            print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
     def collapse(self, collapse_info, clade, taxon):
         collapse_info.clade = clade
@@ -918,8 +973,39 @@ class Tree_information:
 
         ## start of tree_search
         # at the last leaf
+        # tracemalloc.start()
+
         if len(clade.children) == 1:
             local_generate_collapse_information(clade, opt=opt)
+            """
+            print("tree search part 1")
+            
+            for name, size in sorted(
+                (
+                    (name, sys.getsizeof(value))
+                    for name, value in list(locals().items())
+                ),
+                key=lambda x: -x[1],
+            )[:10]:
+                print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+
+            snapshot = tracemalloc.take_snapshot()
+            top_stats = snapshot.statistics("lineno")
+
+            # Print the top memory usage lines
+            print("[ Top 10 ]")
+            for stat in top_stats[:10]:
+                print(stat)
+ 
+            print("===========================")
+            """
+
+            if self.opt.verbose >= 3:
+                print(f"[DEBUG] End of Tree search with monophyletic branches")
+                process = psutil.Process(os.getpid())
+                memory_info = process.memory_info()
+                print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
+
             return
 
         # In bifurcated clades
@@ -948,6 +1034,36 @@ class Tree_information:
                 # Else, do recursive tree search to divide clades
                 else:
                     self.tree_search(child_clade, gene, opt=opt)
+
+            """
+            print("tree search part 2")
+            
+            for name, size in sorted(
+                (
+                    (name, sys.getsizeof(value))
+                    for name, value in list(locals().items())
+                ),
+                key=lambda x: -x[1],
+            )[:10]:
+                print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+
+            snapshot = tracemalloc.take_snapshot()
+            top_stats = snapshot.statistics("lineno")
+
+            # Print the top memory usage lines
+            print("[ Top 10 ]")
+            for stat in top_stats[:10]:
+                print(stat)
+
+            print("===========================")
+            """
+
+            if self.opt.verbose >= 3:
+                print(f"[DEBUG] End of Tree search with bifurcated branches")
+                process = psutil.Process(os.getpid())
+                memory_info = process.memory_info()
+                print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
+
             return
 
         # if error (more than two branches or no branches)
@@ -1272,6 +1388,28 @@ class Tree_information:
                 root_dist=clade.dist,
                 root_support=clade.support,
             ).copy("newick")
+            """
+            print(f"Reconstruct")
+            
+            for name, size in sorted(
+                (
+                    (name, sys.getsizeof(value))
+                    for name, value in list(locals().items())
+                ),
+                key=lambda x: -x[1],
+            )[:30]:
+                print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+
+            print("==============================")
+            sys.stdout.flush()
+            """
+
+            if self.opt.verbose >= 3:
+                print(f"[DEBUG] End of reconstruct")
+                process = psutil.Process(os.getpid())
+                memory_info = process.memory_info()
+                print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
+
             return concatanated_clade
 
         else:
@@ -1423,7 +1561,7 @@ class Tree_information:
     ### end of collapse tree
 
     ### edit svg image from initial output from ete3
-    def polish_image(self, out, taxon_string_dict, genus_list):
+    def polish_image(self, out, taxon_string_dict):
         # runname_group_gene.svg file enters here
         # the tree has rectangle collapsed group, tmpseperator, and hash
 
@@ -1581,3 +1719,22 @@ class Tree_information:
             encoding="utf-8",
             xml_declaration=True,
         )
+        """
+        print("In tree visualization")
+        
+        for name, size in sorted(
+            ((name, sys.getsizeof(value)) for name, value in list(locals().items())),
+            key=lambda x: -x[1],
+        )[:10]:
+            print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+        
+        print("===========================")
+
+
+        """
+
+        if self.opt.verbose >= 3:
+            print(f"[DEBUG] End of Tree visualization")
+            process = psutil.Process(os.getpid())
+            memory_info = process.memory_info()
+            print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")

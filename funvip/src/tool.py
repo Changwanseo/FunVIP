@@ -5,10 +5,19 @@ from Bio.Seq import Seq
 # from .logger import Mes
 import logging
 from functools import lru_cache
-import sys, os
+import sys
+import os
 import shutil
 import platform
 from unidecode import unidecode
+
+
+def sizeof_fmt(num, suffix="B"):
+    for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
+        if abs(num) < 1024.0:
+            return "%3.1f %s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f %s%s" % (num, "Yi", suffix)
 
 
 # Maybe we should move this to /funvip/src/toolbox/ and split these to multiple files
