@@ -34,6 +34,9 @@ def main():
     import logging
     import PyQt5
 
+    # To prevent pyqt error
+    os.environ["QT_QPA_PLATFORM"] = "offscreen"
+
     # To initialize logger to print ANSI color
     _ = subprocess.call("", shell=True)
 

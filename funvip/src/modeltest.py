@@ -1,6 +1,9 @@
 from funvip.src import ext
-import os, shutil, copy
+import os
+import shutil
+import copy
 import logging
+import multiprocessing as mp
 
 cmd_translator_modeltestng_fasttree = {
     "JC": "",
@@ -362,9 +365,9 @@ def modeltest(V, path, opt) -> dict:
     model_dict = copy.deepcopy(group_dict)
 
     # By group and by gene
-    for group in group_dict:
-        for gene in group_dict[group]:
-            if opt.method.modeltest.lower() == "modeltest-ng":
+    if opt.method.modeltest.lower() == "modeltest-ng":
+        for group in group_dict:
+            for gene in group_dict[group]:
                 # As modeltest-ng shows only top 10 results,
                 # we should reduce number of models to prevent none of the model fits
                 if opt.method.tree == "fasttree":
@@ -397,17 +400,41 @@ def modeltest(V, path, opt) -> dict:
                     path=path,
                     opt=opt,
                 )
-            elif opt.method.modeltest.lower() == "iqtree":
-                if not (opt.method.tree == "iqtree"):
-                    # Run IQTREE ModelFinder
-                    ext.ModelFinder(
-                        fasta=f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
-                        opt=opt,
-                        path=path,
-                        thread=opt.thread,
-                    )
+    # In case of IQTREE ModelFinder, for optimization, run it with multithreaded
+    elif opt.method.modeltest.lower() == "iqtree":
+        if not (opt.method.tree == "iqtree"):
+            if opt.verbose < 3:
+                modelfinder_opt = []
+                for group in group_dict:
+                    for gene in group_dict[group]:
+                        modelfinder_opt.append(
+                            (
+                                f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
+                                opt,
+                                path,
+                                1,
+                            )
+                        )
 
-                    # Move modeltest result to appropriate location
+                p = mp.Pool(opt.thread)
+                _ = p.starmap(ext.ModelFinder, modelfinder_opt)
+                p.close()
+                p.join()
+
+            else:  # non-multithreading mode for debugging
+                for group in group_dict:
+                    for gene in group_dict[group]:
+                        # Run IQTREE ModelFinder
+                        ext.ModelFinder(
+                            fasta=f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
+                            opt=opt,
+                            path=path,
+                            thread=opt.thread,
+                        )
+
+            # Move modeltest result to appropriate location
+            for group in group_dict:
+                for gene in group_dict[group]:
                     try:
                         shutil.move(
                             f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta.iqtree",
@@ -424,13 +451,15 @@ def modeltest(V, path, opt) -> dict:
                         path=path,
                         opt=opt,
                     )
-                else:
-                    logging.info(
-                        "IQTREE will perform ModelFinder internally in tree construction step, skipping in modeltest step"
-                    )
-                    model_dict[group][gene] = "skip"
+        else:
+            logging.info(
+                "IQTREE will perform ModelFinder internally in tree construction step, skipping in modeltest step"
+            )
+            model_dict[group][gene] = "skip"
 
-            else:  # including opt.model_method.lower() == "none":
+    else:  # including opt.model_method.lower() == "none":
+        for group in group_dict:
+            for gene in group_dict[group]:
                 if opt.method.tree == "raxml":
                     logging.info("Skipping modeltest. Using GTRGAMMA as default")
                     model_dict[group][gene] = "-m GTRGAMMA"

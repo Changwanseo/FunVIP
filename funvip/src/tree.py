@@ -172,8 +172,7 @@ def pipe_tree(V, path, opt, model_dict):
             p.close()
             p.join()
 
-        else:
-            # non-multithreading mode for debugging
+        else:  # non-multithreading mode for debugging
             fasttree_result = []
             for option in fasttree_opt:
                 fasttree_result.append(ext.FastTree(*option))
