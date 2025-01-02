@@ -685,7 +685,7 @@ class FunVIP_var:
 
         # Add issue: the number of sequences are insufficient
         for fail in final_fail_list:
-            for FI in V.list_FI:
+            for FI in self.list_FI:
                 if FI.adjusted_group == fail[0]:
                     if FI.seq[fail[1]] != "":
                         FI.issues.add(f"lackseq")
