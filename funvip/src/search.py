@@ -359,8 +359,8 @@ def search_df(V, path, opt):
                 )
 
                 # Cutoff by outgroupcutoff
-                print(vars(opt))
-                print(opt.cluster.outgroupoffset)
+                # print(vars(opt))
+                # print(opt.cluster.outgroupoffset)
                 df_search = df_search[
                     df_search["bitscore"] > opt.cluster.outgroupoffset
                 ]

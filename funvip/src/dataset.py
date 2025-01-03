@@ -206,6 +206,9 @@ class FunVIP_var:
 
         for group in self.list_group:
             logging.info(f"Generating dataset for {group}")
+
+            print(f"opt.queryonly: {opt.queryonly}")
+
             dict_funinfo[group] = {}
 
             # For queryonly case
@@ -277,28 +280,36 @@ class FunVIP_var:
                     ]
                     self.add_dataset(group, "concatenated", list_qr, list_db, [])
 
-            # For opt.queryonly is False -> run all dataset in database
+            # For opt.queryonly is False -> run all dataset in database if possible
             else:
                 for gene in self.list_db_gene:
-                    list_qr = [
-                        FI
-                        for FI in self.list_FI
+                    list_qr = []
+                    for FI in self.list_FI:
                         if (
-                            gene in FI.seq
-                            and FI.datatype == "query"
+                            FI.datatype == "query"
                             and FI.adjusted_group == group
-                        )
-                    ]
-                    list_db = [
-                        FI
-                        for FI in self.list_FI
+                            and gene in FI.seq
+                        ):
+                            if FI.seq[gene] != "":
+                                list_db.append(FI)
+
+                    list_db = []
+                    for FI in self.list_FI:
                         if (
-                            gene in FI.seq
-                            and FI.datatype == "db"
+                            FI.datatype == "db"
                             and FI.adjusted_group == group
+                            and gene in FI.seq
+                        ):
+                            if FI.seq[gene] != "":
+                                list_db.append(FI)
+
+                    # If none of the database is possible for this group and gene pair, it should be excluded
+                    if len(list_db) > 0:
+                        self.add_dataset(group, gene, list_qr, list_db, [])
+                    else:
+                        logging.warning(
+                            f"dataset {group} {gene} did not passed dataset construction due to lack of sequences"
                         )
-                    ]
-                    self.add_dataset(group, gene, list_qr, list_db, [])
 
                 # for concatenated
                 list_qr = [
@@ -685,7 +696,7 @@ class FunVIP_var:
 
         # Add issue: the number of sequences are insufficient
         for fail in final_fail_list:
-            for FI in V.list_FI:
+            for FI in self.list_FI:
                 if FI.adjusted_group == fail[0]:
                     if FI.seq[fail[1]] != "":
                         FI.issues.add(f"lackseq")

@@ -292,10 +292,10 @@ def ModelFinder(fasta, opt, path, thread):
     if platform == "win32":
         if " " in fasta:
             fasta = f'"{fasta}"'
-        CMD = f"{path.sys_path}/external/iqtree/bin/iqtree2.exe --seqtype DNA -s {fasta} {model_term} -merit {opt.criterion} -T {thread} -mem {opt.memory}"
+        CMD = f"{path.sys_path}/external/iqtree/bin/iqtree2.exe --seqtype DNA -s {fasta} {model_term} -merit {opt.criterion} -nt AUTO -ntmax {thread} -mem {opt.memory} --quiet"
     else:
         # not final
-        CMD = f"iqtree --seqtype DNA -s '{fasta}' {model_term} -merit {opt.criterion} -T {thread} -mem {opt.memory}"
+        CMD = f"iqtree --seqtype DNA -s '{fasta}' {model_term} -merit {opt.criterion} -nt AUTO -ntmax {thread} -mem {opt.memory} --quiet"
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
 
@@ -418,9 +418,9 @@ def IQTREE(
         else:
             tmp_fasta = fasta
 
-        CMD = f"{path.sys_path}/external/iqtree/bin/iqtree2.exe -s {tmp_fasta} -B {bootstrap} -T {thread} {model}"
+        CMD = f"{path.sys_path}/external/iqtree/bin/iqtree2.exe -s {tmp_fasta} -B {bootstrap} -nt AUTO -ntmax {thread} {model}"
     else:
-        CMD = f"iqtree -s {fasta} -B {bootstrap} -T {thread} {model}"
+        CMD = f"iqtree -s {fasta} -B {bootstrap} -nt AUTO -ntmax {thread} {model}"
 
     logging.info(f"partition: {partition}")
     # Partitioned analysis cannot be used with memory option

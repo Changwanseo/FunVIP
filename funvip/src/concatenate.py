@@ -148,32 +148,7 @@ def concatenate_df(V, path, opt):
             gene_list.append(gene)
 
             df = deepcopy(V.dict_gene_SR[gene].set_index(["qseqid", "sseqid"]))
-
-            """
-            df = deepcopy(
-                V.dict_gene_SR[gene]
-                .set_index(["qseqid", "sseqid"])
-                .drop(
-                    columns=[
-                        "pident",
-                        "length",
-                        "mismatch",
-                        "gaps",
-                        "qstart",
-                        "qend",
-                        "sstart",
-                        "send",
-                        "evalue",
-                        "bitscore",
-                        "subject_group",
-                    ]
-                )
-            )
-            """
             df_list.append(df)
-
-    print("line 175")
-    print(time_start - time())
 
     if len(df_list) <= 0:
         logging.warning(f"Stop concatenating because same or less than 0 gene exists")
@@ -214,24 +189,8 @@ def concatenate_df(V, path, opt):
             inplace=True,
         )
 
-        print("line 217")
-        print(time_start - time())
-
-        """
         # Column name managing on subject_group
-        def same_merge(x, list_col):
-            values = x[list_col].dropna()
-            if values.empty:
-                raise Exception
-            return values.iloc[0]
 
-        df_multigene_regression_ori[
-            "subject_group"
-        ] = df_multigene_regression_ori.apply(
-            lambda x: same_merge(x, [f"{gene}_subject_group" for gene in gene_list]),
-            axis=1,
-        )
-        """
         subject_group_cols = [f"{gene}_subject_group" for gene in gene_list]
         df_multigene_regression_ori["subject_group"] = (
             df_multigene_regression_ori[subject_group_cols].bfill(axis=1).iloc[:, 0]
@@ -240,13 +199,6 @@ def concatenate_df(V, path, opt):
         # For regression, leave anchor points with all genes existing
         df_multigene_regression = df_multigene_regression_ori
 
-        """
-        for gene in gene_list:
-            df_multigene_regression = df_multigene_regression[
-                df_multigene_regression[f"{gene}_bitscore"].notna()
-            ]
-            """
-
         mask = (
             df_multigene_regression_ori[[f"{gene}_bitscore" for gene in gene_list]]
             .notna()
@@ -254,9 +206,6 @@ def concatenate_df(V, path, opt):
         )
 
         df_multigene_regression = df_multigene_regression_ori[mask]
-
-        print("line 243")
-        print(time_start - time())
 
         # Perform regression
         # Get regression line
@@ -276,24 +225,13 @@ def concatenate_df(V, path, opt):
             D = (P - (P.dot.u) * u).length
             """
             # line origin other than (0,0,0,..)
+            # do not use line -= l0 because casting rule error might happen
             if l0 is not None:
-                line -= l0
+                line = line - l0
             # points origin other than (0,0,0,..)
+            # do not use pts -= l0 because casting rule error might happen
             if p0 is not None:
-                pts -= p0
-
-            """
-            # dot product
-            dp = np.dot(pts, line)
-            # dot product value divided by normalized vector of line
-            # np.linalg.norm(line) : size of the line vector
-            # pp should be orthographic projected length of the dot
-            pp = dp / np.linalg.norm(line)
-            # norm value of point
-            # length from p0 to point
-            pn = np.linalg.norm(pts, axis=1)
-            return np.sqrt(np.clip(pn**2 - pp**2, a_min=1e-10, a_max=None))
-            """
+                pts = pts - p0
 
             norm_line = np.linalg.norm(line)
             projected_lengths = np.dot(pts, line) / norm_line
@@ -329,32 +267,6 @@ def concatenate_df(V, path, opt):
                 K_optimized,
             )
 
-        # Reset df before filling it
-        """
-        def calculate_prediction(row, gene_list, coeff, grad):
-            # Calculate linear_constant of the strain
-            linear_constant = []
-            for k, gene in enumerate(gene_list):
-                if not np.isnan(row[f"{gene}_bitscore"]):
-                    #  (coeff - value) / gradient = linear constant
-                    linear_constant.append(
-                        (coeff[k] - row[f"{gene}_bitscore"]) / grad[k]
-                    )
-
-            # Predict unknown BLAST value
-            for k, gene in enumerate(gene_list):
-                if np.isnan(row[f"{gene}_bitscore"]):
-                    #  prediction value  = coeff - linear constant * gradient
-                    prediction = coeff[k] - np.mean(linear_constant) * grad[k]
-                    row[f"{gene}_bitscore"] = prediction
-            return row
-
-        
-        def apply_prediction(row, gene_list, coeff, grad):
-            row = calculate_prediction(row, gene_list, coeff, grad)
-            return row
-        """
-
         def vectorized_prediction(df, gene_list, coeff, grad):
             for k, gene in enumerate(gene_list):
                 linear_constant = (coeff[k] - df[f"{gene}_bitscore"]) / grad[k]
@@ -366,22 +278,13 @@ def concatenate_df(V, path, opt):
                 )
             return df
 
-        print("line 344")
-        print(time_start - time())
-
         # Change to numpy for faster cazlculation
         np_bitscore = df_multigene_regression[
             [f"{gene}_bitscore" for gene in gene_list]
         ].to_numpy()
 
-        print("line 353")
-        print(time_start - time())
-
         # get coefficient and gradient with regression
         coeff, grad = optimize_regression_line(np_bitscore)
-
-        print("optimize regression line")
-        print(time_start - time())
 
         # Inform users about linear regression result
         # (C0 - X0) / K0 = (C1 -X1) / X1 = (C2 - X2) / X2 = K
@@ -403,15 +306,6 @@ def concatenate_df(V, path, opt):
             df_multigene_regression, gene_list, coeff, grad
         )
 
-        print("vectorized regression line")
-        print(time_start - time())
-
-        """
-        df_multigene_regression = df_multigene_regression.apply(
-            apply_prediction, args=(gene_list, coeff, grad), axis=1
-        )
-        """
-
         # Also update each gene bitscore matrix
         # This part is needed, for multigene analysis, for example ITS, CaM and RPB2
         # If query only exists for ITS and CaM, no blast result for RPB2 were generated
@@ -423,9 +317,6 @@ def concatenate_df(V, path, opt):
         ].mean(axis=1)
         V.cSR = df_multigene_regression.reset_index()
 
-        print("mean and reset index line")
-        print(time_start - time())
-
     # Save it
     # decode df is not working well here
     if opt.nosearchresult is False:
@@ -434,8 +325,5 @@ def concatenate_df(V, path, opt):
             f"{path.out_matrix}/{opt.runname}_BLAST_result_concatenated.{opt.tableformat}",
             fmt=opt.tableformat,
         )
-
-    print("save table")
-    print(time_start - time())
 
     return V
