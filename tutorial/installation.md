@@ -1,12 +1,12 @@
 ## Installation
 ### Windows
-1. ```conda create -n FunVIP python>=3.9```
+1. ```conda create -n FunVIP python=3.12```
 2. ```conda activate FunVIP```
 3. ```pip install FunVIP```
 4. run ```FunVIP --test Terrei --email [your email] ``` to check installation
 <br><br/>
 ## Linux
-1. ```conda create -n FunVIP python>=3.9```
+1. ```conda create -n FunVIP python=3.12```
 2. ```conda activate FunVIP```
 3. ```pip install FunVIP```
 4. ```conda config --add channels conda-forge```
@@ -16,7 +16,7 @@
 <br><br/>
 ### Apple Silicon Mac
 1. ```softwareupdate --install-rosetta```
-2. ```CONDA_SUBDIR=osx-64 conda create -n FunVIP python>=3.9```
+2. ```CONDA_SUBDIR=osx-64 conda create -n FunVIP python=3.12```
 3. ```conda activate FunVIP```
 4. ```conda config --env --set subdir osx-64```
 5. ```conda install pyqt```
@@ -28,7 +28,7 @@
 * this is for developmental steps
 1. ```git clone https://github.com/Changwanseo/FunVIP.git```
 2. Move to ```~/FunVIP```
-3. ```conda create -n FunVIP python=3.10```
+3. ```conda create -n FunVIP python=3.12```
 4. ```conda activate FunVIP```
 5. ```pip install ./```
 6. run ```FunVIP --test Terrei --email [your email]``` to check installation
