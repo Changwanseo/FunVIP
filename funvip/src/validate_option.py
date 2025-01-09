@@ -978,7 +978,9 @@ class Option:
                 stderr=subprocess.STDOUT,
             ).returncode
             if return_code != 0:
-                print(f"[WARNING] {program} not installed! Excluding from analysis")
+                print(
+                    f"[WARNING] t-coffee (TCS) not installed! Excluding from analysis"
+                )
                 self.method.tcs = False
 
         # trim
