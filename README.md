@@ -23,9 +23,11 @@ This is Beta release. Bug reports are welcomed
 * See [Documentation](https://github.com/Changwanseo/FunVIP/blob/main/Documentation.md) for advanced usage !
 <br><br/>
 ## Requirements
-- Conda environment
+- Conda or Mamba environment
 
-\* See [https://www.anaconda.com/products/individual](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) for how to install conda environment
+\* See [here](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) for how to install conda environment
+
+\* Recently, Mamba is a lot faster than conda. See [here](https://github.com/conda-forge/miniforge?tab=readme-ov-file) to how to install mamba environment
 <br><br/>
 ## Installation
 * [Windows](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/installation.md##Windows)
