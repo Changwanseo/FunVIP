@@ -177,6 +177,7 @@ class Path:
                 }
             else:
                 check_commands = {
+                    "TCS": "export MAX_N_PID_4_TCOFFEE=4194304 | t_coffee -help",
                     "Modeltest-NG": "modeltest-ng --help",
                     "IQTREE": "iqtree -h",
                     "MMseqs2": "mmseqs -h",
@@ -187,9 +188,17 @@ class Path:
             for program in check_commands:
                 cmd = check_commands[program]
                 # Quietly call each programs
+                """
                 return_code = subprocess.call(
                     cmd, shell=True, stdout=open(os.devnull, "wb")
                 )
+                """
+                return_code = subprocess.run(
+                    cmd,
+                    shell=True,
+                    stdout=open(os.devnull, "wb"),
+                    stderr=subprocess.STDOUT,
+                ).returncode
                 if return_code != 0:
                     print(f"[ERROR] {program} not installed!")
                     install_flag = 1
@@ -198,12 +207,18 @@ class Path:
             # I don't know why, but apt install RAxML can use raxmlHPC-PTHREADS-AVX,
             # while conda install RAxML can use raxmlHPC -PTHREADS-AVX / raxmlHPC-PTHREADS-AVX2 (blank between raxmlHPC and -PTHREADS-AVX)
             # However, if using 'raxmlHPC -PTHREADS-AVX', the computer cannot utilize full threads
-            return_code_1 = subprocess.call(
-                "raxmlHPC-PTHREADS-AVX -h", shell=True, stdout=open(os.devnull, "wb")
-            )
-            return_code_2 = subprocess.call(
-                "raxmlHPC-PTHREADS-AVX2 -h", shell=True, stdout=open(os.devnull, "wb")
-            )
+            return_code_1 = subprocess.run(
+                "raxmlHPC-PTHREADS-AVX -h",
+                shell=True,
+                stdout=open(os.devnull, "wb"),
+                stderr=subprocess.STDOUT,
+            ).returncode
+            return_code_2 = subprocess.run(
+                "raxmlHPC-PTHREADS-AVX2 -h",
+                shell=True,
+                stdout=open(os.devnull, "wb"),
+                stderr=subprocess.STDOUT,
+            ).returncode
 
             if return_code_1 != 0 and return_code_2 != 0:
                 print(f"[ERROR] RAxML not installed!")
@@ -247,7 +262,8 @@ class Path:
         self.root = os.path.abspath(self.root)
 
         # Logging directory
-        self.log = f"{self.root}/log.txt"
+        self.log = f"{self.root}/log.txt"  # for overall logging
+        self.criticallog = f"{self.root}/log_critical.txt"  # for warnings and errors
         self.extlog = f"{self.root}/log"  # for saving external program logs
         mkdir(self.extlog)
 
@@ -288,6 +304,10 @@ class Path:
         mkdir(f"{self.out_alignment}/hash")
         # For failed alignments
         mkdir(f"{self.out_alignment}/failed")
+        # For partition file
+        mkdir(f"{self.out_alignment}/partition")
+        # For tcs results
+        mkdir(f"{self.out_alignment}/tcs")
 
         # modeltest result directory
         self.out_modeltest = f"{self.root}/06_Modeltest"
@@ -311,7 +331,7 @@ def initialize(path_run, parser):
 
     # Move option loading as independent class or function
     # Generate path class
-    print(f"Output location: {path_run}")
+    print(f"[INFO] Output location: {path_run}")
     path = Path(path_run)
 
     # Parsing options

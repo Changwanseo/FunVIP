@@ -1,8 +1,7 @@
 MODE: identification
 CONTINUE: false
 QUERYONLY: true
-CONFIDENT: false
-CONCATENATE: true
+CONFIDENT: fale
 MAXOUTGROUP: 3
 SEARCH: blast
 ALIGNMENT: mafft
@@ -26,5 +25,4 @@ MAFFT-ep: 0.1
 AVX: true
 CACHEDB: true
 USECACHE: true
-FULLGENUS: true
 

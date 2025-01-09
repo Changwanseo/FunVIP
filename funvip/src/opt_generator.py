@@ -65,6 +65,22 @@ def opt_generator(V, opt, path, step, thread=None):
                             )
                         )
 
+    # For tcs alignment validation
+    elif step == "tcs":
+        for group in V.dict_dataset:
+            for gene in V.dict_dataset[group]:
+                if gene != "concatenated":
+                    tcs_out = (
+                        f"{path.out_alignment}/tcs/{opt.runname}_{group}_{gene}.tcs"
+                    )
+                    list_opt.append(
+                        (
+                            f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
+                            thread,
+                            tcs_out,
+                        )
+                    )
+
     else:
         logging.error(f"[Error] Unexpected step {step} given for opt_generator")
         raise Exception

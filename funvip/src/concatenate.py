@@ -57,10 +57,10 @@ def combine_alignment(V, opt, path):
 
                 # Generate partition file
                 with open(
-                    f"{path.out_alignment}/{opt.runname}_{group}.partition", "w"
+                    f"{path.out_alignment}/partition/{opt.runname}_{group}.partition",
+                    "w",
                 ) as fw:
                     tot_len = 0
-                    print(gene_list)
                     for gene in gene_list:
                         # gene_list.append(gene)
                         fw.write(f"DNA, {gene}= {tot_len+1}-{tot_len+len_dict[gene]}\n")
@@ -109,7 +109,8 @@ def combine_alignment(V, opt, path):
                     )
                 )
                 with open(
-                    f"{path.out_alignment}/{opt.runname}_{group}.partition", "w"
+                    f"{path.out_alignment}/partition/{opt.runname}_{group}.partition",
+                    "w",
                 ) as fw:
                     fw.write(f"DNA, {singlegene}= 1-{gene_length}\n")
 
@@ -273,8 +274,14 @@ def concatenate_df(V, path, opt):
                 mean_linear_constant = linear_constant.mean()
 
                 # Fill missing bitscores
+                """
                 df[f"{gene}_bitscore"].fillna(
                     coeff[k] - mean_linear_constant * grad[k], inplace=True
+                )
+                """
+                df.fillna(
+                    {f"{gene}_bitscore": coeff[k] - mean_linear_constant * grad[k]},
+                    inplace=True,
                 )
             return df
 

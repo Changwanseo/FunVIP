@@ -26,9 +26,14 @@ def initialize_path(path):
     genus_file = path.genusdb
 
 
+# Check if directory exists and make if not
+# If intermediate directory does not exists, also do it
 def mkdir(path):
+    os.makedirs(path, exist_ok=True)
+    """
     if os.path.exists(path) == False:
         os.makedirs(path)
+    """
 
 
 def union_funinfo_list(funinfo_list1, funinfo_list2):

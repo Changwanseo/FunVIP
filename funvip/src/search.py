@@ -1,6 +1,7 @@
 from funvip.src import cluster, tool, hasher, validate_input, save
 from funvip.src.ext import blast, makeblastdb, mmseqs, makemmseqsdb
 from funvip.src.save import save_df
+from funvip.src.tool import mkdir
 import copy
 import pandas as pd
 import numpy as np
@@ -156,7 +157,7 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
                 os.path.isdir(f"{path.in_db}/{opt.method.search.lower()}/{_hash}")
                 is True
             ):
-                logging.info("[INFO] Found existing database! Skipping database build")
+                logging.info("Found existing database! Skipping database build")
                 db = f"{path.in_db}/{opt.method.search.lower()}/{_hash}/{_hash}"
 
             # When parsing existing DB failed
@@ -170,7 +171,7 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
                     )
 
                     # Create DB saving directory
-                    os.mkdir(f"{path.in_db}/{opt.method.search.lower()}/{_hash}")
+                    mkdir(f"{path.in_db}/{opt.method.search.lower()}/{_hash}")
                     db = f"{path.in_db}/{opt.method.search.lower()}/{_hash}/{_hash}"
 
                     # DB saving starts
@@ -184,14 +185,14 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
                     logging.info(
                         "--cachedb not selected, saving database will be passed"
                     )
-                    os.mkdir(f"{path.tmp}/{opt.runname}/{_hash}")
+                    mkdir(f"{path.tmp}/{opt.runname}/{_hash}")
                     db = f"{path.tmp}/{opt.runname}/{_hash}/{_hash}"
 
                     # Create search database
                     create_search_db(opt, db_fasta, db, path)
 
     else:
-        os.mkdir(f"{path.tmp}/{opt.runname}/{_hash}")
+        mkdir(f"{path.tmp}/{opt.runname}/{_hash}")
         db = f"{path.tmp}/{opt.runname}/{_hash}/{_hash}"
         # Create search database
         create_search_db(opt, db_fasta, db, path)

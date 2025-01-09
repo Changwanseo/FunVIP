@@ -130,7 +130,7 @@ def pipe_tree(V, path, opt, model_dict):
                         path=path,
                         thread=opt.thread,
                         bootstrap=opt.bootstrap,
-                        partition=f"{path.out_alignment}/{opt.runname}_{group}.partition",
+                        partition=f"{path.out_alignment}/partition/{opt.runname}_{group}.partition",
                         model=model_dict[group][gene],
                         version=path.raxml_version,
                     )
@@ -144,7 +144,7 @@ def pipe_tree(V, path, opt, model_dict):
                         memory=opt.memory,
                         thread=opt.thread,
                         bootstrap=opt.bootstrap,
-                        partition=f"{path.out_alignment}/{opt.runname}_{group}.partition",
+                        partition=f"{path.out_alignment}/partition/{opt.runname}_{group}.partition",
                         model=model_dict[group][gene],
                     )
 

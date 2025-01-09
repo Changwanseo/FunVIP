@@ -80,7 +80,8 @@ def makeblastdb(fasta, db, path):
         # run make blast db
         CMD = f"{path_makeblastdb} -in {fasta_tmp} -blastdb_version 4 -title {db_tmp} -dbtype nucl"
         logging.info(CMD)
-        Run = subprocess.call(CMD, shell=True)
+        # I cannot find any "quiet" options for makeblastdb
+        Run = subprocess.call(CMD, stdout=open(os.devnull, "wb"), shell=True)
         # Change db names
         shutil.move(fasta_tmp + ".nsq", db + ".nsq")
         shutil.move(fasta_tmp + ".nin", db + ".nin")
@@ -93,7 +94,8 @@ def makeblastdb(fasta, db, path):
     else:
         CMD = f"makeblastdb -in '{fasta}' -blastdb_version 4 -title '{db}' -dbtype nucl"
         logging.info(CMD)
-        return_code = subprocess.call(CMD, shell=True)
+        # I cannot find any "quiet" options for makeblastdb
+        return_code = subprocess.call(CMD, stdout=open(os.devnull, "wb"), shell=True)
 
         if return_code != 0:
             logging.error(f"Make blast_db failed!!")
@@ -325,14 +327,14 @@ def RAxML(
         if " " in out:
             out = f'"{out}"'
 
-        CMD = f"{path.sys_path}/external/RAxML_Windows/raxmlHPC-PTHREADS-AVX2.exe -s {fasta} -n {out} -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
+        CMD = f"{path.sys_path}/external/RAxML_Windows/raxmlHPC-PTHREADS-AVX2.exe -s {fasta} -n {out} -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model} --silent"
     elif platform == "darwin":
         CMD = f"raxmlHPC-PTHREADS -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
     else:
         if version == "old":
-            CMD = f"raxmlHPC-PTHREADS-AVX -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
+            CMD = f"raxmlHPC-PTHREADS-AVX -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model} --silent"
         elif version == "new":
-            CMD = f"raxmlHPC-PTHREADS-AVX2 -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
+            CMD = f"raxmlHPC-PTHREADS-AVX2 -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model} --silent"
         else:
             logging.error(
                 f"DEVELOPMENTAL ERROR - unexpected RAxML version, {version} in ext.py"
@@ -466,9 +468,17 @@ def TCS(fasta, thread, out):
         raise Exception
     else:
         # T_COFFEE env variable MAX_N_PID_4_TCOFFEE should be changed for 64bit machine
-        subprocess.call("export MAX_N_PID_4_TCOFFEE=2652571", shell=True)
-
-        CMD = f"t_coffee -infile {fasta} -thread {thread} -method fast_pair -type DNA -evaluate -output score_ascii -outfile {out} -quiet"
+        # should be already done in installation check process
+        # subprocess.call("export MAX_N_PID_4_TCOFFEE=4194304", shell=True)
+        CMD = f"t_coffee -infile {fasta} -cpu {thread} -method fast_pair -type DNA -evaluate -output score_ascii -outfile {out} -quiet"
 
     logging.info(CMD)
-    Run = subprocess.call(CMD, shell=True)
+    # Even though "quiet" option exists, TCS show some blank lines
+    # Run = subprocess.call(CMD, stdout=open(os.devnull, "wb"), shell=True)
+    Run = subprocess.run(
+        CMD, stdout=open(os.devnull, "wb"), stderr=subprocess.STDOUT, shell=True
+    ).returncode
+
+    if Run != 0:
+        logging.error(f"TCS Failed!")
+        raise Exception

@@ -245,14 +245,14 @@ def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
     # If no or fewer than designated number of outgroup matches to condition, use flexible criteria
     if cutoff_df.groupby(["subject_group"]).count().empty:
         logging.warning(
-            f"Not enough outgroup sequences matched for group {group} | gene {gene}. There might be outlier sequence that does not matches to group. Trying flexible cutoff"
+            f"Not enough outgroup sequences matched for {opt.level} {group} | gene {gene}. There might be outlier sequence that does not matches to group. Trying flexible cutoff"
         )
         cutoff_df = df_search[df_search["bitscore"] > 0]
         cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
 
     elif cutoff_df.groupby(["subject_group"]).count()["sseqid"].max() < opt.maxoutgroup:
         logging.warning(
-            f"Not enough outgroup sequences matched for group {group} | gene {gene}. There might be outlier sequence that does not matches to group. Trying flexible cutoff"
+            f"Not enough outgroup sequences matched for {opt.level} {group} | gene {gene}. There might be outlier sequence that does not matches to group. Trying flexible cutoff"
         )
         cutoff_df = df_search[df_search["bitscore"] > 0]
         cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]

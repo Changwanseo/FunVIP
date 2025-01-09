@@ -299,7 +299,7 @@ class Report:
 
         # Count groups
         for group in sorted(list(set(self.query_result["GROUP_ASSIGNED"]))):
-            df_group = df_result_group.get_group(group)
+            df_group = df_result_group.get_group((group,))
 
             # Collect statistics
             """

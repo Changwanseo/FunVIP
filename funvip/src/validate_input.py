@@ -830,7 +830,7 @@ def db_input(funinfo_dict, opt, path) -> list:
 
     if any(group_cnt_dict[x] < opt.maxoutgroup for x in group_cnt_dict):
         logging.warning(
-            f"Sequences in database of some group has lower number than MINIMUM_OUTGROUP_COUNT. It may cause error when outgroup selection, or may select not most appropriate outgroup to group. Please lower number of MINIMUM_OUTGROUP_COUNT in option or add more sequences to these groups"
+            f"Sequences in database of some {opt.level} has lower number than MINIMUM_OUTGROUP_COUNT. It may cause error when outgroup selection, or may not select best outgroup. You can either\n 1. Lower number of --maxoutgroup \n 2. Add more sequences to these groups"
         )
 
     return funinfo_dict, GenMine_flag

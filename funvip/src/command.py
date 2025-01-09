@@ -91,7 +91,7 @@ class CommandParser:
             "--continue",
             dest="continue_from_previous",
             action="store_true",
-            help="Continue from previous run",
+            help="Continue from previous run, default: False",
         )
         group_run.add_argument(
             "--step",
@@ -126,6 +126,11 @@ class CommandParser:
             "--alignment",
             help="Multiple sequence alignment methods, [mafft], default : mafft",
             type=str,
+        )
+        group_method.add_argument(
+            "--notcs",
+            action="store_true",
+            help="Skip T-COFFEE TCS(Transitive Consistency Score) for alignment validation. default: False",
         )
         group_method.add_argument(
             "--trim",
@@ -227,9 +232,9 @@ class CommandParser:
             type=int,
         )
         group_advanced.add_argument(
-            "--solveflat",
+            "--nosolveflat",
             action="store_true",
-            help="Whether to automatically detect 0 length branch and automatically solve them, default : True",
+            help="Do not detect 0 length branch and automatically solve them, default : False",
         )
         group_advanced.add_argument(
             "--regex",
@@ -284,7 +289,7 @@ class CommandParser:
         group_advanced.add_argument(
             "--allow-innertrimming",
             dest="allow_innertrimming",
-            help="Turn off FunVIP adjustment to not to trim inner alignment columns",
+            help="Turn off FunVIP adjustment to not to trim inner alignment columns, default: False",
             action="store_true",
         )
         group_advanced.add_argument(
@@ -296,7 +301,7 @@ class CommandParser:
         group_advanced.add_argument(
             "--noavx",
             action="store_true",
-            help="do not use AVX for RAxML, default: False",
+            help="Do not use AVX for RAxML, default: False",
         )
         group_advanced.add_argument(
             "--outgroupoffset",
@@ -306,7 +311,7 @@ class CommandParser:
         group_advanced.add_argument(
             "--noambiguous",
             action="store_true",
-            help="do not include ambiguous samples for sequence-set. Mostly for metabarcoding analysis",
+            help="Do not include ambiguous samples for sequence-set. Mostly for metabarcoding analysis. It may result wrong result with problematic database.",
         )
 
         # Cache
@@ -315,9 +320,9 @@ class CommandParser:
             description="Save search database for faster run in next time",
         )
         group_cache.add_argument(
-            "--cachedb",
+            "--nocachedb",
             action="store_true",
-            help="Cache current search database, turn off if your database is too big for system directory, default : True",
+            help="Disable caching current search database. Use it if your database is too big for system directory, default : True",
         )
         group_cache.add_argument(
             "--usecache",
@@ -344,7 +349,7 @@ class CommandParser:
         group_save.add_argument(
             "--nosearchresult",
             action="store_true",
-            help="Do not save blast/mmseqs search matrix, use when dataset gets too big and generates IO bottleneck",
+            help="Do not save blast/mmseqs search matrix, use when dataset gets too big and generates IO bottleneck, default: False",
         )
 
         # Preset

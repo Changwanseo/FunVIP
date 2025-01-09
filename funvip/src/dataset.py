@@ -1,11 +1,13 @@
 from funvip.src import save
 from funvip.src import hasher
 from funvip.src import ext
+from funvip.src.opt_generator import opt_generator
 from Bio import SeqIO
 import os
 import sys
 import shutil
 import numpy as np
+import multiprocessing as mp
 import logging
 import re
 import json
@@ -208,7 +210,7 @@ class FunVIP_var:
         for group in self.list_group:
             logging.info(f"Generating dataset for {group}")
 
-            print(f"opt.queryonly: {opt.queryonly}")
+            # print(f"opt.queryonly: {opt.queryonly}")
 
             dict_funinfo[group] = {}
 
@@ -695,43 +697,53 @@ class FunVIP_var:
 
         # Validate multiple sequence alignment with TCS score from T-COFFEE
         # As T-COFFEE build is only available in Mac and Linux, should check if it is available
-        bad_cnt = 0
-        for group in self.dict_dataset:
-            for gene in self.dict_dataset[group]:
-                # Running TCS for concatenated alignment is duplicate
-                if gene != "concatenated":
-                    # Run TCS
-                    tcs_out = f"{path.out_alignment}/{opt.runname}_{group}_{gene}.tcs"
-                    # TCS is well multithreaded, it does not requires additional parellelization
-                    ext.TCS(
-                        fasta=f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
-                        thread=opt.thread,
-                        out=tcs_out,
-                    )
+        if opt.method.tcs is True:
+            bad_cnt = 0
 
-                    # Parse tcs result
-                    with open(tcs_out, "r") as f_tcs:
-                        tcs_result_raw = f_tcs.read()
-                        tcs_result = tcs_result_raw.split("*")[2].split("cons")[0]
-                        # print(tcs_result.split("\n"))
-                        for line in tcs_result.split("\n")[1:-1]:
-                            # print(line)
-                            _hash = line.split(":")[0].strip()
-                            tcs_score = int(line.split(":")[1].strip())
+            if opt.verbose < 3:
+                tcs_opt = opt_generator(
+                    V=self, opt=opt, path=path, step="tcs", thread=1
+                )
+                p = mp.Pool(opt.thread)
+                p.starmap(ext.TCS, tcs_opt)
+                p.close()
+                p.join()
 
-                            if tcs_score < 50:
-                                FI_id = self.dict_hash_FI[_hash].id
-                                logging.warning(
-                                    f"{FI_id} has poor alignment score in {group} {gene}"
-                                )
-                                bad_cnt += 1
+            else:
+                tcs_opt = opt_generator(V=self, opt=opt, path=path, step="tcs")
+                for option in tcs_opt:
+                    ext.TCS(*option)
 
-        if bad_cnt == 0:
-            logging.info(f"All sequences in alignment passed TCS validation")
-        else:
-            logging.warning(
-                f"{bad_cnt} sequences in alignment failed TCS validation. Please check sequneces"
-            )
+                # non-multithreading mode for debugging
+                for group in self.dict_dataset:
+                    for gene in self.dict_dataset[group]:
+                        # Running TCS for concatenated alignment is duplicate
+                        if gene != "concatenated":
+                            tcs_out = f"{path.out_alignment}/alignment/{opt.runname}_{group}_{gene}.tcs"
+                            # Parse tcs result
+                            with open(tcs_out, "r") as f_tcs:
+                                tcs_result_raw = f_tcs.read()
+                                tcs_result = tcs_result_raw.split("*")[2].split("cons")[
+                                    0
+                                ]
+                                for line in tcs_result.split("\n")[1:-1]:
+                                    _hash = line.split(":")[0].strip()
+                                    tcs_score = int(line.split(":")[1].strip())
+                                    if (
+                                        tcs_score < 50
+                                    ):  # cutoff 50 comes from TCS documentation
+                                        FI_id = self.dict_hash_FI[_hash].id
+                                        logging.warning(
+                                            f"{FI_id} has poor alignment score in {group} {gene}"
+                                        )
+                                        bad_cnt += 1
+
+            if bad_cnt == 0:
+                logging.info(f"All sequences in alignment passed TCS validation")
+            else:
+                logging.warning(
+                    f"{bad_cnt} sequences in alignment failed TCS validation. Please check sequneces"
+                )
 
     # check inconsistency exists along identification result of each genes
     def check_inconsistent(self):

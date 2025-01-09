@@ -54,6 +54,12 @@ def setup_logging(list_info, list_warning, list_error, path, opt, tool):
     for handler in logging.root.handlers:
         handler.setFormatter(formatter)
 
+    # Add a new FileHandler for warnings, errors, and critical messages
+    warning_error_critical_handler = logging.FileHandler(path.criticallog)
+    warning_error_critical_handler.setLevel(logging.WARNING)
+    warning_error_critical_handler.setFormatter(formatter)
+    logging.getLogger().addHandler(warning_error_critical_handler)
+
     # Delayed logging for option parsing
 
     # I don't know why, but in some environment, ANSI color works only after first subprocess.call was done
