@@ -31,10 +31,10 @@ def check(
     obj,
     type_,
     criterion,
-    value=np.NaN,
-    min_=np.NaN,
-    max_=np.NaN,
-    default=np.NaN,
+    value=np.nan,
+    min_=np.nan,
+    max_=np.nan,
+    default=np.nan,
     solve=False,
 ):
     # obj : option things that should be checked

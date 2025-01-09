@@ -3,7 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import io
 import logging
-import plotly.express as px
+
+# import plotly.express as px
 import sys
 from tabulate import tabulate
 from funvip.src.tool import index_step

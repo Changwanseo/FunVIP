@@ -106,7 +106,7 @@ class CommandParser:
         group_run.add_argument(
             "--all",
             action="store_true",
-            help="Run FunVIP for all database sequences, regardless of corrresponding sequences exists in query, default : False",
+            help="Run FunVIP for all database sequences, regardless of corresponding sequences exists in query, default : False",
         )
         group_run.add_argument(
             "--confident",

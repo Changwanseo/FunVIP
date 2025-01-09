@@ -223,6 +223,7 @@ def main():
         logging.info("TRIMMING")
         V, path, opt = trim.pipe_trimming(V, path, opt)
         # Alignment validations - whether some of the sequences does not have overlapping regions
+        # Calculate TCS score if speicified by option
         V.validate_alignments(path=path, opt=opt)
         R.update_report(
             V=V,
