@@ -177,7 +177,6 @@ class Path:
                 }
             else:
                 check_commands = {
-                    "TCS": "export MAX_N_PID_4_TCOFFEE=4194304 | t_coffee -help",
                     "Modeltest-NG": "modeltest-ng --help",
                     "IQTREE": "iqtree -h",
                     "MMseqs2": "mmseqs -h",
@@ -238,6 +237,9 @@ class Path:
                         f"[ERROR] Some of the dependencies not installed. Use \n conda install -c bioconda raxml iqtree modeltest-ng mmseqs2 blast=2.12 mafft trimal gblocks fasttree \nto install dependencies"
                     )
                 raise Exception
+
+            # For t-coffee, check it and just turn off it tcs is not installed
+            # it should be done in validation_option.py so moved
 
         # Location for list of genus file
         self.genusdb = f"{self.sys_path}/data/genus_line.txt"

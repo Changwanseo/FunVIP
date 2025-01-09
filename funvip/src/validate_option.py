@@ -2,6 +2,7 @@
 import copy
 import os
 import sys
+import subprocess
 import yaml
 import builtins
 import datetime
@@ -967,6 +968,18 @@ class Option:
                 f"TCS alignment validation is currently only available in Linux platform. Excluding from analysis"
             )
             self.method.tcs = False
+        else:
+            # Check if tcs available
+            cmd = "export MAX_N_PID_4_TCOFFEE=4194304 | t_coffee -help"
+            return_code = subprocess.run(
+                cmd,
+                shell=True,
+                stdout=open(os.devnull, "wb"),
+                stderr=subprocess.STDOUT,
+            ).returncode
+            if return_code != 0:
+                print(f"[WARNING] {program} not installed! Excluding from analysis")
+                self.method.tcs = False
 
         # trim
         # Check if trimming method is one of default, none, trimal, gblocks
