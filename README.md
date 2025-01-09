@@ -4,13 +4,15 @@
 #### An automatic tree-based sequence identification and validation pipeline for fungal (or maybe other) species
 
 - Automatic tree-based identification
-- Works with multigene
-- Data validation algorithm implemented
+- Works with multiple genetic marker
+- Database sequence validation algorithm implemented
 
 ![figure1 - ver17A](https://github.com/user-attachments/assets/22a50a62-14e8-41a7-87a0-8f5a1f9c3f62)
 
 This is Beta release. Bug reports are welcomed
 <br><br/>
+
+#### Important notice: The python dependency has changed from 3.12 to 3.11 for TCS inclusion. Please remake conda environment for FunVIP 0.3.25 update
 
 ## Tutorial
 * [Part 1 - Getting started!](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/tutorial.md)
