@@ -1,10 +1,10 @@
 [project]
 name = "FunVIP"
-version = "0.3.24.7"
+version = "0.3.25"
 description = "Fungal Validation & Identification Pipeline"
 authors = [{name = "Changwan Seo", email = "wan101010@snu.ac.kr"}]
 urls = { "Homepage" = "https://github.com/Changwanseo/FunVIP" }
-requires-python = ">=3.9, <3.12"
+requires-python = ">=3.9, <3.13"
 license = {text = "GPL-3.0"}
 dependencies = [
     "biopython==1.84",
