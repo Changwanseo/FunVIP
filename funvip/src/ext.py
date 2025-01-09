@@ -462,9 +462,7 @@ def IQTREE(
 # TCS calculation from T-COFFEE
 def TCS(fasta, thread, out):
     if platform == "win32":
-        logging.error(
-            "TCS(From T-COFFEE) is not available in windows. Use Linux or Mac platform"
-        )
+        logging.error("TCS(From T-COFFEE) is only available in Linux")
         raise Exception
     else:
         # T_COFFEE env variable MAX_N_PID_4_TCOFFEE should be changed for 64bit machine

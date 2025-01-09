@@ -962,9 +962,9 @@ class Option:
         # alignment validation
         # alignment validation with TCS
         # turn off when windows environment
-        if self.method.tcs is True and sys.platform == "win32":
+        if self.method.tcs is True and sys.platform != "linux":
             list_warning.append(
-                f"TCS alignment validation is currently not available in windows platform. Excluding from analysis"
+                f"TCS alignment validation is currently only available in Linux platform. Excluding from analysis"
             )
             self.method.tcs = False
 
