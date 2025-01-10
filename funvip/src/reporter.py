@@ -829,7 +829,7 @@ class Report:
             dict_citation = {
                 "FunVIP": "https://github.com/Changwanseo/FunVIP",
                 "GenMine": "Seo, C. W., Kim, S. H., Lim, Y. W., & Park, M. S. (2022). Re-identification on Korean Penicillium sequences in GenBank collected by software GenMine. Mycobiology, 50(4), 231-237.",
-                "BLASTn": "Altschul, S. F., Gish, W., Miller, W., Myers, E. W., & Lipman, D. J. (1990). Basic local alignment search tool. Journal of molecular biology, 215(3), 403-410.",
+                "BLASTn": "Camacho, C., Coulouris, G., Avagyan, V., Ma, N., Papadopoulos, J., Bealer, K., & Madden, T. L. (2009). BLAST+: architecture and applications. BMC bioinformatics, 10, 1-9.",
                 "MMseqs2": "Steinegger, M., & Söding, J. (2017). MMseqs2 enables sensitive protein sequence searching for the analysis of massive data sets. Nature biotechnology, 35(11), 1026-1028.",
                 "MAFFT": "Katoh, K., & Standley, D. M. (2013). MAFFT multiple sequence alignment software version 7: improvements in performance and usability. Molecular biology and evolution, 30(4), 772-780.",
                 "Gblocks": "Talavera, G., & Castresana, J. (2007). Improvement of phylogenies after removing divergent and ambiguously aligned blocks from protein sequence alignments. Systematic biology, 56(4), 564-577.",
