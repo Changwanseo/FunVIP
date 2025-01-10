@@ -1,3 +1,5 @@
+# Maybe will move to pdm build in near future
+
 # test build
 ```
 pip install ./
@@ -17,7 +19,7 @@ conda env remove -n FunVIP-build
 ```
 
 
-# conda build
+# conda build (deprecated)
 In new conda environment
 ```
 conda create -n FunVIP-condabuild python=3.9
