@@ -859,6 +859,7 @@ class Option:
             "series",
             "subsection",
             "section",
+            "subgenus",
             "genus",
             "subtribe",
             "tribe",
