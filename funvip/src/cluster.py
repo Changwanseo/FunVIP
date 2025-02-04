@@ -245,14 +245,14 @@ def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
     # If no or fewer than designated number of outgroup matches to condition, use flexible criteria
     if cutoff_df.groupby(["subject_group"]).count().empty:
         logging.warning(
-            f"Not enough outgroup sequences matched for group {group} | gene {gene}. There might be outlier sequence that does not matches to group. Trying flexible cutoff"
+            f"Not enough outgroup sequences matched for {opt.level} {group} | gene {gene}. There might be outlier sequence that does not matches to group. Trying flexible cutoff"
         )
         cutoff_df = df_search[df_search["bitscore"] > 0]
         cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
 
     elif cutoff_df.groupby(["subject_group"]).count()["sseqid"].max() < opt.maxoutgroup:
         logging.warning(
-            f"Not enough outgroup sequences matched for group {group} | gene {gene}. There might be outlier sequence that does not matches to group. Trying flexible cutoff"
+            f"Not enough outgroup sequences matched for {opt.level} {group} | gene {gene}. There might be outlier sequence that does not matches to group. Trying flexible cutoff"
         )
         cutoff_df = df_search[df_search["bitscore"] > 0]
         cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
@@ -516,9 +516,27 @@ def pipe_append_outgroup(V, path, opt):
 
         # Add outgroup and ambiguous groups to dataset
         # Ambiguous groups are strains locating between outgroup and ingroups, so cannot be decided
+
+        print(f"{group} {gene}")
+        print(f"outgroup {len(outgroup)}")
+        print(f"ambiguous_group {len(ambiguous_group)}")
+        print(f"db: {len(V.dict_dataset[group][gene].list_db_FI)}")
+        print(f"query: {len(V.dict_dataset[group][gene].list_qr_FI)}")
+
         if len(outgroup) == 0 and len(ambiguous_group) == 0:
             logging.warning(
                 f"Removing {group} {gene} from analysis because outgroup cannot be selected"
+            )
+            V.dict_dataset[group].pop(gene, None)
+        elif (
+            len(outgroup)
+            + len(ambiguous_group)
+            + len(V.dict_dataset[group][gene].list_db_FI)
+            + len(V.dict_dataset[group][gene].list_qr_FI)
+            < 4
+        ):
+            logging.warning(
+                f"Removing {group} {gene} from analysis because not enough sequences are provided to infer phylogenetic tree"
             )
             V.dict_dataset[group].pop(gene, None)
 

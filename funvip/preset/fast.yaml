@@ -22,4 +22,3 @@ MAFFT-ep: 0.1
 AVX: true
 CACHEDB: true
 USECACHE: true
-FULLGENUS: true

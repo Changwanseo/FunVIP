@@ -1,10 +1,13 @@
 from funvip.src import save
 from funvip.src import hasher
+from funvip.src import ext
+from funvip.src.opt_generator import opt_generator
 from Bio import SeqIO
 import os
 import sys
 import shutil
 import numpy as np
+import multiprocessing as mp
 import logging
 import re
 import json
@@ -207,7 +210,7 @@ class FunVIP_var:
         for group in self.list_group:
             logging.info(f"Generating dataset for {group}")
 
-            print(f"opt.queryonly: {opt.queryonly}")
+            # print(f"opt.queryonly: {opt.queryonly}")
 
             dict_funinfo[group] = {}
 
@@ -455,6 +458,7 @@ class FunVIP_var:
 
     # Validate if any multiple sequence alignment has no overlapping region
     def validate_alignments(self, path, opt):
+        # 1. Manual validation for illegal alignments
         fail_list = []
         remove_dict = {}
         tree_hash_dict = hasher.encode(self.list_FI, newick=True)
@@ -509,16 +513,6 @@ class FunVIP_var:
                                 remove_hash.append(seq.id)
 
                         remove_dict[group][gene] = remove_hash
-
-                        """
-                        for _hash in remove_hash:
-                            if _hash in self.dict_dataset[group][gene].list_db_FI:
-                                self.dict_dataset[group][gene].list_db_FI.pop(_hash)
-                            if _hash in self.dict_dataset[group][gene].list_query_FI:
-                                self.dict_dataset[group][gene].list_query_FI.pop(_hash)
-                            if _hash in self.dict_dataset[group][gene].list_og_FI:
-                                self.dict_dataset[group][gene].list_og_FI.pop(_hash)
-                        """
 
                         # Remove unusable sequence and re-read it
                         ## db_list, query_list, outgroup_list might has to be changed
@@ -591,12 +585,12 @@ class FunVIP_var:
         # Add issue
         for fail in fail_list:
             for FI in self.list_FI:
-                if FI.adjusted_group == fail[0]:
-                    if fail[1] in FI.seq:
-                        if FI.seq[fail[1]] != "":
-                            FI.issues.add(f"alignfail:{fail[1]}")
-
-        # print(fail_list)
+                if (
+                    FI.adjusted_group == fail[0]
+                    and fail[1] in FI.seq
+                    and FI.seq[fail[1]] != ""
+                ):
+                    FI.issues.add(f"alignfail:{fail[1]}")
 
         logging.debug("Remove dict")
         logging.debug(remove_dict)
@@ -701,7 +695,55 @@ class FunVIP_var:
                     if FI.seq[fail[1]] != "":
                         FI.issues.add(f"lackseq")
 
-        # return V
+        # Validate multiple sequence alignment with TCS score from T-COFFEE
+        # As T-COFFEE build is only available in Mac and Linux, should check if it is available
+        if opt.method.tcs is True:
+            bad_cnt = 0
+
+            if opt.verbose < 3:
+                tcs_opt = opt_generator(
+                    V=self, opt=opt, path=path, step="tcs", thread=1
+                )
+                p = mp.Pool(opt.thread)
+                p.starmap(ext.TCS, tcs_opt)
+                p.close()
+                p.join()
+
+            else:
+                tcs_opt = opt_generator(V=self, opt=opt, path=path, step="tcs")
+                for option in tcs_opt:
+                    ext.TCS(*option)
+
+                # non-multithreading mode for debugging
+                for group in self.dict_dataset:
+                    for gene in self.dict_dataset[group]:
+                        # Running TCS for concatenated alignment is duplicate
+                        if gene != "concatenated":
+                            tcs_out = f"{path.out_alignment}/alignment/{opt.runname}_{group}_{gene}.tcs"
+                            # Parse tcs result
+                            with open(tcs_out, "r") as f_tcs:
+                                tcs_result_raw = f_tcs.read()
+                                tcs_result = tcs_result_raw.split("*")[2].split("cons")[
+                                    0
+                                ]
+                                for line in tcs_result.split("\n")[1:-1]:
+                                    _hash = line.split(":")[0].strip()
+                                    tcs_score = int(line.split(":")[1].strip())
+                                    if (
+                                        tcs_score < 50
+                                    ):  # cutoff 50 comes from TCS documentation
+                                        FI_id = self.dict_hash_FI[_hash].id
+                                        logging.warning(
+                                            f"{FI_id} has poor alignment score in {group} {gene}"
+                                        )
+                                        bad_cnt += 1
+
+            if bad_cnt == 0:
+                logging.info(f"All sequences in alignment passed TCS validation")
+            else:
+                logging.warning(
+                    f"{bad_cnt} sequences in alignment failed TCS validation. Please check sequneces"
+                )
 
     # check inconsistency exists along identification result of each genes
     def check_inconsistent(self):

@@ -2,6 +2,7 @@
 import copy
 import os
 import sys
+import subprocess
 import yaml
 import builtins
 import datetime
@@ -18,6 +19,7 @@ class Option:
         def __init__(self):
             self.search = "blast"
             self.alignment = "mafft"
+            self.tcs = True
             self.trim = "trimal"
             self.modeltest = "none"
             self.tree = "fasttree"
@@ -160,8 +162,8 @@ class Option:
                 self.collapsebscutoff = parser_dict[key]
             elif key.lower() in ("bootstrap"):
                 self.bootstrap = parser_dict[key]
-            elif key.lower() in ("solveflat"):
-                self.solveflat = parser_dict[key]
+            elif key.lower() in ("nosolveflat"):
+                self.solveflat = ~parser_dict[key]
             elif key.lower() in ("regex"):
                 self.regex = parser_dict[key]
             elif key.lower() in ("avx"):
@@ -172,15 +174,15 @@ class Option:
                 self.allow_innertrimming = parser_dict[key]
             elif key.lower() in ("criterion"):
                 self.criterion = parser_dict[key]
-            elif key.lower() in ("cachedb"):
-                self.cachedb = parser_dict[key]
+            elif key.lower() in ("nocachedb"):
+                self.cachedb = ~parser_dict[key]
             elif key.lower() in ("usecache"):
                 self.usecache = parser_dict[key]
-            elif key.lower() in ("tableformat"):
+            elif key.lower() in ("tableformat", "matrixformat"):
                 self.tableformat = parser_dict[key]
             elif key.lower() in ("nosearchresult"):
                 self.nosearchresult = parser_dict[key]
-            elif key.lower() in ("confident"):
+            elif key.lower() in ("confident", "confident_db"):
                 self.confident = parser_dict[key]
 
             # Method options
@@ -188,6 +190,8 @@ class Option:
                 self.method.search = parser_dict[key]
             elif key.lower() in ("alignment"):
                 self.method.alignment = parser_dict[key]
+            elif key.lower() in ("notcs"):
+                self.method.tcs = ~parser_dict[key]
             elif key.lower() in ("trim"):
                 self.method.trim = parser_dict[key]
             elif key.lower() in ("modeltest"):
@@ -218,7 +222,7 @@ class Option:
                 self.visualize.fsize_bootstrap = parser_dict[key]
 
             # Cluster options
-            elif key.lower() in ("cluster-cutoff"):
+            elif key.lower() in ("cluster-cutoff", "clustering_cutoff"):
                 self.cluster.evalue = parser_dict[key]
             elif key.lower() in ("evalue", "cluster-evalue"):
                 self.cluster.evalue = parser_dict[key]
@@ -241,7 +245,9 @@ class Option:
             elif key.lower() in ("trimal-gt"):
                 self.trimal.gt = parser_dict[key]
             else:
-                print(f"cannot recoginze {key} in preset file as valid variable")
+                print(
+                    f"[WARNING] Cannot recognize {key} in preset file as valid variable. Ignoring it"
+                )
 
     # update values from parser object
     def update_from_parser(self, parser):
@@ -329,7 +335,7 @@ class Option:
 
         try:
             if parser.all is True:
-                self.queryonly = not (parser.all)
+                self.queryonly = ~parser.all
         except:
             pass
 
@@ -354,6 +360,12 @@ class Option:
         try:
             if not parser.trim is None:
                 self.method.trim = parser.trim
+        except:
+            pass
+
+        try:
+            if not parser.notcs is None:
+                self.method.tcs = False
         except:
             pass
 
@@ -454,8 +466,8 @@ class Option:
             pass
 
         try:
-            if parser.solveflat is True:
-                self.solveflat = parser.solveflat
+            if parser.nosolveflat is True:
+                self.solveflat = False
         except:
             pass
 
@@ -544,8 +556,8 @@ class Option:
             pass
 
         try:
-            if parser.cachedb is True:
-                self.cachedb = parser.cachedb
+            if parser.nocachedb is True:
+                self.cachedb = False
         except:
             pass
 
@@ -847,6 +859,7 @@ class Option:
             "series",
             "subsection",
             "section",
+            "subgenus",
             "genus",
             "subtribe",
             "tribe",
@@ -947,6 +960,29 @@ class Option:
             self.method.alignment = alignment_adjust[self.method.alignment.lower()]
             if not (self.method.alignment in alignment):
                 list_error.append(f"align method should be one of {str(alignment)}")
+
+        # alignment validation
+        # alignment validation with TCS
+        # turn off when windows environment
+        if self.method.tcs is True and sys.platform != "linux":
+            list_warning.append(
+                f"TCS alignment validation is currently only available in Linux platform. Excluding from analysis"
+            )
+            self.method.tcs = False
+        else:
+            # Check if tcs available
+            cmd = "export MAX_N_PID_4_TCOFFEE=4194304 | t_coffee -help"
+            return_code = subprocess.run(
+                cmd,
+                shell=True,
+                stdout=open(os.devnull, "wb"),
+                stderr=subprocess.STDOUT,
+            ).returncode
+            if return_code != 0:
+                print(
+                    f"[WARNING] t-coffee (TCS) not installed! Excluding from analysis"
+                )
+                self.method.tcs = False
 
         # trim
         # Check if trimming method is one of default, none, trimal, gblocks
@@ -1368,7 +1404,7 @@ class Option:
         # trimal-algorithm
         # trimal algorithm, should be either gt
         # if auto, set gt
-        if self.method.trim.lower() == "trimal":
+        if str(self.method.trim).lower() == "trimal":
             try:
                 self.trimal.algorithm = str(self.trimal.algorithm)
                 if not (self.trimal.algorithm.lower() in ("auto", "gt")):
@@ -1385,7 +1421,7 @@ class Option:
         # trimal gt value, should be between 0 and 1
         # If trimming method is not trimal or trimal-algorithm is not 0, warn
         # Change to default value
-        if self.method.trim.lower() == "trimal":
+        if str(self.method.trim).lower() == "trimal":
             try:
                 self.trimal.gt = float(self.trimal.gt)
                 if self.trimal.gt < 0 and self.trimal.gt >= 1:
@@ -1485,7 +1521,6 @@ class Option:
         else:
             print(f"[INFO] No information to declare during input validation")
 
-        print("\n")
         print("--WARNING--")
         if len(list_warning) > 0:
             for warning in list_warning:
@@ -1493,7 +1528,6 @@ class Option:
         else:
             print(f"[INFO] No warnings to declare during input validation")
 
-        print("\n")
         print("--ERROR--")
         if len(list_error) > 0:
             for error in list_error:
@@ -1501,7 +1535,7 @@ class Option:
         else:
             print(f"[INFO] No errors to declare during input validation")
 
-        print("\n\n")
+        print("\n")
 
         if len(list_error) > 0:
             raise Exception
@@ -1537,9 +1571,9 @@ def initialize_option(parser, path_run):
         if parser.test.lower() in os.listdir(path_test):
             if os.path.exists(f"{path_test}/{parser.test.lower()}/preset.yaml"):
                 parser.preset = f"{path_test}/{parser.test.lower()}/preset.yaml"
-                print(f"test dataset {parser.preset} selected")
+                print(f"[INFO] test dataset {parser.preset} selected")
             else:
-                print("Something wrong with test dataset option")
+                print("[ERROR] Something wrong with test dataset option")
                 raise Exception
 
             # Set runname to current time
@@ -1562,40 +1596,36 @@ def initialize_option(parser, path_run):
     # 2. Else, check if preset is parsable YAML file
     # 3. If parsable json file, parse it and update parser
     if not (parser.preset is None):
-        if str(parser.preset).lower() == "fast":  # *1 - fast mode
-            parser.preset = f"{path_preset}/fast.yaml"  # - connect to fast.yaml
-            print("Using fast preset as default option")
-            opt.update_from_preset(parser.preset)
-        elif str(parser.preset).lower() == "accurate":  # *1 - accurate mode
-            parser.preset = f"{path_preset}/accurate.yaml"  # - connect to accurate.yaml
-            print("Using accurate preset as default option")
+        if str(parser.preset).lower() in ("fast", "accurate"):  # fast / accurate mode
+            preset = str(parser.preset).lower()
+            parser.preset = (
+                f"{path_preset}/{preset}.yaml"  # - connect to  corresponding .yaml
+            )
+            print(f"[INFO] Using {preset} preset as default option")
             opt.update_from_preset(parser.preset)
         else:
             if os.path.exists(parser.preset):
                 print(f"[DEBUG] {parser.preset}")
                 opt.update_from_preset(parser.preset)
             else:
-                print(f"Cannot find preset file : {parser.preset}")
+                print(f"[ERROR] Cannot find preset file : {parser.preset}")
                 raise Exception
 
     # Overwrite test preset if needed
     if not (overwrite_preset is None):
-        if str(overwrite_preset).lower() == "fast":  # *1 - fast mode
-            overwrite_preset = f"{path_preset}/fast.yaml"  # - connect to fast.yaml
-            print("Using fast preset as default option")
-            opt.update_from_preset(overwrite_preset)
-        elif str(overwrite_preset).lower() == "accurate":  # *1 - accurate mode
+        if str(overwrite_preset).lower() in ("fast", "accurate"):  # fast /accurate mode
+            preset = str(overwrite_preset).lower()
             overwrite_preset = (
-                f"{path_preset}/accurate.yaml"  # - connect to accurate.yaml
+                f"{path_preset}/{preset}.yaml"  # - connect to correponding .yaml
             )
-            print("Using accurate preset as default option")
+            print(f"[INFO] Using {preset} preset as default option")
             opt.update_from_preset(overwrite_preset)
         else:
             if os.path.exists(overwrite_preset):
                 print(f"[DEBUG] {overwrite_preset}")
                 opt.update_from_preset(overwrite_preset)
             else:
-                print(f"Cannot find preset file : {overwrite_preset}")
+                print(f"[ERROR] Cannot find preset file : {overwrite_preset}")
                 raise Exception
 
     ### Then, update other options in parser
