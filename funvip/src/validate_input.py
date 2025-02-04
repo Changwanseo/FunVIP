@@ -7,6 +7,7 @@ import json
 import pandas as pd
 import numpy as np
 import logging
+import random
 
 from copy import deepcopy
 
@@ -25,6 +26,8 @@ from time import sleep
 from funvip.src import save
 from funvip.src.logics import isnewicklegal, isuniquecolumn, isvalidcolor
 from funvip.src.hasher import decode, newick_legal, hash_funinfo_list
+
+# funinfo_dict: {"ID" : FI}
 
 
 ## newick illegal characters
@@ -577,9 +580,13 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                     f"Running GenMine to download {len(download_set)} sequences from GenBank"
                 )
 
+                # Shuffle accession to download to prevent bans
+                download_list = list(download_set)
+                random.shuffle(download_list)
+
                 # Write GenMine input file
                 with open(f"{path.GenMine}/Accessions.txt", "w") as fg:
-                    for acc in download_set:
+                    for acc in download_list:
                         fg.write(f"{acc.strip()}\n")
 
                 # Run GenMine
@@ -733,7 +740,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
             for gene in opt.gene:
                 seq_error = 0
                 if gene in df.columns:
-                    if not (pd.isna(df[gene][n])) or str(df[gene][n]).strip() == "":
+                    if not (pd.isna(df[gene][n])):
                         # skip blank sequences
                         if df[gene][n].startswith(">"):
                             # remove fasta header
@@ -763,12 +770,22 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                                 f"In table {table}, Sequence {df['id'][n]} {seq_string} detected as nan, removing it"
                             )
                         elif seq_error_cnt == 0:
-                            # remove gaps for preventing BLAST error
-                            errors.append(
-                                newinfo.update_seq(
-                                    gene, seq_string.replace("-", "").replace(".", "")
+                            # Decide rather to update or not here
+                            if (
+                                len(
+                                    seq_string.replace("-", "").replace(".", "").strip()
                                 )
-                            )
+                                > 0
+                            ):
+                                # remove gaps for preventing BLAST error
+                                errors.append(
+                                    newinfo.update_seq(
+                                        gene,
+                                        seq_string.replace("-", "")
+                                        .replace(".", "")
+                                        .strip(),
+                                    )
+                                )
 
         # After successfully parsed this table, save it
         save.save_df(
