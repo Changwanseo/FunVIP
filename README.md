@@ -81,6 +81,11 @@ tabular (```.xlsx```, ```.csv```,  ```.parquet```, ```.ftr```) form
 * ```/Tree/{section}_{gene}.svg``` : Final collapsed tree in svg format. Can be edited in vector graphics programs, or in powerpoint (by ungroup)
 * ```/Tree/{section}_{gene}_original.svg ``` : Uncollapsed tree for inspection
 
+* Example output tree of FunVIP
+![image](https://github.com/user-attachments/assets/7291c990-62d0-4579-8ae7-adc5d39a7fed)
+
+
+
 ## Scheduling
 1. ~~Beta release part 1 (2023 Feburary ~ As paper published, ver 0.3)
 Will be tested by our lab memebers to fix bugs and advance features~~ FunVIP article is currently accepted. Will be published soon.
