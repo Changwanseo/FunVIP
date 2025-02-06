@@ -4,26 +4,30 @@
 #### An automatic tree-based sequence identification and validation pipeline for fungal (or maybe other) species
 
 - Automatic tree-based identification
-- Works with multigene
-- Data validation algorithm implemented
+- Works with multiple genetic marker
+- Database sequence validation algorithm implemented
 
 ![figure1 - ver17A](https://github.com/user-attachments/assets/22a50a62-14e8-41a7-87a0-8f5a1f9c3f62)
 
 This is Beta release. Bug reports are welcomed
 <br><br/>
 
+### IMPORTANT NOTICE: The python dependency for Linux platform has changed from 3.12 to 3.11 for TCS inclusion. Please remake conda environment for FunVIP 0.3.25 update
+
 ## Tutorial
 * [Part 1 - Getting started!](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/tutorial.md)
 * [Part 2 - Preparing database and query](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/tutorial2.md)
-* [Advacned tips](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/advanced.md)
+* [Advanced tips](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/advanced.md)
 <br><br/>
 ## Documentation
 * See [Documentation](https://github.com/Changwanseo/FunVIP/blob/main/Documentation.md) for advanced usage !
 <br><br/>
 ## Requirements
-- Conda environment
+- Conda or Mamba environment
 
-\* See [https://www.anaconda.com/products/individual](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) for how to install conda environment
+\* See [here](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) for how to install conda environment
+
+\* Recently, Mamba is a lot faster than conda. See [here](https://github.com/conda-forge/miniforge?tab=readme-ov-file) to how to install mamba environment
 <br><br/>
 ## Installation
 * [Windows](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/installation.md##Windows)
@@ -77,9 +81,14 @@ tabular (```.xlsx```, ```.csv```,  ```.parquet```, ```.ftr```) form
 * ```/Tree/{section}_{gene}.svg``` : Final collapsed tree in svg format. Can be edited in vector graphics programs, or in powerpoint (by ungroup)
 * ```/Tree/{section}_{gene}_original.svg ``` : Uncollapsed tree for inspection
 
+* Example output tree of FunVIP
+![image](https://github.com/user-attachments/assets/7291c990-62d0-4579-8ae7-adc5d39a7fed)
+
+
+
 ## Scheduling
-1. Beta release part 1 (2023 Feburary ~ As paper published, ver 0.3)
-Will be tested by our lab memebers to fix bugs and advance features
+1. ~~Beta release part 1 (2023 Feburary ~ As paper published, ver 0.3)
+Will be tested by our lab memebers to fix bugs and advance features~~ FunVIP article is currently accepted. Will be published soon.
 2. Beta release part 2 (As paper published ~ When pipeline gets stabled, ver 0.4)
 Will be tested by peer taxonomists
 3. Stable release (ver 1.0)

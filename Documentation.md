@@ -39,7 +39,7 @@ Gene names to be analyzed. Should be same to corresponding column name (Differen
 **\--preset PRESET \[fast\] | \[accurate\] | \[YAML_FORMAT_FILE\]**
 
 **fast**: fast mode, use --auto for MAFFT and Fasttree for tree construction.  
-**accurate**: accurate mode, use --auto for MAFFT and Fasttree for tree construction.  
+**accurate**: accurate mode, use --localpair (l-ins-i) for MAFFT and RAxML for tree construction.  
 **YAML_FORMAT_FILE**: your custom set of options saved in yaml format. See <https://github.com/Changwanseo/FunVIP/tree/main/funvip/preset> to find out how to make it. Default: fast.  
 
 **\--email EMAIL, -e EMAIL**: E-mail notation to download data from GenBank (Without email, NCBI may ban your IP). Mandatory if your data includes GenBank accessions.
