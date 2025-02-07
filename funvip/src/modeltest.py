@@ -455,7 +455,9 @@ def modeltest(V, path, opt) -> dict:
             logging.info(
                 "IQTREE will perform ModelFinder internally in tree construction step, skipping in modeltest step"
             )
-            model_dict[group][gene] = "skip"
+            for group in group_dict:
+                for gene in group_dict[group]:
+                    model_dict[group][gene] = "skip"
 
     else:  # including opt.model_method.lower() == "none":
         for group in group_dict:
