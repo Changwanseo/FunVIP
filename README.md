@@ -9,7 +9,7 @@
 
 ![figure1 - ver17A](https://github.com/user-attachments/assets/22a50a62-14e8-41a7-87a0-8f5a1f9c3f62)
 
-This is Beta release. Bug reports are welcomed
+Bug reports are always welcomed
 <br><br/>
 
 ### IMPORTANT NOTICE: The python dependency for Linux platform has changed from 3.12 to 3.11 for TCS inclusion. Please remake conda environment for FunVIP 0.3.25 update
