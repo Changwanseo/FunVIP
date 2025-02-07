@@ -266,10 +266,15 @@ def Trimal(fasta, out, path, algorithm="gt", threshold=0.2):
 
 
 # Modeltest
-def Modeltest_ng(fasta, out, models, thread):
+def Modeltest_ng(fasta, out, path, models, thread):
+    path_modeltestng = f"{path.sys_path}/external/modeltest-ng_Windows/modeltest-ng.exe"
     if platform == "win32":
+        CMD = f"{path_modeltestng} -i '{fasta}' -o '{out}' -t ml -p {thread} --disable-checkpoint {models}"
+        """
         logging.error("Modeltest-NG is not available in windows. Try IQTREE modeltest")
         raise Exception
+        """
+
     else:
         CMD = f"modeltest-ng -i '{fasta}' -o '{out}' -t ml -p {thread} --disable-checkpoint {models}"
 
@@ -367,8 +372,10 @@ def FastTree(fasta, out, hash_dict, path, model=""):
     if model == "skip":
         model = ""
     if platform == "win32":
+        """
         if " " in model:
-            model = f'"{model}"'
+            model = f"{model}"
+        """
         if " " in fasta:
             fasta = f'"{fasta}"'
         if " " in path.tmp:
