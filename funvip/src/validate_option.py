@@ -1042,10 +1042,13 @@ class Option:
             self.method.modeltest = modeltest_adjust[self.method.modeltest.lower()]
             if not (self.method.modeltest in modeltest):
                 list_error.append(f"modeltest method should be one of {str(modeltest)}")
+
+            """
             if self.method.modeltest == "modeltest-ng" and sys.platform == "win32":
                 list_error.append(
                     f"Modeltest-ng is currently not available in windows platform. Please select other modeltest methods or use linux platform"
                 )
+            """
 
         # tree
         # Check if search method is one of default, fasttree, raxml, iqtree

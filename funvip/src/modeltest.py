@@ -379,6 +379,7 @@ def modeltest(V, path, opt) -> dict:
                 ext.Modeltest_ng(
                     fasta=f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
                     models=models,
+                    path=path,
                     out=f"{path.out_modeltest}/{opt.runname}_{group}_{gene}",
                     thread=opt.thread,
                 )
