@@ -114,6 +114,7 @@ def assign_gene(result_dict, V, cutoff=0.99):
     return V
 
 
+# This function assigns group to each FI
 def cluster(FI, V_list_group, V_cSR, path, opt):
     # Reduce memory by focusing on relevant rows
     df_search = V_cSR[V_cSR["qseqid"] == FI.hash]
@@ -222,17 +223,14 @@ def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
     # split that same group to include all to alignment, and leave other groups for outgroup selection
     cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
 
-    ## For ambiugous database, mostly because of contaminated database
+    ## Add suspicious database, mostly because of contaminated database
+    # Use term "ambiguous" instead of "suspicious" because of previous compatibility
     # For each of the input, should use different cutoff
     ambiguous_db = set()
     for qseqid, _df in cutoff_set_df.groupby(["qseqid"]):
         # Select dataframe corresponding to current qseqid
-        df_qseqid = df_search[df_search["qseqid"] == qseqid]
-        """
-        print(
-            f"Ambiguous ingroup cutoff selected for query {qseqid} group {group} gene {gene} cutoff {min(list(_df['bitscore']))}"
-        )
-        """
+        df_qseqid = df_search[df_search["qseqid"] == qseqid[0]]
+
         # Get the list of subjects, which is closer than furtest ingroup
         ambiguous_df = df_qseqid[df_qseqid["bitscore"] >= min(list(_df["bitscore"]))]
         # Within the furthest match, get possible ingroups with ambiguous group
@@ -542,6 +540,7 @@ def pipe_append_outgroup(V, path, opt):
 
         else:
             V.dict_dataset[group][gene].list_og_FI = outgroup
+
             # Add ambiguous group to FI
             if opt.ambiguous is True:
                 V.dict_dataset[group][gene].list_db_FI += ambiguous_group
