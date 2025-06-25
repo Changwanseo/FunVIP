@@ -1,7 +1,18 @@
 
 # FunVIP [![DOI](https://zenodo.org/badge/588465720.svg)](https://zenodo.org/doi/10.5281/zenodo.10714946)
+
+
+FunVIP is now published please cite:
+#### Seo CW, Yoo S, Cho Y, Kim JS, Steinegger M, Lim YW. FunVIP: Fungal Validation and Identification Pipeline based on phylogenetic analysis. J. Microbiol. 2025;63(4):e2411017.
+<br><br/>
+
+
+
+
 ### **Fun**gal **V**alidation & **I**dentification **P**ipeline
 #### An automatic tree-based sequence identification and validation pipeline for fungal (or maybe other) species
+
+
 
 - Automatic tree-based identification
 - Works with multiple genetic marker
@@ -9,10 +20,12 @@
 
 ![figure1 - ver17A](https://github.com/user-attachments/assets/22a50a62-14e8-41a7-87a0-8f5a1f9c3f62)
 
-This is Beta release. Bug reports are welcomed
+Bug reports are always welcomed
 <br><br/>
 
-### IMPORTANT NOTICE: The python dependency for Linux platform has changed from 3.12 to 3.11 for TCS inclusion. Please remake conda environment for FunVIP 0.3.25 update
+
+
+#### IMPORTANT NOTICE: The python dependency for Linux platform has changed from 3.12 to 3.11 for TCS inclusion. Please remake conda environment for FunVIP 0.3.25 update
 
 ## Tutorial
 * [Part 1 - Getting started!](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/tutorial.md)
@@ -88,7 +101,7 @@ tabular (```.xlsx```, ```.csv```,  ```.parquet```, ```.ftr```) form
 
 ## Scheduling
 1. ~~Beta release part 1 (2023 Feburary ~ As paper published, ver 0.3)
-Will be tested by our lab memebers to fix bugs and advance features~~ FunVIP article is currently accepted. Will be published soon.
+Will be tested by our lab memebers to fix bugs and advance features~~
 2. Beta release part 2 (As paper published ~ When pipeline gets stabled, ver 0.4)
 Will be tested by peer taxonomists
 3. Stable release (ver 1.0)
