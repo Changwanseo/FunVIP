@@ -709,27 +709,6 @@ class Tree_information:
 
         if diff_min < self.zero:
             self.zero = diff_min - 0.00000001
-        """
-        print("Calculate zero")
-
-        for name, size in sorted(
-            ((name, sys.getsizeof(value)) for name, value in list(locals().items())),
-            key=lambda x: -x[1],
-        )[:10]:
-            # print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
-            pass
-
-        snapshot = tracemalloc.take_snapshot()
-        top_stats = snapshot.statistics("lineno")
-
-        # Print the top memory usage lines
-        
-        print("[ Top 10 ]")
-        for stat in top_stats[:10]:
-            print(stat)
-
-        print("===========================")
-        """
 
         if self.opt.verbose >= 3:
             print(f"[DEBUG] End of calculate zero")
@@ -820,33 +799,26 @@ class Tree_information:
                 raise Exception
 
         self.Tree_style.ts.show_leaf_name = True
-        for node in self.t.traverse():
+
+        # Add bootstrap
+        # Before doing this, copy the tree to not interfere final tree
+        copied_tree = deepcopy(self.t)
+
+        for node in copied_tree.traverse():
             node.img_style["size"] = 0  # removing circles whien size is 0
+            if len(node) > 1:  # Prevent bootstrap on single branch
+                node.add_face(
+                    TextFace(
+                        f"{int(node.support)}",
+                        fsize=self.opt.visualize.fsize_bootstrap,
+                        fstyle="Arial",
+                    ),
+                    column=0,
+                    position="float",
+                )
+        copied_tree.render(f"{out}", tree_style=self.Tree_style.ts)
 
-        self.t.render(f"{out}", tree_style=self.Tree_style.ts)
         self.Tree_style.ts.show_leaf_name = False
-
-        """
-        print("reroot outgroup")
-       
-        for name, size in sorted(
-            ((name, sys.getsizeof(value)) for name, value in list(locals().items())),
-            key=lambda x: -x[1],
-        )[:10]:
-            print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
-           
-
-        snapshot = tracemalloc.take_snapshot()
-        top_stats = snapshot.statistics("lineno")
-
-        # Print the top memory usage lines
-        
-        print("[ Top 10 ]")
-        for stat in top_stats[:10]:
-            print(stat)
-       
-        print("===========================")
-        """
 
         if self.opt.verbose >= 3:
             print(f"[DEBUG] End of reroot outgroup")
@@ -972,33 +944,9 @@ class Tree_information:
                 self.collapse_dict[taxon].append(collapse_info)
 
         ## start of tree_search
-        # at the last leaf
-        # tracemalloc.start()
 
         if len(clade.children) == 1:
             local_generate_collapse_information(clade, opt=opt)
-            """
-            print("tree search part 1")
-            
-            for name, size in sorted(
-                (
-                    (name, sys.getsizeof(value))
-                    for name, value in list(locals().items())
-                ),
-                key=lambda x: -x[1],
-            )[:10]:
-                print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
-
-            snapshot = tracemalloc.take_snapshot()
-            top_stats = snapshot.statistics("lineno")
-
-            # Print the top memory usage lines
-            print("[ Top 10 ]")
-            for stat in top_stats[:10]:
-                print(stat)
- 
-            print("===========================")
-            """
 
             if self.opt.verbose >= 3:
                 print(f"[DEBUG] End of Tree search with monophyletic branches")
@@ -1034,29 +982,6 @@ class Tree_information:
                 # Else, do recursive tree search to divide clades
                 else:
                     self.tree_search(child_clade, gene, opt=opt)
-
-            """
-            print("tree search part 2")
-            
-            for name, size in sorted(
-                (
-                    (name, sys.getsizeof(value))
-                    for name, value in list(locals().items())
-                ),
-                key=lambda x: -x[1],
-            )[:10]:
-                print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
-
-            snapshot = tracemalloc.take_snapshot()
-            top_stats = snapshot.statistics("lineno")
-
-            # Print the top memory usage lines
-            print("[ Top 10 ]")
-            for stat in top_stats[:10]:
-                print(stat)
-
-            print("===========================")
-            """
 
             if self.opt.verbose >= 3:
                 print(f"[DEBUG] End of Tree search with bifurcated branches")
@@ -1150,14 +1075,6 @@ class Tree_information:
                             taxon_dict[("", "")] += 1
                         else:
                             taxon_dict[("", "")] = 1
-
-                    """
-                    for leaf in c:
-                        if t in taxon_dict:
-                            taxon_dict[t(leaf)] += 1
-                        else:
-                            taxon_dict[t(leaf)] = 1
-                    """
 
                     if len(taxon_dict) == 0:
                         print(
@@ -1388,21 +1305,6 @@ class Tree_information:
                 root_dist=clade.dist,
                 root_support=clade.support,
             ).copy("newick")
-            """
-            print(f"Reconstruct")
-            
-            for name, size in sorted(
-                (
-                    (name, sys.getsizeof(value))
-                    for name, value in list(locals().items())
-                ),
-                key=lambda x: -x[1],
-            )[:30]:
-                print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
-
-            print("==============================")
-            sys.stdout.flush()
-            """
 
             if self.opt.verbose >= 3:
                 print(f"[DEBUG] End of reconstruct")
@@ -1505,14 +1407,7 @@ class Tree_information:
                 collapse_leaf_name_list = [x[0] for x in collapse_info.leaf_list]
 
                 # Check if current working clade includes only outgroup sequences
-                """
-                if all(
-                    x in self.outgroup_leaf_name_list or x in collapse_info.query_list
-                    for x in collapse_leaf_name_list
-                ) and any(
-                    x in self.outgroup_leaf_name_list for x in collapse_leaf_name_list
-                ):
-                """
+
                 # Development, color unintended outgroup in outgroup color
                 if any(
                     self.funinfo_dict[x].adjusted_group in self.outgroup_group
@@ -1719,19 +1614,6 @@ class Tree_information:
             encoding="utf-8",
             xml_declaration=True,
         )
-        """
-        print("In tree visualization")
-        
-        for name, size in sorted(
-            ((name, sys.getsizeof(value)) for name, value in list(locals().items())),
-            key=lambda x: -x[1],
-        )[:10]:
-            print("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
-        
-        print("===========================")
-
-
-        """
 
         if self.opt.verbose >= 3:
             print(f"[DEBUG] End of Tree visualization")
