@@ -545,9 +545,35 @@ class FunVIP_var:
                         ## If all value of vectors are zero, it means that all regions have at least one gap
                         ## Raise warning for this
                         if np.all((vector_products == 0)):
-                            logging.warning(
+                            logging.critical(
                                 f"Alignment for {group} {gene} does not have any overlapping regions! Removing from analysis"
                             )
+
+                            # Report one non_overlapping pair
+                            for i in range(len(seq_list) - 1):
+                                seq1 = seq_list[i]
+                                seq1_hash = seq1.id
+                                seq1_str = str(seq.seq)
+
+                                for j in range(i + 1, len(seq_list)):
+                                    seq2 = seq_list[j]
+                                    seq2_hash = seq2.id
+                                    seq2_str = str(seq.seq)
+
+                                    has_overlap = False
+
+                                    for k in range(len(seq1_str)):
+                                        if seq1_str[k] != "-" and seq2_str[k] != "-":
+                                            has_overlap = True
+                                            break
+
+                            seq1_id = self.dict_hash_FI[seq1_hash]
+                            seq2_id = self.dict_hash_FI[seq2_hash]
+
+                            logging.critical(
+                                f"At least one pair of sequence does not overlap, such as {seq1_id} and {seq2_id}"
+                            )
+
                             fail_list.append((group, gene))
                             # for tree, use hash dict with genus and species information
                             # Decoding process in done in tree building processes, so these alignments cannot be decoded. So decode them here

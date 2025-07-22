@@ -522,7 +522,7 @@ def pipe_append_outgroup(V, path, opt):
         print(f"query: {len(V.dict_dataset[group][gene].list_qr_FI)}")
 
         if len(outgroup) == 0 and len(ambiguous_group) == 0:
-            logging.warning(
+            logging.critical(
                 f"Removing {group} {gene} from analysis because outgroup cannot be selected"
             )
             V.dict_dataset[group].pop(gene, None)
@@ -533,7 +533,7 @@ def pipe_append_outgroup(V, path, opt):
             + len(V.dict_dataset[group][gene].list_qr_FI)
             < 4
         ):
-            logging.warning(
+            logging.critical(
                 f"Removing {group} {gene} from analysis because not enough sequences are provided to infer phylogenetic tree"
             )
             V.dict_dataset[group].pop(gene, None)
@@ -551,7 +551,7 @@ def pipe_append_outgroup(V, path, opt):
     for group in groups:
         try:
             if len(V.dict_dataset[group]) == 0:
-                logging.warning(
+                logging.critical(
                     f"Removing {group} from analysis because outgroup cannot be selected to all genes"
                 )
                 V.dict_dataset.pop(group, None)

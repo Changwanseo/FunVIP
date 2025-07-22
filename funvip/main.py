@@ -410,3 +410,24 @@ def main():
             logging.info(f"Time report generation: {round(time_end-time_visualize,3)}s")
         except:
             logging.warning(f"Failed logging reoprt generation time")
+
+        # At the end of the run, print critical messages once again to be noticed
+        with open(path.criticallog, "r") as frclog:
+            critical_log_lines = frclog.readlines()
+
+            critical_logs = []
+            flag_critical = 0
+            for line in critical_log_lines:
+                if "[CRITICAL]" in line:
+                    flag_critical = 1
+                elif "[WARNING]" in line or "[ERROR]" in line:
+                    flag_critical = 0
+
+                if flag_critical == 1:
+                    critical_logs.append(line)
+
+            if len(critical_logs) > 0:
+                print("\n!!!<<<IMPORTANT NOTICE FROM FUNVIP RUN>>>!!!")
+
+            for line in critical_logs:
+                print(line)
