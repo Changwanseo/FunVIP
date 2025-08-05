@@ -34,7 +34,7 @@ class Option:
             self.backgroundcolor = ["#ffe0e0", "#ffefef"]
             self.outgroupcolor = "#999999"
             self.ftype = "Arial"
-            self.fsize = 10
+            self.fsize = 14
             self.fsize_bootstrap = 9
 
     # Cluster option
@@ -87,11 +87,12 @@ class Option:
         self.solveflat = True
         self.regex = None
         self.avx = True
-        self.ambiguous = True
+        self.suspicious = True
         self.cachedb = True
         self.usecache = True
         self.tableformat = "csv"
         self.nosearchresult = False
+        self.terminate = False
 
         # Method options
         self.method = self.Method_Option()
@@ -168,8 +169,8 @@ class Option:
                 self.regex = parser_dict[key]
             elif key.lower() in ("avx"):
                 self.avx = parser_dict[key]
-            elif key.lower() in ("ambiguous"):
-                self.ambiguous = parser_dict[key]
+            elif key.lower() in ("suspicious"):
+                self.suspicious = parser_dict[key]
             elif key.lower() in ("allow-innertrimming"):
                 self.allow_innertrimming = parser_dict[key]
             elif key.lower() in ("criterion"):
@@ -184,6 +185,8 @@ class Option:
                 self.nosearchresult = parser_dict[key]
             elif key.lower() in ("confident", "confident_db"):
                 self.confident = parser_dict[key]
+            elif key.lower() in ("terminate"):
+                self.terminate = parse_dict[key]
 
             # Method options
             elif key.lower() in ("search"):
@@ -538,8 +541,8 @@ class Option:
             pass
 
         try:
-            if parser.noambiguous is True:
-                self.ambiguous = False
+            if parser.nosuspicious is True:
+                self.suspicious = False
         except:
             pass
 
@@ -576,6 +579,12 @@ class Option:
         try:
             if parser.nosearchresult is True:
                 self.nosearchresult = parser.nosearchresult
+        except:
+            pass
+
+        try:
+            if parser.terminate is True:
+                self.terminate = True
         except:
             pass
 
@@ -696,23 +705,28 @@ class Option:
         if not (type(self.thread) is int):
             if not (type(self.thread) is str):
                 list_warning.append(
-                    f"Type for thread should be int but {self.thread} was given. Using {os.cpu_count()} for default"
+                    f"Type for thread should be int but {self.thread} was given. Using {min(os.cpu_count(), 99)} for default"
                 )
             else:
                 if not (self.thread.lower() == "auto"):
                     list_warning.append(
-                        f"Type for thread should be int but {self.thread} was given. Using {os.cpu_count()} for default"
+                        f"Type for thread should be int but {self.thread} was given. Using {min(os.cpu_count(), 99)} for default"
                     )
 
             self.thread = os.cpu_count()
         elif self.thread <= 0:
-            list_info.append(f"thread adjusted to {os.cpu_count()}")
-            self.thread = os.cpu_count()
+            list_info.append(f"thread adjusted to {min(os.cpu_count(), 99)}")
+            self.thread = min(os.cpu_count(), 99)
         elif self.thread >= os.cpu_count():
             list_info.append(
                 f"thread exceeded system maximum. Adjusting to {os.cpu_count()}"
             )
             self.thread = os.cpu_count()
+        elif self.thread > 99:
+            list_info.append(
+                f"More than 100 threads makes error on some system. Thread adjusted to 99"
+            )
+            self.thread = min(os.cpu_count(), 99)
 
         # memory
         # Check if memory is in valid format
@@ -1186,9 +1200,9 @@ class Option:
             float(self.visualize.fsize)
             if self.visualize.fsize < 0:
                 list_warning.append(
-                    f"--fsize should be positive float. Setting to default, 10"
+                    f"--fsize should be positive float. Setting to default, 14"
                 )
-                self.visualize.fsize = 10
+                self.visualize.fsize = 14
         except:
             list_error.append(f"--fsize should be positive float")
 
@@ -1446,7 +1460,7 @@ class Option:
             list_warning.append(f"AVX is not available. Changing --noavx to True")
             self.avx = False
 
-        # noambiguous
+        # nosuspicious
         # default : False
         # if used, set True
 

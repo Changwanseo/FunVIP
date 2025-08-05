@@ -33,17 +33,6 @@ def pipe_module_tree_interpretation(
     path,
     opt,
 ):
-    # To reduce memory usage in multithreaded performance, copy necessary objects and then remove V
-
-    """
-    funinfo_dict = V.dict_hash_FI
-    funinfo_list = V.list_FI
-    hash_dict = V.dict_hash_name
-    query_list = V.dict_dataset[group][gene].list_qr_FI
-    outgroup = V.dict_dataset[group][gene].list_og_FI
-    partition = V.partition[group]
-    """
-
     # time_start = time()
 
     # for unexpectively included sequence during clustering

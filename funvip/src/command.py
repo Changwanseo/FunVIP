@@ -309,9 +309,14 @@ class CommandParser:
             type=int,
         )
         group_advanced.add_argument(
-            "--noambiguous",
+            "--nosuspicious",
             action="store_true",
-            help="Do not include ambiguous samples for sequence-set. Mostly for metabarcoding analysis. It may result wrong result with problematic database.",
+            help="Do not include suspicious samples for sequence-set. Mostly for metabarcoding analysis. May deduce inaccurate result with problematic database.",
+        )
+        group_advanced.add_argument(
+            "--terminate",
+            action="store_true",
+            help="Terminate FunVIP run when critical error detected",
         )
 
         # Cache

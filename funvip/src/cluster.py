@@ -114,6 +114,7 @@ def assign_gene(result_dict, V, cutoff=0.99):
     return V
 
 
+# This function assigns group to each FI
 def cluster(FI, V_list_group, V_cSR, path, opt):
     # Reduce memory by focusing on relevant rows
     df_search = V_cSR[V_cSR["qseqid"] == FI.hash]
@@ -222,23 +223,23 @@ def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
     # split that same group to include all to alignment, and leave other groups for outgroup selection
     cutoff_df = cutoff_df[cutoff_df["subject_group"] != group]
 
-    ## For ambiugous database, mostly because of contaminated database
+    ## Add suspicious database, mostly because of contaminated database
+    # Use term "ambiguous" instead of "suspicious" because of previous compatibility
     # For each of the input, should use different cutoff
     ambiguous_db = set()
-    for qseqid, _df in cutoff_set_df.groupby(["qseqid"]):
-        # Select dataframe corresponding to current qseqid
-        df_qseqid = df_search[df_search["qseqid"] == qseqid]
-        """
-        print(
-            f"Ambiguous ingroup cutoff selected for query {qseqid} group {group} gene {gene} cutoff {min(list(_df['bitscore']))}"
-        )
-        """
-        # Get the list of subjects, which is closer than furtest ingroup
-        ambiguous_df = df_qseqid[df_qseqid["bitscore"] >= min(list(_df["bitscore"]))]
-        # Within the furthest match, get possible ingroups with ambiguous group
-        ambiguous_df = ambiguous_df[ambiguous_df["subject_group"] != group]
-        # Add inner ambiugities to ambiguous db
-        ambiguous_db.update([FI_dict[i] for i in list(ambiguous_df["sseqid"])])
+    if opt.suspicious is True:
+        for qseqid, _df in cutoff_set_df.groupby(["qseqid"]):
+            # Select dataframe corresponding to current qseqid
+            df_qseqid = df_search[df_search["qseqid"] == qseqid[0]]
+
+            # Get the list of subjects, which is closer than furtest ingroup
+            ambiguous_df = df_qseqid[
+                df_qseqid["bitscore"] >= min(list(_df["bitscore"]))
+            ]
+            # Within the furthest match, get possible ingroups with ambiguous group
+            ambiguous_df = ambiguous_df[ambiguous_df["subject_group"] != group]
+            # Add inner ambiugities to ambiguous db
+            ambiguous_db.update([FI_dict[i] for i in list(ambiguous_df["sseqid"])])
 
     ambiguous_db = list(ambiguous_db)
 
@@ -308,12 +309,20 @@ def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
                     f"Outgroup [{subject_group}] selected to [{group}]\n {text_outgroup_list}"
                 )
 
+                # Move outgroup within ambiguous db to outgroup
+                for FI in ambiguous_db:
+                    if FI.group == subject_group:
+                        ambiguous_db.remove(FI)
+                        outgroup_dict[subject_group].append(FI)
+
                 return (
                     group,
                     gene,
                     outgroup_dict[subject_group],
                     ambiguous_db,
                 )
+
+            # If not use the outgroup sequences with the maximum number
             else:
                 if len(outgroup_dict[subject_group]) > max_cnt:
                     max_cnt = len(outgroup_dict[subject_group])
@@ -329,6 +338,12 @@ def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
         logging.info(
             f"Final outgroup selection for group {group} : {outgroup_dict[max_group]}"
         )
+
+        # Move outgroup within ambiguous db to outgroup
+        for FI in ambiguous_db:
+            if FI.group == max_group:
+                ambiguous_db.remove(FI)
+                outgroup_dict[max_group].append(FI)
 
         return (group, gene, outgroup_dict[max_group], ambiguous_db)
 
@@ -507,6 +522,7 @@ def pipe_append_outgroup(V, path, opt):
 
     # append outgroup by running result
     # (group, gene, outgroup, ambiguous_group)
+    critical_flag = 0
     for result in result_append_outgroup:
         # Parsing result
         group = result[0]
@@ -524,9 +540,10 @@ def pipe_append_outgroup(V, path, opt):
         print(f"query: {len(V.dict_dataset[group][gene].list_qr_FI)}")
 
         if len(outgroup) == 0 and len(ambiguous_group) == 0:
-            logging.warning(
+            logging.critical(
                 f"Removing {group} {gene} from analysis because outgroup cannot be selected"
             )
+            critical_flag = 1
             V.dict_dataset[group].pop(gene, None)
         elif (
             len(outgroup)
@@ -535,15 +552,17 @@ def pipe_append_outgroup(V, path, opt):
             + len(V.dict_dataset[group][gene].list_qr_FI)
             < 4
         ):
-            logging.warning(
+            logging.critical(
                 f"Removing {group} {gene} from analysis because not enough sequences are provided to infer phylogenetic tree"
             )
+            critical_flag = 1
             V.dict_dataset[group].pop(gene, None)
 
         else:
             V.dict_dataset[group][gene].list_og_FI = outgroup
+
             # Add ambiguous group to FI
-            if opt.ambiguous is True:
+            if opt.suspicious is True:
                 V.dict_dataset[group][gene].list_db_FI += ambiguous_group
             # Add outgroup and db in to dict_hash_FI
 
@@ -552,11 +571,16 @@ def pipe_append_outgroup(V, path, opt):
     for group in groups:
         try:
             if len(V.dict_dataset[group]) == 0:
-                logging.warning(
+                logging.critical(
                     f"Removing {group} from analysis because outgroup cannot be selected to all genes"
                 )
+                critical_flag = 1
                 V.dict_dataset.pop(group, None)
         except:
             pass
+
+    # Terminate if terminate option is given, and critical error occurs
+    if critical_flag == 1 and opt.terminate is True:
+        raise Exception
 
     return V, path, opt
