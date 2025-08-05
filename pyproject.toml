@@ -30,6 +30,10 @@ dependencies = [
     "PyQt5>=5.15.0; sys_platform!='darwin'",
 ]
 
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
 [project.scripts]
 FunID = "funvip.main:main"
 FunVIP = "funvip.main:main"
@@ -51,4 +55,5 @@ build-backend = "setuptools_ext"
 
 [metadata]
 obsoletes-dist = "FunID"
+
 
