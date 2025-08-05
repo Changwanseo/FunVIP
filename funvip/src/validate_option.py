@@ -34,7 +34,7 @@ class Option:
             self.backgroundcolor = ["#ffe0e0", "#ffefef"]
             self.outgroupcolor = "#999999"
             self.ftype = "Arial"
-            self.fsize = 10
+            self.fsize = 14
             self.fsize_bootstrap = 9
 
     # Cluster option
@@ -1191,9 +1191,9 @@ class Option:
             float(self.visualize.fsize)
             if self.visualize.fsize < 0:
                 list_warning.append(
-                    f"--fsize should be positive float. Setting to default, 10"
+                    f"--fsize should be positive float. Setting to default, 14"
                 )
-                self.visualize.fsize = 10
+                self.visualize.fsize = 14
         except:
             list_error.append(f"--fsize should be positive float")
 

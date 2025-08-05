@@ -1404,8 +1404,9 @@ class Tree_information:
 
                 clade.add_face(space_text, 2, position="branch-right")
                 clade.add_face(taxon_text, 3, position="branch-right")
-                clade.add_face(space_text, 4, position="branch-right")
-                clade.add_face(id_text, 5, position="branch-right")
+                # clade.add_face(space_text, 4, position="branch-right")
+
+                clade.add_face(id_text, 4, position="aligned")
 
                 # Get all tip names of the current working clade
                 collapse_leaf_name_list = [x[0] for x in collapse_info.leaf_list]
@@ -1512,7 +1513,7 @@ class Tree_information:
             # relocate text position little bit for better visualization
             text.set("y", f'{int(float(text.get("y")))-2}')
 
-            # Problem here: taxon name with cff., aff. etc includes underscore
+            # Problem here: taxon name with cf., aff. etc includes underscore
             if text_type == "taxon":
                 genus = taxon_string_dict[text.text][0]
                 species = taxon_string_dict[text.text][1]
