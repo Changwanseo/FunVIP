@@ -696,23 +696,28 @@ class Option:
         if not (type(self.thread) is int):
             if not (type(self.thread) is str):
                 list_warning.append(
-                    f"Type for thread should be int but {self.thread} was given. Using {os.cpu_count()} for default"
+                    f"Type for thread should be int but {self.thread} was given. Using {min(os.cpu_count(), 99)} for default"
                 )
             else:
                 if not (self.thread.lower() == "auto"):
                     list_warning.append(
-                        f"Type for thread should be int but {self.thread} was given. Using {os.cpu_count()} for default"
+                        f"Type for thread should be int but {self.thread} was given. Using {min(os.cpu_count(), 99)} for default"
                     )
 
             self.thread = os.cpu_count()
         elif self.thread <= 0:
-            list_info.append(f"thread adjusted to {os.cpu_count()}")
-            self.thread = os.cpu_count()
+            list_info.append(f"thread adjusted to {min(os.cpu_count(), 99)}")
+            self.thread = min(os.cpu_count(), 99)
         elif self.thread >= os.cpu_count():
             list_info.append(
                 f"thread exceeded system maximum. Adjusting to {os.cpu_count()}"
             )
             self.thread = os.cpu_count()
+        elif self.thread > 99:
+            list_info.append(
+                f"More than 100 threads makes error on some system. Thread adjusted to 99"
+            )
+            self.thread = min(os.cpu_count(), 99)
 
         # memory
         # Check if memory is in valid format

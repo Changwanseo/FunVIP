@@ -742,12 +742,16 @@ class Tree_information:
         # reroot with outgroup_clade
         try:
             # For more than one outgroups, after rerooting, get_common_ancestor of outgroup again
+            # Before rerooting, unroot the tree to work properly
             if len(outgroup_leaves) >= 2:
+                print(outgroup_leaves)
+                self.t.unroot()
                 self.outgroup_clade = self.t.get_common_ancestor(outgroup_leaves)
                 self.t.set_outgroup(self.outgroup_clade)
                 self.t.ladderize(direction=1)
                 self.outgroup_clade = self.t.get_common_ancestor(outgroup_leaves)
             elif len(outgroup_leaves) == 1:
+                self.t.unroot()
                 self.outgroup_clade = outgroup_leaves[0]
                 self.t.set_outgroup(self.outgroup_clade)
                 self.t.ladderize(direction=1)

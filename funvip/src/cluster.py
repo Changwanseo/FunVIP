@@ -306,12 +306,20 @@ def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
                     f"Outgroup [{subject_group}] selected to [{group}]\n {text_outgroup_list}"
                 )
 
+                # Move outgroup within ambiguous db to outgroup
+                for FI in ambiguous_db:
+                    if FI.group == subject_group:
+                        ambiguous_db.remove(FI)
+                        outgroup_dict[subject_group].append(FI)
+
                 return (
                     group,
                     gene,
                     outgroup_dict[subject_group],
                     ambiguous_db,
                 )
+
+            # If not use the outgroup sequences with the maximum number
             else:
                 if len(outgroup_dict[subject_group]) > max_cnt:
                     max_cnt = len(outgroup_dict[subject_group])
@@ -327,6 +335,12 @@ def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
         logging.info(
             f"Final outgroup selection for group {group} : {outgroup_dict[max_group]}"
         )
+
+        # Move outgroup within ambiguous db to outgroup
+        for FI in ambiguous_db:
+            if FI.group == max_group:
+                ambiguous_db.remove(FI)
+                outgroup_dict[max_group].append(FI)
 
         return (group, gene, outgroup_dict[max_group], ambiguous_db)
 
