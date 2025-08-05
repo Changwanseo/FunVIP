@@ -227,16 +227,19 @@ def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
     # Use term "ambiguous" instead of "suspicious" because of previous compatibility
     # For each of the input, should use different cutoff
     ambiguous_db = set()
-    for qseqid, _df in cutoff_set_df.groupby(["qseqid"]):
-        # Select dataframe corresponding to current qseqid
-        df_qseqid = df_search[df_search["qseqid"] == qseqid[0]]
+    if opt.suspicious is True:
+        for qseqid, _df in cutoff_set_df.groupby(["qseqid"]):
+            # Select dataframe corresponding to current qseqid
+            df_qseqid = df_search[df_search["qseqid"] == qseqid[0]]
 
-        # Get the list of subjects, which is closer than furtest ingroup
-        ambiguous_df = df_qseqid[df_qseqid["bitscore"] >= min(list(_df["bitscore"]))]
-        # Within the furthest match, get possible ingroups with ambiguous group
-        ambiguous_df = ambiguous_df[ambiguous_df["subject_group"] != group]
-        # Add inner ambiugities to ambiguous db
-        ambiguous_db.update([FI_dict[i] for i in list(ambiguous_df["sseqid"])])
+            # Get the list of subjects, which is closer than furtest ingroup
+            ambiguous_df = df_qseqid[
+                df_qseqid["bitscore"] >= min(list(_df["bitscore"]))
+            ]
+            # Within the furthest match, get possible ingroups with ambiguous group
+            ambiguous_df = ambiguous_df[ambiguous_df["subject_group"] != group]
+            # Add inner ambiugities to ambiguous db
+            ambiguous_db.update([FI_dict[i] for i in list(ambiguous_df["sseqid"])])
 
     ambiguous_db = list(ambiguous_db)
 
@@ -519,6 +522,7 @@ def pipe_append_outgroup(V, path, opt):
 
     # append outgroup by running result
     # (group, gene, outgroup, ambiguous_group)
+    critical_flag = 0
     for result in result_append_outgroup:
         # Parsing result
         group = result[0]
@@ -539,6 +543,7 @@ def pipe_append_outgroup(V, path, opt):
             logging.critical(
                 f"Removing {group} {gene} from analysis because outgroup cannot be selected"
             )
+            critical_flag = 1
             V.dict_dataset[group].pop(gene, None)
         elif (
             len(outgroup)
@@ -550,13 +555,14 @@ def pipe_append_outgroup(V, path, opt):
             logging.critical(
                 f"Removing {group} {gene} from analysis because not enough sequences are provided to infer phylogenetic tree"
             )
+            critical_flag = 1
             V.dict_dataset[group].pop(gene, None)
 
         else:
             V.dict_dataset[group][gene].list_og_FI = outgroup
 
             # Add ambiguous group to FI
-            if opt.ambiguous is True:
+            if opt.suspicious is True:
                 V.dict_dataset[group][gene].list_db_FI += ambiguous_group
             # Add outgroup and db in to dict_hash_FI
 
@@ -568,8 +574,13 @@ def pipe_append_outgroup(V, path, opt):
                 logging.critical(
                     f"Removing {group} from analysis because outgroup cannot be selected to all genes"
                 )
+                critical_flag = 1
                 V.dict_dataset.pop(group, None)
         except:
             pass
+
+    # Terminate if terminate option is given, and critical error occurs
+    if critical_flag == 1 and opt.terminate is True:
+        raise Exception
 
     return V, path, opt

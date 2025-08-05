@@ -87,11 +87,12 @@ class Option:
         self.solveflat = True
         self.regex = None
         self.avx = True
-        self.ambiguous = True
+        self.suspicious = True
         self.cachedb = True
         self.usecache = True
         self.tableformat = "csv"
         self.nosearchresult = False
+        self.terminate = False
 
         # Method options
         self.method = self.Method_Option()
@@ -168,8 +169,8 @@ class Option:
                 self.regex = parser_dict[key]
             elif key.lower() in ("avx"):
                 self.avx = parser_dict[key]
-            elif key.lower() in ("ambiguous"):
-                self.ambiguous = parser_dict[key]
+            elif key.lower() in ("suspicious"):
+                self.suspicious = parser_dict[key]
             elif key.lower() in ("allow-innertrimming"):
                 self.allow_innertrimming = parser_dict[key]
             elif key.lower() in ("criterion"):
@@ -184,6 +185,8 @@ class Option:
                 self.nosearchresult = parser_dict[key]
             elif key.lower() in ("confident", "confident_db"):
                 self.confident = parser_dict[key]
+            elif key.lower() in ("terminate"):
+                self.terminate = parse_dict[key]
 
             # Method options
             elif key.lower() in ("search"):
@@ -538,8 +541,8 @@ class Option:
             pass
 
         try:
-            if parser.noambiguous is True:
-                self.ambiguous = False
+            if parser.nosuspicious is True:
+                self.suspicious = False
         except:
             pass
 
@@ -576,6 +579,12 @@ class Option:
         try:
             if parser.nosearchresult is True:
                 self.nosearchresult = parser.nosearchresult
+        except:
+            pass
+
+        try:
+            if parser.terminate is True:
+                self.terminate = True
         except:
             pass
 
@@ -1451,7 +1460,7 @@ class Option:
             list_warning.append(f"AVX is not available. Changing --noavx to True")
             self.avx = False
 
-        # noambiguous
+        # nosuspicious
         # default : False
         # if used, set True
 

@@ -462,6 +462,8 @@ class FunVIP_var:
         fail_list = []
         remove_dict = {}
         tree_hash_dict = hasher.encode(self.list_FI, newick=True)
+
+        critical_flag = 0
         for group in self.dict_dataset:
             remove_dict[group] = {}
             for gene in self.dict_dataset[group]:
@@ -549,6 +551,8 @@ class FunVIP_var:
                                 f"Alignment for {group} {gene} does not have any overlapping regions! Removing from analysis"
                             )
 
+                            critical_flag = 1
+
                             # Report one non_overlapping pair
                             for i in range(len(seq_list) - 1):
                                 seq1 = seq_list[i]
@@ -573,6 +577,7 @@ class FunVIP_var:
                             logging.critical(
                                 f"At least one pair of sequence does not overlap, such as {seq1_id} and {seq2_id}"
                             )
+                            critical_flag = 1
 
                             fail_list.append((group, gene))
                             # for tree, use hash dict with genus and species information
@@ -600,6 +605,10 @@ class FunVIP_var:
 
                     # If alignment corresponding to dataset does not exists, raise warning or error
                     pass
+
+        # Terminate if terminate option is given, and critical error occurs
+        if critical_flag == 1 and opt.terminate is True:
+            raise Exception
 
         # Remove bad datasets
         for fail in fail_list:
