@@ -111,7 +111,7 @@ def pipe_module_tree_interpretation(
         tree_hash_dict,
         f"{path.out_tree}/hash_{opt.runname}_{group}_{gene}_original.svg",
         f"{path.out_tree}/{opt.runname}_{group}_{gene}_original.svg",
-        newick=True,
+        svg=True,
     )
 
     # print(f"Decode {time() - time_start}")

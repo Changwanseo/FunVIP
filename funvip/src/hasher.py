@@ -18,6 +18,11 @@ def newick_legal(string: str) -> str:
     return str(string)
 
 
+# Fix "&" sign appropriate for svg
+def svg_legal(string: str) -> str:
+    return string.replace("&", "&amp;")
+
+
 # Encode funinfo_list and return hash dict
 def encode(funinfo_list: list, newick: bool = False) -> dict:
     hash_dict = {}
@@ -53,13 +58,28 @@ def encode(funinfo_list: list, newick: bool = False) -> dict:
 # Decode given file with given hash_dict
 
 
-def decode(hash_dict: dict, file: str, out: str, newick: bool = True) -> None:
+def decode(
+    hash_dict: dict, file: str, out: str, newick: bool = True, svg: bool = False
+) -> None:
     with open(file, "rt") as fp:
         content = fp.read()
 
+    if newick and svg:
+        hash_dict = {
+            re.escape(k): svg_legal(newick_legal(v)) for k, v in hash_dict.items()
+        }
+    elif newick:
+        hash_dict = {re.escape(k): newick_legal(v) for k, v in hash_dict.items()}
+    elif svg:
+        hash_dict = {re.escape(k): svg_legal(v) for k, v in hash_dict.items()}
+    else:
+        hash_dict = {re.escape(k): v for k, v in hash_dict.items()}
+
+    """
     hash_dict = {
         re.escape(k): (newick_legal(v) if newick else v) for k, v in hash_dict.items()
     }
+    """
     pattern = re.compile("|".join(hash_dict.keys()))
 
     # Perform the substitution
