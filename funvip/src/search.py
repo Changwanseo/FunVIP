@@ -237,6 +237,7 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
         f"{path.tmp}/{opt.runname}.m8",
         sep="\t",
         header=None,
+        quoting=1,
         names=[
             "qseqid",
             "sseqid",

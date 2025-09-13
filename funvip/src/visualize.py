@@ -104,7 +104,13 @@ def visualize(
 
     ## Read result
     if FunVIP_result.endswith(".csv"):
-        df = pd.read_csv(FunVIP_result)
+        encodings = ["UTF-8", "latin-1", "cp1252"]
+        for enc in encodings:
+            try:
+                df = pd.read_csv(FunVIP_result, encoding=enc, quoting=1)
+                break
+            except UnicodeDecodeError:
+                continue
     elif FunVIP_result.endswith(".xlsx"):
         df = pd.read_excel(FunVIP_result)
     else:
