@@ -65,3 +65,5 @@ DB.fasta
 /Penicillium/*
 /FunVIP.egg-info/*
 /funvip/FunVIP.egg-info/*
+CLAUDE.md
+.claude/

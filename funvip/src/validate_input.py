@@ -456,15 +456,27 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
             if table.endswith(extension):
                 try:
                     if dict_extension[extension] == "csv":
-                        df = pd.read_csv(
-                            table, sep=",", encoding="UTF-8", keep_default_na=False
-                        )
-                        flag_read_table = 1
+                        encodings = ["UTF-8", "latin-1", "cp1252"]
+                        for enc in encodings:
+                            try:
+                                df = pd.read_csv(
+                                    table, sep=",", encoding=enc, keep_default_na=False, quoting=1
+                                )
+                                flag_read_table = 1
+                                break
+                            except UnicodeDecodeError:
+                                continue
                     elif dict_extension[extension] == "tsv":
-                        df = pd.read_csv(
-                            table, sep="\t", encoding="UTF-8", keep_default_na=False
-                        )
-                        flag_read_table = 1
+                        encodings = ["UTF-8", "latin-1", "cp1252"]
+                        for enc in encodings:
+                            try:
+                                df = pd.read_csv(
+                                    table, sep="\t", encoding=enc, keep_default_na=False, quoting=1
+                                )
+                                flag_read_table = 1
+                                break
+                            except UnicodeDecodeError:
+                                continue
                     elif dict_extension[extension] == "excel":
                         df = pd.read_excel(table)
                         flag_read_table = 1

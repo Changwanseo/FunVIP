@@ -554,30 +554,41 @@ class FunVIP_var:
                             critical_flag = 1
 
                             # Report one non_overlapping pair
+                            # generate list of sequence pair for easy break
+                            list_candidates = []
                             for i in range(len(seq_list) - 1):
+                                for j in range(i + 1, len(seq_list)):
+                                    list_candidates.append((i, j))
+
+                            for seq_pair in list_candidates:
+                                has_overlap = False
+
+                                i = seq_pair[0]
+                                j = seq_pair[1]
+
                                 seq1 = seq_list[i]
                                 seq1_hash = seq1.id
-                                seq1_str = str(seq.seq)
+                                seq1_str = str(seq1.seq)
 
-                                for j in range(i + 1, len(seq_list)):
-                                    seq2 = seq_list[j]
-                                    seq2_hash = seq2.id
-                                    seq2_str = str(seq.seq)
+                                seq2 = seq_list[j]
+                                seq2_hash = seq2.id
+                                seq2_str = str(seq2.seq)
 
-                                    has_overlap = False
+                                for k in range(len(seq1_str)):
+                                    if seq1_str[k] != "-" and seq2_str[k] != "-":
+                                        has_overlap = True
+                                        break
 
-                                    for k in range(len(seq1_str)):
-                                        if seq1_str[k] != "-" and seq2_str[k] != "-":
-                                            has_overlap = True
-                                            break
+                                # If no overlap, report
+                                if has_overlap is False:
+                                    seq1_id = self.dict_hash_FI[seq1_hash]
+                                    seq2_id = self.dict_hash_FI[seq2_hash]
 
-                            seq1_id = self.dict_hash_FI[seq1_hash]
-                            seq2_id = self.dict_hash_FI[seq2_hash]
-
-                            logging.critical(
-                                f"At least one pair of sequence does not overlap, such as {seq1_id} and {seq2_id}"
-                            )
-                            critical_flag = 1
+                                    logging.critical(
+                                        f"At least one pair of sequence does not overlap, such as {seq1_id} and {seq2_id}"
+                                    )
+                                    critical_flag = 1
+                                    break
 
                             fail_list.append((group, gene))
                             # for tree, use hash dict with genus and species information
