@@ -111,8 +111,13 @@ class Funinfo:
 
         # Genus with space causes error while mafft
         # Genus with slash causes error while tree construction
-        genus = genus.strip().replace(" ", "_").replace("/", "_")
-        genus = manage_unicode(genus, column="Genus")
+        # 0.5.3 update : manage_unicode should run first to manage terminal spaces
+        genus = (
+            manage_unicode(genus, column="Genus")
+            .strip()
+            .replace(" ", "_")
+            .replace("/", "_")
+        )
 
         # Check ambiguity
         if self.genus != "" and self.genus != genus:
@@ -137,8 +142,8 @@ class Funinfo:
         # Genus with slash causes error while tree construction
 
         # species = species.strip().replace(" ", "_").replace("/", "_")
-        species = species.strip().replace("/", "_")
-        species = manage_unicode(species, column="Species")
+        # 0.5.3 update : manage_unicode should run first to manage terminal spaces
+        species = manage_unicode(species, column="Species").strip().replace("/", "_")
 
         # Check ambiguity
         if self.ori_species != "" and self.ori_species != species:
@@ -160,8 +165,8 @@ class Funinfo:
             group = ""
 
         # Group with space causes error while mafft
-        group = group.strip().replace(" ", "_")
-        group = manage_unicode(group, column="Group")
+        # 0.5.3 update : manage_unicode should run first to manage terminal spaces
+        group = manage_unicode(group, column="Group").strip().replace(" ", "_")
 
         # Check ambiguity
         if self.group != "" and self.group != group:
@@ -460,7 +465,11 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                         for enc in encodings:
                             try:
                                 df = pd.read_csv(
-                                    table, sep=",", encoding=enc, keep_default_na=False, quoting=1
+                                    table,
+                                    sep=",",
+                                    encoding=enc,
+                                    keep_default_na=False,
+                                    quoting=1,
                                 )
                                 flag_read_table = 1
                                 break
@@ -471,7 +480,11 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                         for enc in encodings:
                             try:
                                 df = pd.read_csv(
-                                    table, sep="\t", encoding=enc, keep_default_na=False, quoting=1
+                                    table,
+                                    sep="\t",
+                                    encoding=enc,
+                                    keep_default_na=False,
+                                    quoting=1,
                                 )
                                 flag_read_table = 1
                                 break
@@ -556,7 +569,9 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
         )
 
         # Sequence column operations, download sequences with GenMine
-        if 1:  # If download on/off option added, change this part
+        if (
+            1
+        ):  # If download on/off option added, change this part: for future server side implementation
             download_dict = {}  # for downloaded sequences
             download_set = set()
             # 1 letter + 5 digit regex should be last, because they overlap with 2 letter + 6 digit ids / shotgun
@@ -599,7 +614,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                 # Write GenMine input file
                 with open(f"{path.GenMine}/Accessions.txt", "w") as fg:
                     for acc in download_list:
-                        fg.write(f"{acc.strip()}\n")
+                        fg.write(f"{manage_unicode(acc).strip()}\n")
 
                 # Run GenMine
                 accession_path = f"{path.GenMine}/Accessions.txt"
@@ -753,12 +768,14 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                 seq_error = 0
                 if gene in df.columns:
                     if not (pd.isna(df[gene][n])):
+                        # To prevent somewhat unicode error
+                        seq_to_operate = manage_unicode(df[gene][n]).strip()
                         # skip blank sequences
-                        if df[gene][n].startswith(">"):
+                        if seq_to_operate.startswith(">"):
                             # remove fasta header
-                            seq_string = "".join(df[gene][n].split("\n")[1:])
+                            seq_string = "".join(seq_to_operate.split("\n")[1:])
                         else:
-                            seq_string = df[gene][n]
+                            seq_string = seq_to_operate
 
                         # adjust seq_string
                         seq_string = seq_string.replace("\n", "").replace(" ", "")
@@ -767,7 +784,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                         seq_error_cnt = 0
                         seq_error_list = []
 
-                        seq_string = manage_unicode(seq_string)
+                        # seq_string = manage_unicode(seq_string)
                         for x in seq_string:  # x is every character of sequence
                             if not x.lower() in "acgtryswkmbdhvn-.":
                                 seq_error_cnt += 1
