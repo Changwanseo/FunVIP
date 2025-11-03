@@ -23,8 +23,9 @@
 4. ```conda config --env --set subdir osx-64```
 5. ```conda install pyqt```
 6. ```pip install FunVIP```
-7. ```conda install -c bioconda raxml iqtree "mmseqs2<=16" "blast>=2.12" mafft trimal gblocks fasttree```
-8. run ```FunVIP --test Terrei --email [your email] ``` to check installation
+7. ```conda install -c bioconda raxml iqtree "mmseqs2<=16" "blast>=2.12" mafft trimal gblocks```
+8. ```CONDA_SUBDIR=osx-arm64 conda install -c bioconda fasttree``` 
+9. run ```FunVIP --test Terrei --email [your email] ``` to check installation
 <br><br/>
 ### Installation from source (For developers and core users)
 * this is for developmental steps
