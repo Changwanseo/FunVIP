@@ -21,7 +21,7 @@
 2. ```CONDA_SUBDIR=osx-64 conda create -n FunVIP python=3.12```
 3. ```conda activate FunVIP```
 4. ```conda config --env --set subdir osx-64```
-5. ```conda install pyqt```
+5. ```conda install pyqt openssl ca-certificates```
 6. ```pip install FunVIP```
 7. ```conda install -c bioconda raxml iqtree "mmseqs2<=16" "blast>=2.12" mafft trimal gblocks```
 8. ```CONDA_SUBDIR=osx-arm64 conda install -c bioconda fasttree``` 
