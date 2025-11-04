@@ -3,7 +3,7 @@
 
 
 FunVIP is now published please cite:
-#### Seo CW, Yoo S, Cho Y, Kim JS, Steinegger M, Lim YW. FunVIP: Fungal Validation and Identification Pipeline based on phylogenetic analysis. J. Microbiol. 2025;63(4):e2411017.
+#### Seo CW, Yoo S, Cho Y, Kim JS, Steinegger M, Lim YW. FunVIP: Fungal Validation and Identification Pipeline based on phylogenetic analysis. J. Microbiol. 2025;63(4):e2411017. [Link](https://jmicrobiol.or.kr/journal/view.php?doi=10.71150/jm.2411017)
 <br><br/>
 
 
