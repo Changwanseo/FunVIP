@@ -738,8 +738,7 @@ class FunVIP_var:
         for fail in final_fail_list:
             for FI in self.list_FI:
                 if FI.adjusted_group == fail[0]:
-                    if FI.seq[fail[1]] != "":
-                        FI.issues.add(f"lackseq")
+                    FI.issues.add(f"lackseq: {fail[1]}")
 
         # Validate multiple sequence alignment with TCS score from T-COFFEE
         # As T-COFFEE build is only available in Mac and Linux, should check if it is available
