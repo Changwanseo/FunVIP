@@ -169,7 +169,6 @@ class Path:
 
             if sys.platform == "darwin":
                 check_commands = {
-                    "RAxML": "raxmlHPC-PTHREADS -h",
                     "IQTREE": "iqtree -h",
                     "MMseqs2": "mmseqs -h",
                     "BLASTn": "blastn -help",
@@ -218,10 +217,21 @@ class Path:
                 stdout=open(os.devnull, "wb"),
                 stderr=subprocess.STDOUT,
             ).returncode
+            return_code_3 = subprocess.run(
+                "raxmlHPC -h",
+                shell=True,
+                stdout=open(os.devnull, "wb"),
+                stderr=subprocess.STDOUT,
+            ).returncode
 
             if return_code_1 != 0 and return_code_2 != 0:
-                print(f"[ERROR] RAxML not installed!")
-                install_flag = 1
+                if return_code_3 == 0:
+                    pass
+                    # Should fill with turing off AVX
+                    # Currnetly hard coded in ext.py
+                else:
+                    print(f"[ERROR] RAxML not installed!")
+                    install_flag = 1
 
             if return_code_2 == 0:
                 self.raxml_version = "new"
