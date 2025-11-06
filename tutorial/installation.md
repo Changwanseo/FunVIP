@@ -17,6 +17,14 @@
 <br><br/>
 
 ### Apple Silicon Mac
+
+#### Native installation (Faster, Gblocks unavailable)
+1. ```conda create -n FunVIP python=3.12```
+2. ```conda activate FunVIP ```
+3. ``` pip install FunVIP ```
+4. ``` conda install conda-forge::pyqt bioconda::fasttree bioconda::raxml bioconda::iqtree bioconda::mmseqs2 bioconda::blast conda-forge::mafft bioconda::trimal ```
+
+#### Rossetta installation (Slower, Gblocks available)
 1. ```softwareupdate --install-rosetta```
 2. ```CONDA_SUBDIR=osx-64 conda create -n FunVIP python=3.12```
 3. ```conda activate FunVIP```
@@ -26,6 +34,7 @@
 7. ```conda install -c bioconda raxml iqtree "mmseqs2<=16" "blast>=2.12" mafft trimal gblocks```
 8. ```CONDA_SUBDIR=osx-arm64 conda install -c bioconda fasttree``` 
 9. run ```FunVIP --test Terrei --email [your email] ``` to check installation
+- I personally recommend native installation because Gblocks can be substituted with TrimAl
 <br><br/>
 ### Installation from source (For developers and core users)
 * this is for developmental steps
