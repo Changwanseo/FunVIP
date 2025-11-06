@@ -1025,6 +1025,46 @@ class Option:
                     f"trim method should be one of {str(trim_adjust.keys())}"
                 )
 
+        # Validate if Gblocks is installed in this system
+        if self.method.trim == "gblocks":
+            gblocks_installed = False
+
+            if sys.platform == "win32":
+                # For Windows, check if bundled executable exists
+                sys_path = os.path.abspath(f"{os.path.dirname(__file__)}/../")
+                gblocks_exe = f"{sys_path}/external/Gblocks_Windows_0.91b/Gblocks_0.91b/Gblocks.exe"
+                gblocks_installed = os.path.exists(gblocks_exe)
+            else:
+                # For Linux/macOS, try to find Gblocks command
+                try:
+                    # Try using 'which' command
+                    which_result = subprocess.run(
+                        ["which", "Gblocks"],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        timeout=5
+                    )
+                    gblocks_installed = (which_result.returncode == 0)
+                except:
+                    # Fallback: try running Gblocks
+                    try:
+                        gblocks_result = subprocess.run(
+                            ["Gblocks"],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            timeout=5
+                        )
+                        # Check if output contains "Gblocks" to confirm
+                        output = gblocks_result.stdout.decode() + gblocks_result.stderr.decode()
+                        gblocks_installed = ("Gblocks" in output or "GBLOCKS" in output)
+                    except:
+                        gblocks_installed = False
+
+            if not gblocks_installed:
+                list_error.append(
+                    f"Gblocks is not installed or not accessible. Please install Gblocks or select another trimming method (trimal or none)"
+                )
+
         # model
         # Check if search method is one of default, none, modeltest-ng, iqtree
         # Adjust misspellings

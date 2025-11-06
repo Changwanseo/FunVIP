@@ -334,7 +334,33 @@ def RAxML(
 
         CMD = f"{path.sys_path}/external/RAxML_Windows/raxmlHPC-PTHREADS-AVX2.exe -s {fasta} -n {out} -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model} --silent"
     elif platform == "darwin":
-        CMD = f"raxmlHPC-PTHREADS -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
+        # For Rossetta
+
+        if (
+            subprocess.run(
+                "raxmlHPC-PTHREADS -v",
+                shell=True,
+                stdout=open(os.devnull, "wb"),
+                stderr=subprocess.STDOUT,
+            ).returncode
+            == 0
+        ):
+            CMD = f"raxmlHPC-PTHREADS -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
+        # For arm native
+        elif (
+            subprocess.run(
+                "raxmlHPC -v",
+                shell=True,
+                stdout=open(os.devnull, "wb"),
+                stderr=subprocess.STDOUT,
+            ).returncode
+            == 0
+        ):
+            CMD = f"raxmlHPC -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
+        else:
+            logging.error("Cannot find correct RAxML for apple silicon system!")
+            raise Exception
+
     else:
         if version == "old":
             CMD = f"raxmlHPC-PTHREADS-AVX -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model} --silent"

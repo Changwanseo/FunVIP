@@ -232,9 +232,18 @@ class Version:
             else:
                 CMD = ["raxmlHPC-PTHREADS-SSE3", "-v"]
 
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
+            try:
+                result = subprocess.Popen(
+                    CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
+            # For arm native raxml
+            except:
+                CMD = ["raxmlHPC", "-v"]
+
+                result = subprocess.Popen(
+                    CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
+
             stdout, stderr = result.communicate()
             stdout_str = stdout.decode("utf-8")
             self.RAxML = stdout_str.split("\n")[2].split(" ")[4]
