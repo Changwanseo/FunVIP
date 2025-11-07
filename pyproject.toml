@@ -1,6 +1,6 @@
 [project]
 name = "FunVIP"
-version = "0.5.5"
+version = "0.5.6"
 description = "Fungal Validation & Identification Pipeline"
 authors = [{name = "Changwan Seo", email = "wan101010@snu.ac.kr"}]
 urls = { "Homepage" = "https://github.com/Changwanseo/FunVIP" }
