@@ -1,3 +1,23 @@
+import os
+import sys
+
+
+# For deterministic anlaysis
+def _ensure_deterministic_hash():
+    if "PYTHONHASHSEED" not in os.environ:
+        os.environ["PYTHONHASHSEED"] = "0"
+        if sys.platform == "win32":
+            import subprocess
+            subprocess.call([sys.executable] + sys.argv)
+            sys.exit(0)
+        else:
+            os.execv(sys.executable, [sys.executable] + sys.argv)
+
+
+# Call immediately before any imports
+_ensure_deterministic_hash()
+
+
 def main():
     from funvip.src import align
     from funvip.src import tree_interpretation_pipe

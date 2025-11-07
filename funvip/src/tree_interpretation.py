@@ -443,7 +443,9 @@ def is_monophyletic(
     elif len(taxon_dict.keys()) == 1:
         # if taxon dict.keys() have only 1 species: group assigned
         for children in clade.children:
-            other_children = list(set(clade.children) - set([children]))[0]
+            # other_children = list(set(clade.children) - set([children]))[0]
+            # Use more deterministic solution
+            other_children = [c for c in clade.children if c != children][0]
 
             # check query branch
             if find_majortaxon(
@@ -1006,7 +1008,7 @@ class Tree_information:
     def reconstruct(self, clade, gene, opt):
         sys.stdout.flush()  # for logging
 
-        @lru_cache(maxsize=10000)
+        # @lru_cache(maxsize=10000)
         def solve_flat(clade):
             # Check if the clade is consists of query db or both
             def consist(c):
@@ -1098,40 +1100,20 @@ class Tree_information:
                 elif mode == "both":
                     for leaf in c:
                         condition = False
+                        leaf_type = decide_type(
+                            query_list=self.query_list,
+                            db_list=self.db_list,
+                            outgroup=self.outgroup,
+                            string=leaf.name,
+                            priority="query",
+                        )
+
                         # parse condition
-                        if (
-                            decide_type(
-                                query_list=self.query_list,
-                                db_list=self.db_list,
-                                outgroup=self.outgroup,
-                                string=leaf.name,
-                                priority="query",
-                            )
-                            == "db"
-                        ):
+                        if leaf_type == "db":
                             condition = True
-                        elif (
-                            decide_type(
-                                query_list=self.query_list,
-                                db_list=self.db_list,
-                                outgroup=self.outgroup,
-                                string=leaf.name,
-                                priority="query",
-                            )
-                            == "outgroup"
-                        ):
+                        elif leaf_type == "outgroup":
                             condition = True
-                        elif (
-                            opt.mode == "identification"
-                            and decide_type(
-                                query_list=self.query_list,
-                                db_list=self.db_list,
-                                outgroup=self.outgroup,
-                                string=leaf.name,
-                                priority="query",
-                            )
-                            == "query"
-                        ):
+                        elif opt.mode == "identification" and leaf_type == "query":
                             condition = True
 
                         if condition is True:
