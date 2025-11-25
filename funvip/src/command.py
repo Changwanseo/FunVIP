@@ -261,6 +261,13 @@ class CommandParser:
             help="Word size for blast/mmseqs search, default : 7",
             type=int,
         )
+
+        group_advanced.add_argument(
+            "--cluster-max_target_seqs",
+            dest="cluster_max_target_seqs",
+            help="Max_target_seqs for blast/mmseqs search, increase this when expected search match is not found. default : 100",
+            type=int,
+        )
         group_advanced.add_argument(
             "--mafft-algorithm",
             dest="mafft_algorithm",

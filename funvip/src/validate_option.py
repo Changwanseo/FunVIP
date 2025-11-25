@@ -44,6 +44,7 @@ class Option:
             self.evalue = 10
             self.wordsize = 7
             self.outgroupoffset = 20
+            self.max_target_seqs = 100
 
     # MAFFT option
     class MAFFT_Option:
@@ -233,6 +234,17 @@ class Option:
                 self.cluster.wordsize = parser_dict[key]
             elif key.lower() in ("outgroupoffset"):
                 self.cluster.wordsize = parser_dict[key]
+            elif key.lower() in (
+                "max_target_seqs",
+                "max-target-seqs",
+                "max-seqs",
+                "max_seqs",
+                "max_target_seq",
+                "max-target-seq",
+                "max-seq",
+                "max_seq",
+            ):
+                self.cluster.max_target_seqs = parser_dict[key]
 
             # MAFFT options
             elif key.lower() in ("mafft-algorithm"):
@@ -501,6 +513,12 @@ class Option:
         try:
             if not parser.cluster_outgroupoffset is None:
                 self.cluster.outgroupoffset = parser.cluster_outgroupoffset
+        except:
+            pass
+
+        try:
+            if not parser.cluster_max_target_seqs is None:
+                self.cluster.max_target_seqs = parser.cluster_max_target_seqs
         except:
             pass
 
@@ -1042,9 +1060,9 @@ class Option:
                         ["which", "Gblocks"],
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
-                        timeout=5
+                        timeout=5,
                     )
-                    gblocks_installed = (which_result.returncode == 0)
+                    gblocks_installed = which_result.returncode == 0
                 except:
                     # Fallback: try running Gblocks
                     try:
@@ -1052,11 +1070,14 @@ class Option:
                             ["Gblocks"],
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE,
-                            timeout=5
+                            timeout=5,
                         )
                         # Check if output contains "Gblocks" to confirm
-                        output = gblocks_result.stdout.decode() + gblocks_result.stderr.decode()
-                        gblocks_installed = ("Gblocks" in output or "GBLOCKS" in output)
+                        output = (
+                            gblocks_result.stdout.decode()
+                            + gblocks_result.stderr.decode()
+                        )
+                        gblocks_installed = "Gblocks" in output or "GBLOCKS" in output
                     except:
                         gblocks_installed = False
 
@@ -1400,6 +1421,20 @@ class Option:
                 self.cluster.outgroupoffset = 0
         except:
             list_error.append("outgroupoffset should be 0 or positive integer")
+
+        # cluster-max_target_seqs
+
+        try:
+            self.cluster.max_target_seqs = int(self.cluster.max_target_seqs)
+
+            if self.cluster.max_target_seqs <= 0:
+                list_warning.append(
+                    "max_target_seqs should be positive, setting to default 100"
+                )
+                self.cluster.outgroupoffset = 100
+
+        except:
+            list_error.append("max_target_seqs should be positive integer")
 
         # mafft-algorithm
         # mafft-algorithm - auto, l-ins-i
