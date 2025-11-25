@@ -25,9 +25,9 @@ def blast(query, db, out, path, opt):
         if " " in db:
             db = f'"{db}"'
 
-        CMD = f"{path_blast} -out {out} -query {query} -outfmt 6 -db {db} -word_size {opt.cluster.wordsize} -evalue {opt.cluster.evalue} -num_threads {opt.thread}"
+        CMD = f"{path_blast} -out {out} -query {query} -outfmt 6 -db {db} -word_size {opt.cluster.wordsize} -evalue {opt.cluster.evalue} -num_threads {opt.thread} -max_target_seqs {opt.cluster.max_target_seqs}"
     else:
-        CMD = f"blastn -out '{out}' -query '{query}' -outfmt 6 -db '{db}' -word_size {opt.cluster.wordsize} -evalue {opt.cluster.evalue} -num_threads {opt.thread}"
+        CMD = f"blastn -out '{out}' -query '{query}' -outfmt 6 -db '{db}' -word_size {opt.cluster.wordsize} -evalue {opt.cluster.evalue} -num_threads {opt.thread} -max_target_seqs {opt.cluster.max_target_seqs}"
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
@@ -46,9 +46,9 @@ def mmseqs(query, db, out, tmp, path, opt):
             db = f'"{db}"'
         if " " in tmp:
             tmp = f'"{tmp}"'
-        CMD = f"{path_mmseqs} easy-search {query} {db} {out} {tmp} --threads {opt.thread} -k {opt.cluster.wordsize} --search-type 3 -e {opt.cluster.evalue} --dbtype 2"
+        CMD = f"{path_mmseqs} easy-search {query} {db} {out} {tmp} --threads {opt.thread} -k {opt.cluster.wordsize} --search-type 3 -e {opt.cluster.evalue} --dbtype 2 --max-seqs {opt.cluster.max_target_seqs}"
     else:
-        CMD = f"mmseqs easy-search '{query}' '{db}' '{out}' '{tmp}' --threads {opt.thread} -k {opt.cluster.wordsize} --search-type 3 -e {opt.cluster.evalue} --dbtype 2"
+        CMD = f"mmseqs easy-search '{query}' '{db}' '{out}' '{tmp}' --threads {opt.thread} -k {opt.cluster.wordsize} --search-type 3 -e {opt.cluster.evalue} --dbtype 2  --max-seqs {opt.cluster.max_target_seqs}"
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
