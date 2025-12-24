@@ -1,13 +1,8 @@
 
 # FunVIP [![DOI](https://zenodo.org/badge/588465720.svg)](https://zenodo.org/doi/10.5281/zenodo.10714946)
 
-
 FunVIP is now published please cite:
-#### Seo CW, Yoo S, Cho Y, Kim JS, Steinegger M, Lim YW. FunVIP: Fungal Validation and Identification Pipeline based on phylogenetic analysis. J. Microbiol. 2025;63(4):e2411017. [Link](https://jmicrobiol.or.kr/journal/view.php?doi=10.71150/jm.2411017)
-<br><br/>
-
-
-
+#### Seo CW, Yoo S, Cho Y, Kim JS, Steinegger M, Lim YW. FunVIP: Fungal Validation and Identification Pipeline based on phylogenetic analysis. J. Microbiol. 2025;63(4):e2411017. [Link](https://jmicrobiol.or.kr/journal/view.php?doi=10.71150/jm.2411017)<br><br/>
 
 ### **Fun**gal **V**alidation & **I**dentification **P**ipeline
 #### An automatic tree-based sequence identification and validation pipeline for fungal (or maybe other) species
