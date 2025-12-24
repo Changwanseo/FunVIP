@@ -159,9 +159,6 @@ def pipe_module_tree_interpretation(
 
     # print(f"Tree interpretation ended {time() - time_start}")
 
-    # Print function call statistics for performance profiling
-    tree_interpretation.print_call_statistics()
-
     return tree_info
 
 
