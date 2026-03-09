@@ -189,7 +189,7 @@ class FunVIP_var:
             for group in self.dict_group:
                 for genus in self.dict_group[group]:
                     reverse_dict[genus] = set()
-                reverse_dict[genus].add(group)
+                    reverse_dict[genus].add(group)
 
             for genus in reverse_dict:
                 if len(reverse_dict[genus]) > 1:
