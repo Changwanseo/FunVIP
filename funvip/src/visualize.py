@@ -1,6 +1,6 @@
 # For final visualization of the FunVIP tree
-from ete3 import (
-    Tree,
+from ete4 import Tree
+from ete4.treeview import (
     TreeStyle,
     NodeStyle,
     TextFace,
@@ -141,7 +141,7 @@ def visualize(
     # monophyletic check function
     def monophyletic(clade):
         set_taxon = set()
-        for leaf in clade.iter_leaves():
+        for leaf in clade.leaves():
             set_taxon.add(get_taxon(leaf))
 
         if len(set_taxon) == 1:
@@ -153,7 +153,7 @@ def visualize(
 
     # check if clade includes query
     def query_found(clade):
-        for leaf in clade.iter_leaves():
+        for leaf in clade.leaves():
             if not (is_outgroup(leaf)):
                 n = get_index(leaf)
                 if df["DATATYPE"][n] == "query":
@@ -163,7 +163,7 @@ def visualize(
     # check if clade is new_speces
     def new_species(clade):
         set_taxon = set()
-        for leaf in clade.iter_leaves():
+        for leaf in clade.leaves():
             set_taxon.add(get_taxon(leaf))
 
         if len(set_taxon) == 1:
@@ -197,16 +197,16 @@ def visualize(
                         # Change abbreviate to False if you want to show full name of new species
 
                         '''
-                        for leaf in child.iter_leaves():
+                        for leaf in child.leaves():
                             print(leaf.name)
 
-                        print(f"DEBUG point 1: {list(child.iter_leaves())[0]}")
+                        print(f"DEBUG point 1: {list(child.leaves())[0]}")
                         print(
-                            f"DEBUG point 2: {get_taxon(list(child.iter_leaves())[0])}"
+                            f"DEBUG point 2: {get_taxon(list(child.leaves())[0])}"
                         )
                         '''
 
-                        taxon = get_taxon(list(child.iter_leaves())[0])
+                        taxon = get_taxon(list(child.leaves())[0])
                         print(f"Taxon: {taxon}")
                         # raise Exception
                         child.add_face(
@@ -223,7 +223,7 @@ def visualize(
                     else:
                         # Color with recorded species color
                         child.img_style["bgcolor"] = "lightgrey"
-                        taxon = get_genus_species(list(child.iter_leaves())[0].name)
+                        taxon = get_genus_species(list(child.leaves())[0].name)
                         child.add_face(
                             TextFace(
                                 taxon[0] + " " + taxon[1],
@@ -262,7 +262,7 @@ def visualize(
 
     # Visualization
     # Edit writings
-    for leaf in t_ml.iter_leaves():
+    for leaf in t_ml.leaves():
         leaf.img_style["draw_descendants"] = False
         space_text = TextFace(
             "  ",
@@ -371,7 +371,7 @@ def visualize(
         node.img_style["vt_line_width"] = 2
         node.img_style["hz_line_width"] = 2
 
-        if node.support >= 70 and node.support < 100.1:
+        if node.support is not None and node.support >= 70 and node.support < 100.1:
             # node.add_face without generating extra line
             # add_face_to_node
             if bayesian_tree is None:
@@ -397,7 +397,7 @@ def visualize(
                 )
 
         # If bootstrap and bayesian pp both 100
-        if node.support == 100.1:
+        if node.support is not None and node.support == 100.1:
             # node.img_style["vt_line_width"] = 4
             node.img_style["hz_line_width"] = 8
 

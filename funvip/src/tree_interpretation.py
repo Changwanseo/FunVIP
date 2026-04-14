@@ -1,6 +1,6 @@
 # tree interpretation pipeline - collapse and visualize tree
-from ete3 import (
-    Tree,
+from ete4 import Tree
+from ete4.treeview import (
     TreeStyle,
     NodeStyle,
     TextFace,
@@ -106,10 +106,13 @@ def concat_clade(
     root_support=0,
 ):
     tmp = Tree()
-    tmp.dist = root_dist
-    tmp.support = root_support
-    tmp.add_child(clade1, dist=dist1, support=support1)
-    tmp.add_child(clade2, dist=dist2, support=support2)
+    # ete4: normalize None dist/support values from copy("newick")
+    tmp.dist = root_dist if root_dist is not None else CONCAT_ZERO
+    tmp.support = root_support if root_support is not None else 0
+    tmp.add_child(clade1, dist=dist1 if dist1 is not None else CONCAT_ZERO,
+                  support=support1 if support1 is not None else 1)
+    tmp.add_child(clade2, dist=dist2 if dist2 is not None else CONCAT_ZERO,
+                  support=support2 if support2 is not None else 1)
     return tmp
 
 
@@ -251,7 +254,7 @@ def taxon_count(
 def genus_count(funinfo_dict, gene, clade):
     taxon_dict = {}
 
-    for leaf in clade.iter_leaves():
+    for leaf in clade.leaves():
         FI = funinfo_dict[leaf.name]
         if (
             decide_type(
@@ -281,7 +284,7 @@ def designate_genus(funinfo_dict, query_list, db_list, outgroup, gene, clade):
     genus_dict = {}
 
     # Get genus_count
-    for leaf in clade.iter_leaves():
+    for leaf in clade.leaves():
         FI = funinfo_dict[leaf.name]
         if (
             decide_type(
@@ -433,10 +436,10 @@ def is_monophyletic(
     if len(taxon_dict.keys()) == 0:
         for children in clade.children:
             # if any of the branch length was too long for single clade
-            if children.dist > opt.collapsedistcutoff:
+            if children.dist is not None and children.dist > opt.collapsedistcutoff:
                 return False
-            # or bootstrap is to distinctive
-            elif children.support > opt.collapsebscutoff:
+            # or bootstrap is to distinctive (support may be None for leaves in ete4)
+            elif children.support is not None and children.support > opt.collapsebscutoff:
                 return False
         return True
     # if taxon dict.keys() have 1 species: 1 kinds of species
@@ -457,13 +460,13 @@ def is_monophyletic(
                 clade=children,
                 gene=gene,
             )[1].startswith("sp."):
-                if children.dist > opt.collapsedistcutoff:
+                if children.dist is not None and children.dist > opt.collapsedistcutoff:
                     return False
-                elif children.support > opt.collapsebscutoff:
+                elif children.support is not None and children.support > opt.collapsebscutoff:
                     return False
-                elif other_children.dist > opt.collapsebscutoff:
+                elif other_children.dist is not None and other_children.dist > opt.collapsebscutoff:
                     return False
-                elif other_children.dist > opt.collapsedistcutoff:
+                elif other_children.dist is not None and other_children.dist > opt.collapsedistcutoff:
                     return False
         return True
     else:
@@ -522,6 +525,11 @@ class Tree_information:
     def __init__(self, tree, Tree_style, group, gene, opt):
         self.tree_name = tree  # for debugging
         self.t = Tree(tree)
+        # ete4: root node has dist=None when newick has no explicit root branch length
+        # Normalize to 0.0 so all dist comparisons work correctly
+        for _n in self.t.traverse():
+            if _n.dist is None:
+                _n.dist = 0.0
         self.t_publish = (
             None  # for publish tree - will substitute tree_original in long_term
         )
@@ -530,14 +538,15 @@ class Tree_information:
         )  # dendropy format for distance calculation
 
         # if support ranges from 0 to 1, change it from 0 to 100
-        # b for branch
-        support_set = set()
-        for b in self.t.traverse():
-            support_set.add(b.support)
+        # b for branch (leaves have support=None in ete4, skip them)
+        support_set = set(
+            b.support for b in self.t.traverse() if b.support is not None
+        )
 
-        if max(support_set) <= 1:
+        if support_set and max(support_set) <= 1:
             for b in self.t.traverse():
-                b.support = int(100 * b.support)
+                if b.support is not None:
+                    b.support = int(100 * b.support)
 
         self.query_list = []
         self.db_list = []
@@ -566,7 +575,7 @@ class Tree_information:
     # to find out already existing new species number to avoid overlapping
     # e.g. avoid sp 5 if P. sp 5 already exsits in database
     def reserve_sp(self):  # does not seems to be working currently
-        for leaf in self.t.iter_leaves():
+        for leaf in self.t.leaves():
             FI = self.funinfo_dict[leaf.name]
             taxon = (FI.genus, FI.ori_species)
             sys.stdout.flush()
@@ -743,19 +752,19 @@ class Tree_information:
         # find smallest monophyletic clade that contains all leaves in outgroup_leaves
         # reroot with outgroup_clade
         try:
-            # For more than one outgroups, after rerooting, get_common_ancestor of outgroup again
+            # For more than one outgroups, after rerooting, common_ancestor of outgroup again
             # Before rerooting, unroot the tree to work properly
             if len(outgroup_leaves) >= 2:
                 self.t.unroot()
-                self.outgroup_clade = self.t.get_common_ancestor(outgroup_leaves)
+                self.outgroup_clade = self.t.common_ancestor(outgroup_leaves)
                 self.t.set_outgroup(self.outgroup_clade)
-                self.t.ladderize(direction=1)
-                self.outgroup_clade = self.t.get_common_ancestor(outgroup_leaves)
+                self.t.ladderize(reverse=True)
+                self.outgroup_clade = self.t.common_ancestor(outgroup_leaves)
             elif len(outgroup_leaves) == 1:
                 self.t.unroot()
                 self.outgroup_clade = outgroup_leaves[0]
                 self.t.set_outgroup(self.outgroup_clade)
-                self.t.ladderize(direction=1)
+                self.t.ladderize(reverse=True)
                 self.outgroup_clade = outgroup_leaves[0]
             else:
                 print(
@@ -779,7 +788,7 @@ class Tree_information:
                     self.t.set_outgroup(leaf)
                     # Rerooting again while outgrouping gets possible
                     try:
-                        self.outgroup_clade = self.t.get_common_ancestor(
+                        self.outgroup_clade = self.t.common_ancestor(
                             outgroup_leaves
                         )
                         # print(f"Ancestor: {self.outgroup_clade}")
@@ -811,7 +820,7 @@ class Tree_information:
 
         for node in copied_tree.traverse():
             node.img_style["size"] = 0  # removing circles whien size is 0
-            if len(node) > 1:  # Prevent bootstrap on single branch
+            if len(node) > 1 and node.support is not None:  # Prevent bootstrap on single/leaf branch
                 node.add_face(
                     TextFace(
                         f"{int(node.support)}",
@@ -851,7 +860,7 @@ class Tree_information:
                     string=leaf.name,
                 )
                 == "query"
-                for leaf in clade.iter_leaves()
+                for leaf in clade.leaves()
             )
             == True
         ):
@@ -866,7 +875,7 @@ class Tree_information:
         collapse_info.height = len(clade) * self.opt.visualize.heightmultiplier
 
         # count query, db, others
-        for leaf in clade.iter_leaves():
+        for leaf in clade.leaves():
             if (
                 decide_type(
                     query_list=self.query_list,
@@ -966,7 +975,7 @@ class Tree_information:
             for child_clade in clade.children:
                 # Calculate root distance between two childs to check flat
                 self.flat = (
-                    True if child_clade.dist <= self.opt.collapsedistcutoff else False
+                    True if (child_clade.dist is None or child_clade.dist <= self.opt.collapsedistcutoff) else False
                 )
 
                 # Check if child clades are monophyletic
@@ -1134,7 +1143,7 @@ class Tree_information:
                 for c in clade.children:
                     c_tmp = c.copy()
                     # zero clades
-                    if c_tmp.dist <= self.zero:
+                    if c_tmp.dist is None or c_tmp.dist <= self.zero:
                         # Original version was == instead of >= . Revert if error occurs
                         # What does the "len" means here? -> len means number of tips
                         # If only one tip
@@ -1232,7 +1241,7 @@ class Tree_information:
                 for taxon in taxon_to_merge:
                     l = clade_dict[taxon]  # l for list of results
                     r_list = [r[1] for r in l]  # result clade list
-                    r_list.sort(key=lambda r: r.dist, reverse=True)
+                    r_list.sort(key=lambda r: r.dist if r.dist is not None else 0.0, reverse=True)
                     r_tuple = tuple(r_list)
 
                     # concatenate within taxon clades
@@ -1241,7 +1250,7 @@ class Tree_information:
                     )
                     tmp_final_clade.append(concatenated_clade)
 
-                    if taxon != ("", "") and concatenated_clade.dist <= self.zero:
+                    if taxon != ("", "") and (concatenated_clade.dist is None or concatenated_clade.dist <= self.zero):
                         flat_issue_cnt += 1
 
                 final_clade = tmp_final_clade + final_clade
@@ -1424,7 +1433,7 @@ class Tree_information:
             # change this part when debugging flat trees
             node.img_style["size"] = 0  # removing circles whien size is 0
 
-            if node.support >= self.opt.visualize.bscutoff:
+            if node.support is not None and node.support >= self.opt.visualize.bscutoff:
                 # node.add_face without generating extra line
                 # add_face_to_node
                 node.add_face(

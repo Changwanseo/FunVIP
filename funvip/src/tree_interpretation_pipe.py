@@ -1,5 +1,5 @@
 # Performing multiple tree interpretation
-from ete3 import Tree
+from ete4 import Tree
 from funvip.src import tree_interpretation
 from funvip.src.tool import initialize_path, get_genus_species
 from funvip.src.tool import sizeof_fmt
@@ -54,10 +54,8 @@ def pipe_module_tree_interpretation(
     if os.path.isfile(tree_name):
         try:
             # If iqtree, missing supports are not shown
-            if opt.method.tree.lower() == "iqtree":
-                Tree(tree_name, format=0)
-            else:
-                Tree(tree_name, format=2)
+            # ete4 autodetects newick format regardless of software
+            Tree(tree_name)
         except:
             logging.error(f"[DEVELOPMENTAL ERROR] Failed on importing tree {tree_name}")
             raise Exception
@@ -122,14 +120,19 @@ def pipe_module_tree_interpretation(
 
     # Reconstruct flat branches if option given
     if opt.solveflat is True:
+        _clade = tree_info.t.copy("newick")
+        # ete4: copy("newick") may leave root with dist=None — normalize
+        for _n in _clade.traverse():
+            if _n.dist is None:
+                _n.dist = 0.0
         tree_info.t = tree_info.reconstruct(
-            clade=tree_info.t.copy("newick"), gene=gene, opt=opt
+            clade=_clade, gene=gene, opt=opt
         )
 
     # print(f"Reconstruct {time() - time_start}")
 
     # reorder tree for pretty look
-    tree_info.t.ladderize(direction=1)
+    tree_info.t.ladderize(reverse=True)
 
     # print(f"Ladderize {time() - time_start}")
 
@@ -148,7 +151,7 @@ def pipe_module_tree_interpretation(
         f"{path.out_tree}/{opt.runname}_{group}_{gene}_original.nwk",
     )
     tree_info.t.write(
-        format=0, outfile=f"{path.out_tree}/{opt.runname}_{group}_{gene}.nwk"
+        outfile=f"{path.out_tree}/{opt.runname}_{group}_{gene}.nwk"
     )
     decode(
         tree_hash_dict,
