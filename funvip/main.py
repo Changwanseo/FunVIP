@@ -52,7 +52,7 @@ def main():
     import shutil
     import sys
     import logging
-    import PyQt5
+    import PyQt6
 
     # To prevent pyqt error
     os.environ["QT_QPA_PLATFORM"] = "offscreen"
