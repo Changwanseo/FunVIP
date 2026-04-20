@@ -780,6 +780,11 @@ class Tree_information:
         # ete4 compat: resolve_polytomy zeros all support values; save them to restore after rerooting
         _support_backup = {id(n): n.support for n in self.t.traverse()}
         self.t.resolve_polytomy()
+        # ete4 compat: new internal nodes created by resolve_polytomy get support=0;
+        # set to 1.0 to match ete3 DEFAULT_SUPPORT so NWK output writes 1 not 0
+        for _n in self.t.traverse():
+            if id(_n) not in _support_backup and not _n.is_leaf:
+                _n.support = 1.0
 
         # Check if outgroup sequences exists
         print(f"[INFO] Rerooting {self.outgroup} in {self.tree_name}")
