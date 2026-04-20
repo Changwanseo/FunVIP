@@ -191,6 +191,16 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
                     # Create search database
                     create_search_db(opt, db_fasta, db, path)
 
+        else:
+            # usecache=False, cachedb=True: build DB and save to cache
+            logging.info(
+                f"--cachedb selected, {opt.method.search.lower()} database will be saved"
+            )
+            mkdir(f"{path.in_db}/{opt.method.search.lower()}/{_hash}")
+            db = f"{path.in_db}/{opt.method.search.lower()}/{_hash}/{_hash}"
+            logging.info("The database is in first run, caching database")
+            create_search_db(opt, db_fasta, db, path)
+
     else:
         mkdir(f"{path.tmp}/{opt.runname}/{_hash}")
         db = f"{path.tmp}/{opt.runname}/{_hash}/{_hash}"
