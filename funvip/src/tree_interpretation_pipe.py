@@ -120,19 +120,29 @@ def pipe_module_tree_interpretation(
 
     # Reconstruct flat branches if option given
     if opt.solveflat is True:
-        _clade = tree_info.t.copy("newick")
-        # ete4: copy("newick") may leave root with dist=None — normalize
+        # ete4: copy("newick") uses parser=1 which drops support values;
+        # use deepcopy to preserve branch support for visualization.
+        _clade = tree_info.t.copy("deepcopy")
         for _n in _clade.traverse():
             if _n.dist is None:
                 _n.dist = 0.0
+            # ete4 compat: ete3 DEFAULT_SUPPORT=1.0 became 100 after scale
+            # conversion; ete4 leaves/root get support=None. Normalize only
+            # INTERNAL nodes None→100 (when scale conversion occurred) so
+            # intermediate nodes created by reconstruct/solve_flat carry
+            # support=100 like ete3. Leaves must stay None: concat_clade maps
+            # None→1 for them, which is < bscutoff (correct — ete3 also sets
+            # leaf DEFAULT_SUPPORT=1.0 → 1 after newick round-trip → not shown).
+            if not _n.is_leaf and _n.support is None and tree_info.support_scaled:
+                _n.support = 100
         tree_info.t = tree_info.reconstruct(
             clade=_clade, gene=gene, opt=opt
         )
 
     # print(f"Reconstruct {time() - time_start}")
 
-    # reorder tree for pretty look
-    tree_info.t.ladderize(reverse=True)
+    # reorder tree for pretty look (ete3-compatible tie-breaking)
+    tree_interpretation._ladderize_ete3_compat(tree_info.t)
 
     # print(f"Ladderize {time() - time_start}")
 

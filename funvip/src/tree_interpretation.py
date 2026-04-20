@@ -8,6 +8,44 @@ from ete4.treeview import (
     RectFace,
     faces,
 )
+
+# Fix ete4 bug: _leaf() uses hasattr(node, "_img_style") but ete4 stores
+# _img_style in node.props (dict), so hasattr always returns False, making
+# draw_descendants=False a no-op. Patch all modules that have their own copy.
+def _ete4_fixed_leaf(node):
+    collapsed = "_img_style" in node.props and not node.img_style["draw_descendants"]
+    return collapsed or node.is_leaf
+
+import ete4.treeview.qt_render as _ete4_qt_render
+import ete4.treeview.qt_rect_render as _ete4_qt_rect_render
+import ete4.treeview.qt_face_render as _ete4_qt_face_render
+import ete4.treeview.qt_gui as _ete4_qt_gui
+
+_ete4_qt_render._leaf = _ete4_fixed_leaf
+_ete4_qt_rect_render._leaf = _ete4_fixed_leaf
+_ete4_qt_face_render._leaf = _ete4_fixed_leaf
+_ete4_qt_gui._leaf = _ete4_fixed_leaf
+
+
+def _ladderize_ete3_compat(node):
+    """Replicate ete3's ladderize(direction=1) tie-breaking behavior.
+
+    ete3 sorts ascending by leaf count (stable), then calls reverse().
+    ete4 sorts descending (stable) with a secondary key len(children).
+    When subtrees have equal leaf counts, the two-step ete3 approach reverses
+    tied items while ete4's one-step approach preserves their original order —
+    producing different sp. N numbering for balanced clades.
+    """
+    if node.is_leaf:
+        return 1
+    n2s = {}
+    for child in node.children:
+        n2s[child] = _ladderize_ete3_compat(child)
+    node.children.sort(key=lambda x: n2s[x])  # ascending stable (leaf count)
+    node.children.reverse()                     # reverse = ete3 direction=1
+    return sum(n2s.values())
+
+
 from Bio import SeqIO
 from copy import deepcopy
 from time import sleep
@@ -106,7 +144,6 @@ def concat_clade(
     root_support=0,
 ):
     tmp = Tree()
-    # ete4: normalize None dist/support values from copy("newick")
     tmp.dist = root_dist if root_dist is not None else CONCAT_ZERO
     tmp.support = root_support if root_support is not None else 0
     tmp.add_child(clade1, dist=dist1 if dist1 is not None else CONCAT_ZERO,
@@ -124,13 +161,13 @@ def concat_all(clade_tuple, root_dist, root_support=0):
         raise Exception
     # If one clade were input, return self
     elif len(clade_tuple) == 1:
-        return clade_tuple[0].copy("newick")
+        return clade_tuple[0].copy("deepcopy")
     # If two clades were input, concat it and return
     elif len(clade_tuple) == 2:
-        return_clade = clade_tuple[0].copy("newick")
+        return_clade = clade_tuple[0].copy("deepcopy")
         return_clade = concat_clade(
             clade1=return_clade,
-            clade2=clade_tuple[1].copy("newick"),
+            clade2=clade_tuple[1].copy("deepcopy"),
             dist1=return_clade.dist,
             dist2=clade_tuple[1].dist,
             support1=return_clade.support,
@@ -142,11 +179,11 @@ def concat_all(clade_tuple, root_dist, root_support=0):
     # If more than 2 species exists, and sp included, which taxon sp should be included cannot be decided
     # In that case, move sp clade to last
     elif len(clade_tuple) >= 3:
-        return_clade = clade_tuple[0].copy("newick")
+        return_clade = clade_tuple[0].copy("deepcopy")
         for c in clade_tuple[1:-1]:
             return_clade = concat_clade(
                 clade1=return_clade,
-                clade2=c.copy("newick"),
+                clade2=c.copy("deepcopy"),
                 dist1=return_clade.dist,
                 dist2=c.dist,
                 support1=return_clade.support,
@@ -154,7 +191,7 @@ def concat_all(clade_tuple, root_dist, root_support=0):
             )
         return_clade = concat_clade(
             clade1=return_clade,
-            clade2=clade_tuple[-1].copy("newick"),
+            clade2=clade_tuple[-1].copy("deepcopy"),
             dist1=return_clade.dist,
             dist2=clade_tuple[-1].dist,
             support1=return_clade.support,
@@ -543,10 +580,14 @@ class Tree_information:
             b.support for b in self.t.traverse() if b.support is not None
         )
 
+        # Track whether scale conversion happens — used by pipe to normalize
+        # ete4's None-support nodes for ete3-compatible reconstruct behavior
+        self.support_scaled = False
         if support_set and max(support_set) <= 1:
             for b in self.t.traverse():
                 if b.support is not None:
                     b.support = int(100 * b.support)
+            self.support_scaled = True
 
         self.query_list = []
         self.db_list = []
@@ -736,6 +777,8 @@ class Tree_information:
         outgroup_leaves = []
 
         # Resolve polytomy before rerooting
+        # ete4 compat: resolve_polytomy zeros all support values; save them to restore after rerooting
+        _support_backup = {id(n): n.support for n in self.t.traverse()}
         self.t.resolve_polytomy()
 
         # Check if outgroup sequences exists
@@ -758,13 +801,13 @@ class Tree_information:
                 self.t.unroot()
                 self.outgroup_clade = self.t.common_ancestor(outgroup_leaves)
                 self.t.set_outgroup(self.outgroup_clade)
-                self.t.ladderize(reverse=True)
+                _ladderize_ete3_compat(self.t)
                 self.outgroup_clade = self.t.common_ancestor(outgroup_leaves)
             elif len(outgroup_leaves) == 1:
                 self.t.unroot()
                 self.outgroup_clade = outgroup_leaves[0]
                 self.t.set_outgroup(self.outgroup_clade)
-                self.t.ladderize(reverse=True)
+                _ladderize_ete3_compat(self.t)
                 self.outgroup_clade = outgroup_leaves[0]
             else:
                 print(
@@ -811,6 +854,12 @@ class Tree_information:
                     f"{bold_red}[ERROR] tree_info.outgroup_clade : {self.outgroup_clade}{reset}"
                 )
                 raise Exception
+
+        # ete4 compat: restore support values destroyed by resolve_polytomy
+        # (set_outgroup creates new nodes not in backup; those stay None for None→100 fix)
+        for _n in self.t.traverse():
+            if id(_n) in _support_backup:
+                _n.support = _support_backup[id(_n)]
 
         self.Tree_style.ts.show_leaf_name = True
 
@@ -1269,12 +1318,12 @@ class Tree_information:
 
                 # print(f"Status flat: {self.flat_clades}")
 
-                return final.copy("newick")
+                return final.copy("deepcopy")
             ## end of solve flat
 
         ## Start of function reconstruct
         if len(clade.children) in (0, 1):
-            return clade.copy("newick")
+            return clade.copy("deepcopy")
 
         elif len(clade.children) == 2:
             clade1 = clade.children[0]
@@ -1282,9 +1331,9 @@ class Tree_information:
 
             # Solve flat
             if clade.dist <= self.zero:
-                return solve_flat(clade).copy("newick")
+                return solve_flat(clade).copy("deepcopy")
             elif clade1.dist <= self.zero or clade2.dist <= self.zero:
-                return solve_flat(clade).copy("newick")
+                return solve_flat(clade).copy("deepcopy")
             else:
                 r_clade1 = self.reconstruct(clade1, gene, opt)
                 r_clade2 = self.reconstruct(clade2, gene, opt)
@@ -1298,7 +1347,7 @@ class Tree_information:
                 support2=clade2.support,
                 root_dist=clade.dist,
                 root_support=clade.support,
-            ).copy("newick")
+            ).copy("deepcopy")
 
             if self.opt.verbose >= 3:
                 print(f"[DEBUG] End of reconstruct")
