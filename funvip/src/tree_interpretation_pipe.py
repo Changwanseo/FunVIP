@@ -585,6 +585,33 @@ def pipe_module_tree_visualization(
 
 
 ### For all datasets, multiprocessing part
+def _safe_pipe_module_tree_interpretation(*args):
+    # Per-item guard: a crash in one (group, gene) must not kill the whole batch
+    # (starmap re-raises the first worker exception -> no result.csv for the 900+
+    # genera that DID succeed). Log and skip the bad one instead.
+    try:
+        return pipe_module_tree_interpretation(*args)
+    except Exception as e:
+        group = args[1] if len(args) > 1 else "?"
+        gene = args[2] if len(args) > 2 else "?"
+        logging.error(f"[TREE INTERPRETATION FAILED] {group} {gene}: {e!r}")
+        return None
+
+
+def _safe_pipe_module_tree_visualization(*args):
+    try:
+        return pipe_module_tree_visualization(*args)
+    except Exception as e:
+        ti = args[0] if args else None
+        gg = (
+            f"{getattr(ti, 'group', '?')} {getattr(ti, 'gene', '?')}"
+            if ti is not None
+            else "?"
+        )
+        logging.error(f"[TREE VISUALIZATION FAILED] {gg}: {e!r}")
+        return None
+
+
 def pipe_tree_interpretation(V, path, opt):
     # Generate tree_interpretation opt to run
     # tree_interpretation_opt = []
@@ -662,7 +689,7 @@ def pipe_tree_interpretation(V, path, opt):
     if opt.verbose < 3:
         with mp.Pool(opt.thread) as p:
             tree_info_list.extend(
-                p.starmap(pipe_module_tree_interpretation, tree_interpretation_opt)
+                p.starmap(_safe_pipe_module_tree_interpretation, tree_interpretation_opt)
             )
 
     else:
@@ -671,6 +698,13 @@ def pipe_tree_interpretation(V, path, opt):
             pipe_module_tree_interpretation(*option)
             for option in tree_interpretation_opt
         ]
+
+    # Drop genera that failed interpretation (guarded above) so one bad tree
+    # does not sink the whole run; failures are logged as [TREE INTERPRETATION FAILED].
+    _n_failed = sum(1 for ti in tree_info_list if ti is None)
+    if _n_failed:
+        logging.warning(f"{_n_failed} (group, gene) trees failed interpretation and were skipped")
+    tree_info_list = [ti for ti in tree_info_list if ti is not None]
 
     # Gather flat branch issues
     for tree_info in tree_info_list:
@@ -698,7 +732,7 @@ def pipe_tree_interpretation(V, path, opt):
     if opt.verbose < 3:
         with mp.Pool(opt.thread) as p:
             tree_visualization_result = p.starmap(
-                pipe_module_tree_visualization, tree_visualization_opt
+                _safe_pipe_module_tree_visualization, tree_visualization_opt
             )
 
     else:
@@ -706,6 +740,9 @@ def pipe_tree_interpretation(V, path, opt):
         tree_visualization_result = [
             pipe_module_tree_visualization(*option) for option in tree_visualization_opt
         ]
+
+    # Drop genera that failed visualization (guarded) before flattening
+    tree_visualization_result = [r for r in tree_visualization_result if r is not None]
 
     ### Collect identifiation result to V for reporting
     # Merge report list
