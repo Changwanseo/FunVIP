@@ -46,6 +46,28 @@ def _ladderize_ete3_compat(node):
     return sum(n2s.values())
 
 
+def _ete4_make_root_consistent(t):
+    """ete4 compat: ete4's assert_root_consistency (called inside unroot/set_outgroup)
+    requires root.dist in {0, None}, no 'support' on the root, and equal support on the
+    two root children. FastTree/RAxML trees read from newick routinely violate the last
+    (e.g. support 1.0 vs 0.0), raising AssertionError. Coerce the current root to a
+    consistent state before any reroot operation."""
+    try:
+        if getattr(t, "dist", None) not in (0, None):
+            t.dist = 0
+        if "support" in getattr(t, "props", {}):
+            t.props.pop("support", None)
+        ch = t.children
+        if len(ch) == 2:
+            s = ch[0].support if ch[0].support is not None else ch[1].support
+            if s is None:
+                s = 1.0
+            ch[0].support = s
+            ch[1].support = s
+    except Exception:
+        pass
+
+
 from Bio import SeqIO
 from copy import deepcopy
 from time import sleep
@@ -571,8 +593,11 @@ class Tree_information:
             None  # for publish tree - will substitute tree_original in long_term
         )
         self.dendro_t = dendropy.Tree.get(
-            path=self.tree_name, schema="newick"
+            path=self.tree_name, schema="newick", preserve_underscores=True
         )  # dendropy format for distance calculation
+        # ete4 compat: dendropy converts unquoted Newick underscores to spaces by default,
+        # so pdc keys ('Genus species') would not match alignment ids ('Genus_species') and
+        # calculate_zero() raises KeyError. preserve_underscores=True keeps them aligned.
 
         # if support ranges from 0 to 1, change it from 0 to 100
         # b for branch (leaves have support=None in ete4, skip them)
@@ -803,12 +828,14 @@ class Tree_information:
             # For more than one outgroups, after rerooting, common_ancestor of outgroup again
             # Before rerooting, unroot the tree to work properly
             if len(outgroup_leaves) >= 2:
+                _ete4_make_root_consistent(self.t)
                 self.t.unroot()
                 self.outgroup_clade = self.t.common_ancestor(outgroup_leaves)
                 self.t.set_outgroup(self.outgroup_clade)
                 _ladderize_ete3_compat(self.t)
                 self.outgroup_clade = self.t.common_ancestor(outgroup_leaves)
             elif len(outgroup_leaves) == 1:
+                _ete4_make_root_consistent(self.t)
                 self.t.unroot()
                 self.outgroup_clade = outgroup_leaves[0]
                 self.t.set_outgroup(self.outgroup_clade)
@@ -833,6 +860,7 @@ class Tree_information:
             # if outgroup_clade is on the root side, reroot with other leaf temporarily and reroot again
             for leaf in self.t:
                 if not (leaf in outgroup_leaves):
+                    _ete4_make_root_consistent(self.t)
                     self.t.set_outgroup(leaf)
                     # Rerooting again while outgrouping gets possible
                     try:
@@ -840,6 +868,7 @@ class Tree_information:
                             outgroup_leaves
                         )
                         # print(f"Ancestor: {self.outgroup_clade}")
+                        _ete4_make_root_consistent(self.t)
                         self.t.set_outgroup(self.outgroup_clade)
                         outgroup_flag = True
                         break
