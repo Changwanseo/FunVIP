@@ -150,8 +150,13 @@ def pipe_module_tree_interpretation(
     # Is not currently used
     # tree_info.t_publish = deepcopy(tree_info.t)
 
-    # Search tree and delimitate species
-    tree_info.tree_search(tree_info.t, gene)
+    # Search tree and delimitate species.
+    # Enable subtree taxon-count memoization for this (static, post-solve_flat) tree only.
+    tree_interpretation._tc_cache_begin()
+    try:
+        tree_info.tree_search(tree_info.t, gene)
+    finally:
+        tree_interpretation._tc_cache_end()
 
     # print(f"Tree search {time() - time_start}")
 

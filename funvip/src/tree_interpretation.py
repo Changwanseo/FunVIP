@@ -273,9 +273,30 @@ def decide_type(query_list, db_list, outgroup, string, by="hash", priority="quer
 
 
 # count number of taxons in the clade
-def taxon_count(
+# Subtree taxon-count memoization, active only during tree_search (topology is static
+# there; solve_flat mutations already happened). Keyed by id(node) so it does not pollute
+# node.props (ete4 nodes are __slots__ and reject arbitrary attributes) and is not written
+# to newick. Cleared per tree by _tc_cache_begin/_tc_cache_end so id() reuse across trees
+# cannot cause stale hits. Toggle off with FUNVIP_NO_TC_MEMO for A/B verification.
+_TC_CACHE = None
+
+
+def _tc_cache_begin():
+    global _TC_CACHE
+    if not os.environ.get("FUNVIP_NO_TC_MEMO"):
+        _TC_CACHE = {}
+
+
+def _tc_cache_end():
+    global _TC_CACHE
+    _TC_CACHE = None
+
+
+def _taxon_count_flat(
     funinfo_dict, query_list, db_list, outgroup, clade, gene, count_query=False
 ):
+    # Original non-memoized full-leaf scan. Reference for the FUNVIP_TC_ASSERT self-check
+    # and used whenever memoization is inactive.
     taxon_dict = {}
 
     for leaf in clade:
@@ -308,6 +329,62 @@ def taxon_count(
                 taxon_dict[taxon] += 1
 
     return taxon_dict
+
+
+def taxon_count(
+    funinfo_dict, query_list, db_list, outgroup, clade, gene, count_query=False
+):
+    # Memoized recursive path (active during tree_search). Equivalent to the flat scan:
+    # leaf iteration of a node equals the ordered concatenation of its children's leaves,
+    # so the merged dict has identical keys, counts, and insertion order (which
+    # find_majortaxon tie-breaks on). Turns the repeated full-subtree rescans (O(n^2) on
+    # many-species genera) into one post-order (O(n)). Set FUNVIP_TC_ASSERT to verify the
+    # memoized result against the flat scan on every call.
+    if _TC_CACHE is not None:
+        key = (id(clade), gene, count_query)
+        hit = _TC_CACHE.get(key)
+        if hit is not None:
+            # hand out a copy: callers must never mutate the shared cached dict
+            result = dict(hit)
+        else:
+            taxon_dict = {}
+            if clade.is_leaf:
+                FI = funinfo_dict[clade.name]
+                taxon = None
+                if count_query == True:
+                    taxon = (FI.genus, FI.bygene_species[gene])
+                elif decide_type(
+                    query_list=query_list,
+                    db_list=db_list,
+                    outgroup=outgroup,
+                    string=clade.name,
+                ) in ("db", "outgroup"):
+                    taxon = (FI.genus, FI.bygene_species[gene])
+                if taxon is not None:
+                    taxon_dict[taxon] = 1
+            else:
+                for child in clade.children:
+                    cd = taxon_count(
+                        funinfo_dict, query_list, db_list, outgroup, child, gene, count_query
+                    )
+                    for k, v in cd.items():
+                        taxon_dict[k] = taxon_dict.get(k, 0) + v
+            _TC_CACHE[key] = taxon_dict
+            result = dict(taxon_dict)
+        if os.environ.get("FUNVIP_TC_ASSERT"):
+            _flat = _taxon_count_flat(
+                funinfo_dict, query_list, db_list, outgroup, clade, gene, count_query
+            )
+            if list(result.items()) != list(_flat.items()):
+                sys.stderr.write(
+                    f"[TC_ASSERT] mismatch cq={count_query} "
+                    f"leaves={[l.name for l in clade]}\n  memo={result}\n  flat={_flat}\n"
+                )
+        return result
+
+    return _taxon_count_flat(
+        funinfo_dict, query_list, db_list, outgroup, clade, gene, count_query
+    )
 
 
 def genus_count(funinfo_dict, gene, clade):
