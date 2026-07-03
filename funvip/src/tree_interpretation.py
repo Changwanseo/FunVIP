@@ -864,6 +864,19 @@ class Tree_information:
         if diff_min < self.zero:
             self.zero = diff_min - 0.00000001
 
+        # Engine-aware floor on self.zero. A different-sequence pair can be squeezed down
+        # to ~the tree engine's minimum branch length, so diff_min bottoms out near that
+        # floor. FastTree's floor (~5e-9) is ~200x smaller than RAxML's / IQ-TREE's (~1e-6):
+        # for FastTree a minimum-branch cherry gives diff_min ~= 1e-8, and the fixed
+        # "diff_min - 1e-8" then collapses self.zero to <= 0, silently disabling flat-branch
+        # resolution (identical sequences on 5e-9 branches never get flattened/merged).
+        # Never let self.zero drop below the selected engine's own minimum branch length.
+        _engine_min_branch = {"fasttree": 5e-9, "iqtree": 1e-6, "raxml": 1e-6}
+        self.zero = max(
+            self.zero,
+            _engine_min_branch.get(str(self.opt.method.tree).lower(), 5e-9),
+        )
+
         if self.opt.verbose >= 3:
             print(f"[DEBUG] End of calculate zero")
             process = psutil.Process(os.getpid())
