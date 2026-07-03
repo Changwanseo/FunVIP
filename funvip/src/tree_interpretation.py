@@ -79,6 +79,7 @@ from funvip.src.tool import get_id, get_genus_species
 from itertools import combinations
 import tracemalloc
 import dendropy
+import numpy as np
 import collections
 import psutil
 import os
@@ -287,6 +288,28 @@ def decide_type(query_list, db_list, outgroup, string, by="hash", priority="quer
             f"{bold_red}[ERROR] DEVELOPMENTAL ERROR, UNEXPECTED by for decide_type{reset}"
         )
         raise Exception
+
+
+# uint8 lookup for encoding aligned sequences: a/t/g/c -> 1..4, everything else (gap '-',
+# ambiguity codes, any non-atgc char) -> 0. Matches the old per-char cleaning
+# ("'-' if char not in 'atgc-' else char"), where both '-' and non-atgc collapse to gap.
+_ATGC_CODE = np.zeros(256, dtype=np.uint8)
+for _i, _c in enumerate(b"atgc"):
+    _ATGC_CODE[_c] = _i + 1
+
+
+def _encode_alignment(seq_list):
+    # Encode every aligned sequence once (O(n*L)) into an (n, L) uint8 matrix so calculate_zero
+    # can compare overlaps with numpy instead of per-pair Python char loops.
+    n = len(seq_list)
+    L = len(seq_list[0].seq)
+    arr = np.zeros((n, L), dtype=np.uint8)
+    for i, record in enumerate(seq_list):
+        buf = np.frombuffer(
+            str(record.seq).lower().encode("ascii", "replace"), dtype=np.uint8
+        )
+        arr[i] = _ATGC_CODE[buf]
+    return arr
 
 
 # count number of taxons in the clade
@@ -753,122 +776,60 @@ class Tree_information:
             raise Exception
 
         # Find identical or including pairs in alignment
-        identical_pairs = []
-        # different_pairs = []
-
         # make phylogenetic distance matrix
         pdc = self.dendro_t.phylogenetic_distance_matrix().as_data_table()._data
 
+        # Vectorized replacement of the former O(n^2) all-pairs Python loop. Over every pair we
+        # still need: self.zero = max patristic distance among pairs IDENTICAL over their overlap,
+        # and diff_min = min patristic distance among pairs that DIFFER. Each sequence is encoded
+        # once (uint8; gap and any non-atgc char -> 0), then per pair the overlap is compared with
+        # numpy instead of a Python char loop. Behaviour matches the old loop (verified equal on
+        # real trees). The per-partition overlap for concatenated alignments is now applied to
+        # every pair; the old code reused the loop name `gene` in `for gene in gene_order`, which
+        # clobbered the `gene` argument so only the first pair took the per-partition path and the
+        # rest silently fell through to the whole-sequence branch.
+        ids = [str(record.id).strip() for record in seq_list]
+        arr = _encode_alignment(seq_list)
+        nongap = arr != 0
+        n_seq, n_col = arr.shape
+
+        if gene == "concatenated":
+            spans = []
+            _offset = 0
+            for _g in partition_dict["order"]:
+                spans.append((_offset, _offset + partition_dict["len"][_g]))
+                _offset += partition_dict["len"][_g]
+        else:
+            spans = [(0, n_col)]
+
         diff_min = 999999
-        for seq1, seq2 in combinations(seq_list, 2):
-            if not (
-                str(seq1.id).strip() == str(seq2.id).strip()
-                or (seq1.id, seq2.id) in identical_pairs
-                or (seq2.id, seq1.id) in identical_pairs
-            ):
-                """
-                # Chenge unusable chars into gap
-                seq1_str = str(seq1.seq).lower()
-                seq2_str = str(seq2.seq).lower()
-
-                for char in set(seq1_str) - {"a", "t", "g", "c", "-"}:
-                    seq1_str = seq1_str.replace(char, "-")
-
-                for char in set(seq2_str) - {"a", "t", "g", "c", "-"}:
-                    seq2_str = seq2_str.replace(char, "-")
-                """
-
-                seq1_str, seq2_str = str(seq1.seq).lower(), str(seq2.seq).lower()
-                seq1_str = "".join(
-                    "-" if char not in "atgc-" else char for char in seq1_str
-                )
-                seq2_str = "".join(
-                    "-" if char not in "atgc-" else char for char in seq2_str
-                )
-
-                identical_flag = True
-                # To prevent distance among different region detected as zero in concatenated analysis
-                overlapping_cnt = 0
-
-                # For concatenated sequence alignment, identical sequnece should be checked by each partitions
-                if gene == "concatenated":
-                    len_dict = partition_dict["len"]
-                    gene_order = partition_dict["order"]
-
-                    valid_index = []
-
-                    # calculate valid index to check
-                    previous_index = 0
-
-                    for gene in gene_order:
-                        start = previous_index
-                        end = previous_index + len_dict[gene] - 1
-
-                        # Find the starting point
-                        for n in range(previous_index, len_dict[gene] + previous_index):
-                            if seq1_str[n] != "-" and seq2_str[n] != "-":
-                                start = n
-                                break
-
-                        # Compare from the start
-                        for n in range(
-                            len_dict[gene] + previous_index - 1,
-                            previous_index - 1,
-                            -1,
-                        ):
-                            if seq1_str[n] != "-" and seq2_str[n] != "-":
-                                end = n
-                                break
-
-                        valid_index.extend(range(start, end + 1))
-
-                        previous_index += len_dict[gene]
-
-                    # for valid part
-                    for n in valid_index:
-                        # connected with or to evaluate insertions or deletions
-                        if seq1_str[n] != seq2_str[n]:
-                            identical_flag = False
-                        else:
-                            overlapping_cnt += 1
-
-                else:
-                    start = 0
-                    end = len(seq1_str) - 1
-                    # calculate start and end
-                    for n in range(len(seq1_str)):
-                        if seq1_str[n] != "-" and seq2_str[n] != "-":
-                            start = n
-                            break
-
-                    for n in range(len(seq1_str)):
-                        if (
-                            seq1_str[len(seq1_str) - n - 1] != "-"
-                            and seq2_str[len(seq1_str) - n - 1] != "-"
-                        ):
-                            end = len(seq1_str) - n
-                            break
-
-                    # for valid part
-                    for n in range(start, end):
-                        # connected with or to evaluate insertions or deletions
-                        if seq1_str[n] != seq2_str[n]:
-                            identical_flag = False
-                        else:
-                            overlapping_cnt += 1
-
-                # if identical pairs
-                id1 = str(seq1.id).strip()
-                id2 = str(seq2.id).strip()
+        for i in range(n_seq):
+            arr_i = arr[i]
+            nongap_i = nongap[i]
+            pdc_i = pdc[ids[i]]
+            for j in range(i + 1, n_seq):
+                if ids[i] == ids[j]:
+                    continue
+                both = nongap_i & nongap[j]
+                valid = np.zeros(n_col, dtype=np.bool_)
+                for a, b in spans:
+                    nz = np.flatnonzero(both[a:b])
+                    if nz.size:
+                        valid[a + nz[0] : a + nz[-1] + 1] = True
+                if not valid.any():
+                    continue
+                eq = arr_i[valid] == arr[j][valid]
+                overlapping_cnt = int(eq.sum())
+                identical_flag = bool(eq.all())
 
                 if identical_flag is True and overlapping_cnt > 0:
-                    if pdc[id1][id2] > self.zero:
-                        self.zero = pdc[id1][id2]
-
-                # if different pairs
+                    d = pdc_i[ids[j]]
+                    if d > self.zero:
+                        self.zero = d
                 elif identical_flag is False:
-                    if pdc[id1][id2] < diff_min:
-                        diff_min = pdc[id1][id2]
+                    d = pdc_i[ids[j]]
+                    if d < diff_min:
+                        diff_min = d
 
         if diff_min < self.zero:
             self.zero = diff_min - 0.00000001
