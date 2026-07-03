@@ -775,19 +775,9 @@ class Tree_information:
             )
             raise Exception
 
-        # Find identical or including pairs in alignment
-        # make phylogenetic distance matrix
-        pdc = self.dendro_t.phylogenetic_distance_matrix().as_data_table()._data
-
-        # Vectorized replacement of the former O(n^2) all-pairs Python loop. Over every pair we
-        # still need: self.zero = max patristic distance among pairs IDENTICAL over their overlap,
-        # and diff_min = min patristic distance among pairs that DIFFER. Each sequence is encoded
-        # once (uint8; gap and any non-atgc char -> 0), then per pair the overlap is compared with
-        # numpy instead of a Python char loop. Behaviour matches the old loop (verified equal on
-        # real trees). The per-partition overlap for concatenated alignments is now applied to
-        # every pair; the old code reused the loop name `gene` in `for gene in gene_order`, which
-        # clobbered the `gene` argument so only the first pair took the per-partition path and the
-        # rest silently fell through to the whole-sequence branch.
+        # Encode each sequence once (uint8; gap and any non-atgc char -> 0, matching the old
+        # "atgc-" cleaning). The per-partition overlap is applied to every pair (the old code
+        # reused the loop name `gene` in `for gene in gene_order`, clobbering the `gene` argument).
         ids = [str(record.id).strip() for record in seq_list]
         arr = _encode_alignment(seq_list)
         nongap = arr != 0
@@ -802,37 +792,93 @@ class Tree_information:
         else:
             spans = [(0, n_col)]
 
+        def _overlap_compare(i, j):
+            # returns (differ?, overlapping_cnt) over the per-partition overlap; None if no overlap
+            both = nongap[i] & nongap[j]
+            valid = np.zeros(n_col, dtype=np.bool_)
+            for a, b in spans:
+                nz = np.flatnonzero(both[a:b])
+                if nz.size:
+                    valid[a + nz[0] : a + nz[-1] + 1] = True
+            if not valid.any():
+                return None
+            eq = arr[i][valid] == arr[j][valid]
+            return (not bool(eq.all()), int(eq.sum()))
+
+        # diff_min = min patristic distance among pairs that DIFFER. Any different pair with a
+        # patristic distance < zero_init must lie inside one <= zero_init-connected cluster (a path
+        # summing to < zero_init has every branch < zero_init), so only within-cluster pairs can set
+        # a diff_min below zero_init. And whenever diff_min < zero_init the final self.zero is
+        # max(diff_min - 1e-8, floor) regardless of max_identical (self.zero is capped at
+        # diff_min - 1e-8 because diff_min < zero_init <= max(zero_init, max_identical)). So in the
+        # common (metabarcoding) case we avoid both the O(n^2) phylogenetic distance matrix and the
+        # O(n^2) all-pairs scan; only clean, well-separated data (no different pair < zero_init)
+        # falls back to the full scan below.
+        zero_init = self.zero
+        idx_of = {name: k for k, name in enumerate(ids)}
+
+        _parent = {}
+
+        def _find(x):
+            while _parent.get(x, x) != x:
+                _parent[x] = _parent.get(_parent[x], _parent[x])
+                x = _parent[x]
+            return x
+
+        def _union(a, b):
+            _parent.setdefault(a, a)
+            _parent.setdefault(b, b)
+            _parent[_find(a)] = _find(b)
+
+        for _nd in self.t.traverse():
+            _parent.setdefault(id(_nd), id(_nd))
+            if _nd.up is not None and (_nd.dist or 0) <= zero_init:
+                _union(id(_nd), id(_nd.up))
+
+        _clusters = {}
+        for _lf in self.t.leaves():
+            _clusters.setdefault(_find(id(_lf)), []).append(_lf)
+
         diff_min = 999999
-        for i in range(n_seq):
-            arr_i = arr[i]
-            nongap_i = nongap[i]
-            pdc_i = pdc[ids[i]]
-            for j in range(i + 1, n_seq):
-                if ids[i] == ids[j]:
-                    continue
-                both = nongap_i & nongap[j]
-                valid = np.zeros(n_col, dtype=np.bool_)
-                for a, b in spans:
-                    nz = np.flatnonzero(both[a:b])
-                    if nz.size:
-                        valid[a + nz[0] : a + nz[-1] + 1] = True
-                if not valid.any():
-                    continue
-                eq = arr_i[valid] == arr[j][valid]
-                overlapping_cnt = int(eq.sum())
-                identical_flag = bool(eq.all())
+        for _cl in _clusters.values():
+            if len(_cl) < 2:
+                continue
+            for _a in range(len(_cl)):
+                _ia = idx_of[_cl[_a].name]
+                for _b in range(_a + 1, len(_cl)):
+                    _cmp = _overlap_compare(_ia, idx_of[_cl[_b].name])
+                    if _cmp is not None and _cmp[0]:
+                        _pat = self.t.get_distance(_cl[_a], _cl[_b])
+                        if _pat < diff_min:
+                            diff_min = _pat
 
-                if identical_flag is True and overlapping_cnt > 0:
-                    d = pdc_i[ids[j]]
-                    if d > self.zero:
-                        self.zero = d
-                elif identical_flag is False:
-                    d = pdc_i[ids[j]]
-                    if d < diff_min:
-                        diff_min = d
-
-        if diff_min < self.zero:
+        if diff_min < zero_init:
+            # short-circuit: no distance matrix and no max-identical scan needed
             self.zero = diff_min - 0.00000001
+        else:
+            # clean, well-separated data: build the distance matrix and do the full pairwise scan
+            # for the exact max-identical and the (>= zero_init) diff_min
+            pdc = self.dendro_t.phylogenetic_distance_matrix().as_data_table()._data
+            diff_min = 999999
+            for i in range(n_seq):
+                pdc_i = pdc[ids[i]]
+                for j in range(i + 1, n_seq):
+                    if ids[i] == ids[j]:
+                        continue
+                    _cmp = _overlap_compare(i, j)
+                    if _cmp is None:
+                        continue
+                    _differ, _overlap = _cmp
+                    if (not _differ) and _overlap > 0:
+                        d = pdc_i[ids[j]]
+                        if d > self.zero:
+                            self.zero = d
+                    elif _differ:
+                        d = pdc_i[ids[j]]
+                        if d < diff_min:
+                            diff_min = d
+            if diff_min < self.zero:
+                self.zero = diff_min - 0.00000001
 
         # Engine-aware floor on self.zero. A different-sequence pair can be squeezed down
         # to ~the tree engine's minimum branch length, so diff_min bottoms out near that
