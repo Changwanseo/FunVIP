@@ -246,21 +246,38 @@ class Tree_style:
         self.ts.show_leaf_name = False
 
 
-@lru_cache(maxsize=10000)
-def decide_type(query_list, db_list, outgroup, string, by="hash", priority="query"):
-    query = False
-    db = False
+# Cache the hash sets derived from (query_list, db_list, outgroup). decide_type is called
+# once per leaf inside consist/get_taxon/taxon_count, i.e. O(n * tree-depth) times during
+# reconstruct; recomputing three O(n) lists and doing O(n) list-membership on every call made
+# it the dominant cost (~O(n^3) on the deep FastTree combs). The three input tuples are set
+# once per tree on Tree_information, so key on their object identity and rebuild only when they
+# change (a new tree). Single entry: holds one tree's sets, replaced (old GC'd) when the tree
+# changes, so RAM stays O(n) per worker; separate worker processes each keep their own.
+# (The former @lru_cache was ineffective: its key was these big list-tuples, so every lookup
+# re-hashed them in O(n).)
+_DECIDE_TYPE_HASHSETS = None
 
-    query_hash_list = [FI.hash for FI in query_list]
-    db_hash_list = [FI.hash for FI in db_list]
-    outgroup_hash_list = [FI.hash for FI in outgroup]
+
+def decide_type(query_list, db_list, outgroup, string, by="hash", priority="query"):
+    global _DECIDE_TYPE_HASHSETS
+    c = _DECIDE_TYPE_HASHSETS
+    if c is None or c[0] is not query_list or c[1] is not db_list or c[2] is not outgroup:
+        c = (
+            query_list,
+            db_list,
+            outgroup,
+            frozenset(FI.hash for FI in query_list),
+            frozenset(FI.hash for FI in db_list),
+            frozenset(FI.hash for FI in outgroup),
+        )
+        _DECIDE_TYPE_HASHSETS = c
 
     if by == "hash":
-        if string in query_hash_list:
+        if string in c[3]:
             return "query"
-        elif string in db_hash_list:
+        elif string in c[4]:
             return "db"
-        elif string in outgroup_hash_list:
+        elif string in c[5]:
             return "outgroup"
         else:
             return "none"
@@ -304,23 +321,15 @@ def _taxon_count_flat(
         taxon = None
         if count_query == True:
             taxon = (FI.genus, FI.bygene_species[gene])
-        elif (
-            decide_type(
+        else:
+            _leaf_type = decide_type(
                 query_list=query_list,
                 db_list=db_list,
                 outgroup=outgroup,
                 string=leaf.name,
             )
-            == "db"
-            or decide_type(
-                query_list=query_list,
-                db_list=db_list,
-                outgroup=outgroup,
-                string=leaf.name,
-            )
-            == "outgroup"
-        ):
-            taxon = (FI.genus, FI.bygene_species[gene])
+            if _leaf_type == "db" or _leaf_type == "outgroup":
+                taxon = (FI.genus, FI.bygene_species[gene])
 
         if not (taxon is None):
             if not (taxon in taxon_dict):
