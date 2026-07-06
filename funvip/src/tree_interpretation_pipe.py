@@ -138,6 +138,16 @@ def pipe_module_tree_interpretation(
         tree_info.t = tree_info.reconstruct(
             clade=_clade, gene=gene, opt=opt
         )
+        # reconstruct() replaced tree_info.t with a shallow rebuild, but
+        # tree_info.outgroup_clade still points at a node of the PRE-reconstruct
+        # tree. reroot_outgroup's resolve_polytomy() combs a conserved gene's giant
+        # star (5.8S: ~3670-leaf polytomy) into a ~3681-deep chain, and pickling any
+        # ete4 node drags in its whole tree via .up/.children -- so this stale ref
+        # re-inflates that deep tree when the worker pickles tree_info back to the
+        # parent (multiprocessing), raising RecursionError -> MaybeEncodingError.
+        # outgroup_clade is unused after rerooting, so drop it. (Third part of the
+        # 5.8S fix, with seperate_clade deepcopy + balanced concat_all.)
+        tree_info.outgroup_clade = None
 
     # print(f"Reconstruct {time() - time_start}")
 

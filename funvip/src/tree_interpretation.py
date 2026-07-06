@@ -176,6 +176,35 @@ def concat_clade(
     return tmp
 
 
+## Combine clades into a BALANCED (log-depth) binary tree for concat_all.
+# Bottom-up left-to-right pairwise merge (preserves leaf order). Each input
+# clade keeps its OWN dist/support as its edge; every glue node created here is
+# (dist=CONCAT_ZERO, support=0), matching the internal nodes of the former
+# left-deep comb. Input clades are deep-copied once (as concat_all did), so the
+# caller's clades are not mutated.
+def _balanced_merge(clades):
+    nodes = [c.copy("deepcopy") for c in clades]
+    while len(nodes) > 1:
+        merged = []
+        for i in range(0, len(nodes), 2):
+            if i + 1 < len(nodes):
+                a, b = nodes[i], nodes[i + 1]
+                merged.append(
+                    concat_clade(
+                        clade1=a,
+                        clade2=b,
+                        dist1=a.dist,
+                        dist2=b.dist,
+                        support1=a.support,
+                        support2=b.support,
+                    )
+                )
+            else:
+                merged.append(nodes[i])
+        nodes = merged
+    return nodes[0]
+
+
 ## concat all given branches for concatenation
 # clades were given in tuble, and root_dist is given
 def concat_all(clade_tuple, root_dist, root_support=0):
@@ -198,20 +227,20 @@ def concat_all(clade_tuple, root_dist, root_support=0):
             root_dist=root_dist,
             root_support=root_support,
         )
-    # If more than 3 clades were input, iteratively concat
+    # If more than 3 clades were input, concat into a BALANCED (log-depth) tree.
     # If more than 2 species exists, and sp included, which taxon sp should be included cannot be decided
     # In that case, move sp clade to last
+    # Was a left-deep comb (for c in clade_tuple[1:-1]: concat onto accumulator),
+    # so a k-member same-taxon group became a k-deep nesting -> ete4 copy /
+    # multiprocessing-pickle RecursionError (5.8S skipped) and O(n^2) build cost.
+    # Balanced form is byte-identical for k<=4 (balanced==comb there); for k>=5 it
+    # only rearranges the zero-dist/zero-support glue nodes. Each original clade
+    # still keeps its own dist/support as its edge, every glue node is
+    # (dist=CONCAT_ZERO, support=0), the last clade stays a direct child of the
+    # root, and the root carries root_dist/root_support -- so identification is
+    # unchanged (leaf sets + per-clade edges + root dist/support are preserved).
     elif len(clade_tuple) >= 3:
-        return_clade = clade_tuple[0].copy("deepcopy")
-        for c in clade_tuple[1:-1]:
-            return_clade = concat_clade(
-                clade1=return_clade,
-                clade2=c.copy("deepcopy"),
-                dist1=return_clade.dist,
-                dist2=c.dist,
-                support1=return_clade.support,
-                support2=c.support,
-            )
+        return_clade = _balanced_merge(clade_tuple[:-1])
         return_clade = concat_clade(
             clade1=return_clade,
             clade2=clade_tuple[-1].copy("deepcopy"),
@@ -1336,7 +1365,13 @@ class Tree_information:
 
             def seperate_clade(clade, gene, clade_list):
                 for c in clade.children:
-                    c_tmp = c.copy()
+                    # deepcopy, not the default cpickle copy: on real (property-
+                    # laden) worker trees the cpickle round-trip RecursionErrors
+                    # here for conserved genes whose root clade is flat (5.8S),
+                    # while deepcopy survives. Paired with the balanced concat_all
+                    # rewrite (which keeps the rebuilt result shallow enough to
+                    # pickle back to the parent process).
+                    c_tmp = c.copy("deepcopy")
                     # zero clades
                     if c_tmp.dist is None or c_tmp.dist <= self.zero:
                         # Original version was == instead of >= . Revert if error occurs
