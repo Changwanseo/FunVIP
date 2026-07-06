@@ -880,17 +880,23 @@ class Tree_information:
             if diff_min < self.zero:
                 self.zero = diff_min - 0.00000001
 
-        # Engine-aware floor on self.zero. A different-sequence pair can be squeezed down
-        # to ~the tree engine's minimum branch length, so diff_min bottoms out near that
-        # floor. FastTree's floor (~5e-9) is ~200x smaller than RAxML's / IQ-TREE's (~1e-6):
-        # for FastTree a minimum-branch cherry gives diff_min ~= 1e-8, and the fixed
-        # "diff_min - 1e-8" then collapses self.zero to <= 0, silently disabling flat-branch
-        # resolution (identical sequences on 5e-9 branches never get flattened/merged).
-        # Never let self.zero drop below the selected engine's own minimum branch length.
-        _engine_min_branch = {"fasttree": 5e-9, "iqtree": 1e-6, "raxml": 1e-6}
+        # Engine-aware floor on self.zero. A branch that is "effectively zero" is not a single
+        # value but the band [min_branch_length, min_branch_length + optimizer_tolerance]: the
+        # engine clamps a near-zero branch to its minimum, then Brent's branch optimizer stops
+        # within its absolute tolerance of that minimum, so identical sequences get branch lengths
+        # spread across that band (e.g. FastTree emits both 5e-9 AND 6e-9 = xmin + atol). self.zero
+        # must be the TOP of the band, otherwise the just-above-minimum values are treated as real
+        # branches and split otherwise-identical flat clusters. Verified on Lactarius: raising
+        # 5e-9 -> 6e-9 merges the noise-split clusters and does NOT over-merge divergent sequences
+        # (every query whose call changed was 0-1 base different from its nearest DB neighbour over
+        # the overlap). Values read from each engine's source:
+        #   FastTree (double): MLMinBranchLength 5e-9 + MLMinBranchLengthTolerance 1e-9  = 6e-9
+        #   IQ-TREE          : -blmin 1e-6 + TOL_BRANCH_LEN 1e-6                          = 2e-6
+        #   RAxML  (classic) : -log(zmax) = -log(1-1e-6) = 1.0000005e-6, rounded up      = 2e-6
+        _engine_min_branch = {"fasttree": 6e-9, "iqtree": 2e-6, "raxml": 2e-6}
         self.zero = max(
             self.zero,
-            _engine_min_branch.get(str(self.opt.method.tree).lower(), 5e-9),
+            _engine_min_branch.get(str(self.opt.method.tree).lower(), 6e-9),
         )
 
         if self.opt.verbose >= 3:
