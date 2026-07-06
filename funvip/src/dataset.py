@@ -2,6 +2,7 @@ from funvip.src import save
 from funvip.src import hasher
 from funvip.src import ext
 from funvip.src.opt_generator import opt_generator
+from funvip.src.exceptions import ConfigError, DatasetError
 from Bio import SeqIO
 import os
 import sys
@@ -154,7 +155,7 @@ class FunVIP_var:
         try:
             self.dict_dataset[group][gene]
             return True
-        except:
+        except KeyError:
             return False
 
     # Check if dict_group has been properly generated
@@ -199,8 +200,7 @@ class FunVIP_var:
                     )
 
         else:
-            logging.error(f"DEVELOPMENTAL ERROR, UNEXPECTED LEVEL {opt.level} selected")
-            raise Exception
+            raise ConfigError(f"unexpected taxonomic level {opt.level!r} (check --level)")
 
     # generate dataset by group and gene
     def generate_dataset(self, opt):
@@ -344,10 +344,11 @@ class FunVIP_var:
                         self.dict_hash_FI[h].final_species = FI.final_species
                     # If they collides, it is error
                     else:
-                        logging.error(
-                            f"DEVELOPMNETAL ERROR Both list_FI and dict_hash_FI have conflicting final species, {FI.final_species} and {self.dict_hash_FI[h].final_species} for hash {h}"
+                        raise DatasetError(
+                            f"conflicting final_species for hash {h}: "
+                            f"{FI.final_species!r} (list_FI) vs "
+                            f"{self.dict_hash_FI[h].final_species!r} (dict_hash_FI)"
                         )
-                        raise Exception
 
                 # adjusted group
                 if FI.adjusted_group != self.dict_hash_FI[h].adjusted_group:
@@ -356,10 +357,11 @@ class FunVIP_var:
                     elif self.dict_hash_FI[h].adjusted_group == "":
                         self.dict_hash_FI[h].adjusted_group = FI.adjusted_group
                     else:
-                        logging.error(
-                            f"DEVELOPMENTAL ERROR Both list_FI and dict_hash_FI have conflicting final group, {FI.adjusted_group} and {self.dict_hash_FI[h].adjusted_group}, {FI}"
+                        raise DatasetError(
+                            f"conflicting adjusted_group for {FI.id}: "
+                            f"{FI.adjusted_group!r} (list_FI) vs "
+                            f"{self.dict_hash_FI[h].adjusted_group!r} (dict_hash_FI)"
                         )
-                        raise Exception
 
                 elif (
                     FI.adjusted_group == ""
@@ -387,10 +389,11 @@ class FunVIP_var:
                     elif self.dict_hash_FI[h].bygene_species:
                         self.dict_hash_FI[h].bygene_species = FI.bygene_species
                     else:
-                        logging.error(
-                            f"DEVELOPMENTAL ERROR Both list_FI and dict_hash_FI have conflicting gene identification results, {FI.bygene_species} and {self.dict_hash_FI[h].bygene}"
+                        raise DatasetError(
+                            f"conflicting bygene_species for hash {h}: "
+                            f"{FI.bygene_species!r} vs "
+                            f"{self.dict_hash_FI[h].bygene_species!r}"
                         )
-                        raise Exception
 
     # Remove invalid dataset to be analyzed
     def remove_invalid_dataset(self):
@@ -619,7 +622,10 @@ class FunVIP_var:
 
         # Terminate if terminate option is given, and critical error occurs
         if critical_flag == 1 and opt.terminate is True:
-            raise Exception
+            raise DatasetError(
+                "stopping: one or more datasets failed alignment validation "
+                "(see the CRITICAL messages above); --terminate is set"
+            )
 
         # Remove bad datasets
         for fail in fail_list:
