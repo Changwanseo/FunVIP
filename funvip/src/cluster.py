@@ -14,6 +14,7 @@ from Bio import SeqIO
 import logging
 import gc
 from funvip.src.ext import mmseqs
+from funvip.src.exceptions import ClusterError
 
 import sys
 
@@ -93,7 +94,9 @@ def assign_gene(result_dict, V, cutoff=0.99):
                 gene_count = len(set(cutoff_df["gene"]))
                 gene_list = list(set(cutoff_df["gene"]))
 
-            except:
+            except (KeyError, IndexError):
+                # no search hits for this query seq/gene (get_group raises KeyError)
+                # or an empty result frame -> treat as "no gene assignable"
                 gene_count = 0
                 gene_list = []
 
@@ -111,8 +114,9 @@ def assign_gene(result_dict, V, cutoff=0.99):
                 FI.update_seq(gene_list[0], seq)
 
             else:
-                logging.error("DEVELOPMENTAL ERROR IN GENE ASSIGN")
-                raise Exception
+                raise ClusterError(
+                    f"unexpected gene_count={gene_count} while assigning a gene to {FI.id}"
+                )
     return V
 
 
@@ -186,8 +190,9 @@ def cluster(FI, df_search, opt):
             FI.adjusted_group = _majority_top_group(cutoff_df)
 
         else:
-            logging.error("DEVELOPMENTAL ERROR IN GROUP ASSIGN")
-            raise Exception
+            raise ClusterError(
+                f"unexpected group_count={group_count} while assigning a group to {FI.id}"
+            )
 
         logging.info(f"{FI.id} has clustered to {FI.adjusted_group}")
 
@@ -228,8 +233,10 @@ def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
         bitscore_cutoff = max(
             1, min(cutoff_set_df["bitscore"]) - opt.cluster.outgroupoffset
         )
-    except:
-        bitscore_cutoff = 999999  # use infinite if failed
+    except ValueError:
+        # cutoff_set_df empty (no ingroup hits for this group) -> min() raises;
+        # fall back to an effectively infinite cutoff so all hits stay candidates
+        bitscore_cutoff = 999999
 
     # print(f"Ingroup cutoff {bitscore_cutoff} selected for group {group} gene {gene}")
 
@@ -380,10 +387,9 @@ def group_cluster_opt_generator(V, opt, path):
 
     # cluster(FO, df_search, V, path, opt)
     if len(V.list_qr_gene) == 0:
-        logging.error(
-            "In group_cluster_option_generator, no available query genes were selected"
+        raise ClusterError(
+            "no query genes are available for clustering (V.list_qr_gene is empty)"
         )
-        raise Exception
 
     # For concatenated analysis
     else:
@@ -428,7 +434,7 @@ def outgroup_append_opt_generator(V, path, opt):
                         (V.list_FI, df_group_, gene, group, path, opt)
                     )
 
-            except:
+            except KeyError:
                 logging.warning(
                     f"{group} / concatenated dataset exists, but cannot append outgroup due to no corresponding search result"
                 )
@@ -545,11 +551,12 @@ def pipe_append_outgroup(V, path, opt):
         # Add outgroup and ambiguous groups to dataset
         # Ambiguous groups are strains locating between outgroup and ingroups, so cannot be decided
 
-        print(f"{group} {gene}")
-        print(f"outgroup {len(outgroup)}")
-        print(f"ambiguous_group {len(ambiguous_group)}")
-        print(f"db: {len(V.dict_dataset[group][gene].list_db_FI)}")
-        print(f"query: {len(V.dict_dataset[group][gene].list_qr_FI)}")
+        logging.debug(
+            f"Outgroup selection for {group} {gene}: outgroup={len(outgroup)}, "
+            f"ambiguous={len(ambiguous_group)}, "
+            f"db={len(V.dict_dataset[group][gene].list_db_FI)}, "
+            f"query={len(V.dict_dataset[group][gene].list_qr_FI)}"
+        )
 
         if len(outgroup) == 0 and len(ambiguous_group) == 0:
             logging.critical(
@@ -588,11 +595,15 @@ def pipe_append_outgroup(V, path, opt):
                 )
                 critical_flag = 1
                 V.dict_dataset.pop(group, None)
-        except:
+        except KeyError:
+            # group already removed above / not present; nothing to do
             pass
 
     # Terminate if terminate option is given, and critical error occurs
     if critical_flag == 1 and opt.terminate is True:
-        raise Exception
+        raise ClusterError(
+            "stopping: one or more group/gene datasets could not be built "
+            "(see the CRITICAL messages above); --terminate is set"
+        )
 
     return V, path, opt

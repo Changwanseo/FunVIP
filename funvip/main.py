@@ -18,7 +18,7 @@ def _ensure_deterministic_hash():
 _ensure_deterministic_hash()
 
 
-def main():
+def _run_funvip():
     from funvip.src import align
     from funvip.src import tree_interpretation_pipe
     from funvip.src import cluster
@@ -451,3 +451,27 @@ def main():
 
             for line in critical_logs:
                 print(line)
+
+
+def main():
+    """Entry point: run FunVIP under a top-level handler so an expected
+    FunVIPError is reported cleanly and any unexpected crash is logged with a
+    full traceback, instead of dumping a bare stack trace at the user."""
+    import logging
+    import sys
+    import traceback
+    from funvip.src.exceptions import FunVIPError
+
+    try:
+        _run_funvip()
+    except FunVIPError as e:
+        logging.critical(f"FunVIP stopped: {e}")
+        sys.exit(1)
+    except KeyboardInterrupt:
+        logging.warning("FunVIP interrupted by user (KeyboardInterrupt)")
+        sys.exit(130)
+    except Exception as e:
+        logging.critical(
+            f"FunVIP crashed with an unexpected error: {e}\n{traceback.format_exc()}"
+        )
+        sys.exit(1)
