@@ -45,7 +45,9 @@ def append_query_group(V):
     for FI in V.list_FI:
         group_dict[FI.hash] = FI.adjusted_group
 
-    V.cSR["query_group"] = V.cSR["qseqid"].apply(lambda x: group_dict.get(x))
+    # vectorized map (every qseqid is an FI hash present in group_dict, so this is
+    # equivalent to the former per-row .apply(lambda x: group_dict.get(x)))
+    V.cSR["query_group"] = V.cSR["qseqid"].map(group_dict)
 
     logging.debug(V.cSR["query_group"])
 
@@ -114,14 +116,39 @@ def assign_gene(result_dict, V, cutoff=0.99):
     return V
 
 
-# This function assigns group to each FI
-def cluster(FI, V_list_group, V_cSR, path, opt):
-    # Reduce memory by focusing on relevant rows
-    df_search = V_cSR[V_cSR["qseqid"] == FI.hash]
+# Assign a query to a group when its best-hit cutoff set spans >=2 groups.
+# Rule: count subject_groups among the hits TIED at the highest bitscore; the
+# plurality wins. If that count ties, fold in the next (lower) bitscore level and
+# recount, and so on. This respects the best-scoring hits and avoids the whole-
+# cutoff-window bias where an over-represented distant group can outvote the real
+# best match. cutoff_df must already be sorted by bitscore descending.
+def _majority_top_group(cutoff_df):
+    counts = {}
+    leaders = []
+    for _, level in cutoff_df.groupby("bitscore", sort=False):
+        for grp in level["subject_group"]:
+            counts[grp] = counts.get(grp, 0) + 1
+        max_count = max(counts.values())
+        leaders = [grp for grp, c in counts.items() if c == max_count]
+        if len(leaders) == 1:
+            return leaders[0]
+    # All bitscore levels folded in and still tied: take the highest-bitscore hit
+    # among the tied leaders (deterministic given the descending sort).
+    leader_set = set(leaders)
+    for grp in cutoff_df["subject_group"]:
+        if grp in leader_set:
+            return grp
 
+
+# This function assigns group to each FI
+def cluster(FI, df_search, opt):
+    # df_search: this FI's pre-sliced rows of the concatenated search table
+    # (columns qseqid, bitscore, subject_group). Previously each call re-scanned the
+    # whole cSR (V_cSR[V_cSR["qseqid"] == FI.hash]) -> O(N_FI * N_rows), and the whole
+    # table was pickled to every mp worker; pipe_cluster now slices once via groupby.
     if df_search.empty:
         # If confident is False and FI datatype is "db"
-        if opt.confident is False and FI.datatype is "db":
+        if opt.confident is False and FI.datatype == "db":
             logging.warning(f"No adjusted_group assigned to {FI}")
         FI.adjusted_group = FI.group
         return FI
@@ -139,10 +166,6 @@ def cluster(FI, V_list_group, V_cSR, path, opt):
         cutoff = df_search["bitscore"].iloc[0] * opt.cluster.cutoff
         cutoff_df = df_search[df_search["bitscore"] > cutoff]
 
-        # Clear unused data
-        del df_search
-        gc.collect()
-
         # Extract group information
         unique_groups = set(cutoff_df["subject_group"])
         group_count = len(unique_groups)
@@ -159,8 +182,8 @@ def cluster(FI, V_list_group, V_cSR, path, opt):
                 f"Query seq in {FI.id} has multiple matches to groups within {opt.cluster.cutoff} cutoff: {list(unique_groups)}"
             )
 
-            # Among the multiple matches, get the best group
-            FI.adjusted_group = cutoff_df["subject_group"].iloc[0]
+            # Assign by group plurality among the best (tied-top-bitscore) hits
+            FI.adjusted_group = _majority_top_group(cutoff_df)
 
         else:
             logging.error("DEVELOPMENTAL ERROR IN GROUP ASSIGN")
@@ -173,10 +196,7 @@ def cluster(FI, V_list_group, V_cSR, path, opt):
         if not (FI.adjusted_group in unique_groups):
             logging.warning(f"Clustering result collides for {FI.id}")
 
-    if unique_groups:
-        return FI
-    else:
-        return FI
+    return FI
 
 
 ### Append outgroup to given group-gene dataset by search matrix
@@ -422,28 +442,20 @@ def pipe_cluster(V, opt, path):
     if opt.method.search in ("blast", "mmseqs"):
         logging.info("group clustering")
 
+        # Assign each query's group from ONE in-process groupby over the concatenated
+        # search table. The former path scanned the whole cSR once per FI inside an
+        # mp.Pool that was handed the entire table per task -> O(N_FI * N_rows) plus
+        # repeated full-table pickling, which dominated the cluster step at scale.
+        hash_to_FI = {FI.hash: FI for FI in V.list_FI}
+        cSR_subset = V.cSR[["qseqid", "bitscore", "subject_group"]]
+
         rslt_cluster = []
+        for qseqid, df_search in cSR_subset.groupby("qseqid", sort=False):
+            FI = hash_to_FI.get(qseqid)
+            if FI is None:
+                continue
+            rslt_cluster.append(cluster(FI, df_search, opt))
 
-        # cluster opt generation for multiprocessing
-        # (FI, V, path, opt)
-        opt_cluster = group_cluster_opt_generator(V, opt, path)
-
-        # print(f"opt_cluster : {sys.getsizeof(opt_cluster)}")
-
-        batch_size = opt.thread * 100
-        opt_cluster_batches = batched_generator(opt_cluster, batch_size)
-
-        # run multiprocessing start
-        if opt.verbose < 3:
-            for batch in opt_cluster_batches:
-                batch_list = list(batch)
-
-                with mp.Pool(opt.thread) as p:
-                    rslt_cluster.extend(p.starmap(cluster, batch_list))
-
-        else:
-            # non-multithreading mode for debugging
-            rslt_cluster = [cluster(*o) for o in opt_cluster]
         # gather cluster result
         for cluster_result in rslt_cluster:
             FI = cluster_result
