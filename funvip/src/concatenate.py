@@ -7,6 +7,7 @@ from functools import reduce
 import pandas as pd
 from copy import deepcopy
 from funvip.src import search, hasher
+from funvip.src.exceptions import DatasetError
 from scipy.optimize import minimize
 import numpy as np
 import shutil
@@ -121,11 +122,10 @@ def combine_alignment(V, opt, path):
                 }
 
             else:
-                logging.error(f"V.dict_dataset {group}: {V.dict_dataset[group]}")
-                logging.error(
-                    f"[DEVELOPMENTAL ERROR] Failed constructing concatenated alignment for {group}"
+                raise DatasetError(
+                    f"cannot build concatenated alignment for group {group}: "
+                    f"no gene datasets besides 'concatenated' (got {list(V.dict_dataset[group])})"
                 )
-                raise Exception
 
         else:
             logging.warning(
