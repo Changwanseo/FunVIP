@@ -1365,20 +1365,22 @@ class Tree_information:
 
             def seperate_clade(clade, gene, clade_list):
                 for c in clade.children:
-                    # deepcopy, not the default cpickle copy: on real (property-
-                    # laden) worker trees the cpickle round-trip RecursionErrors
-                    # here for conserved genes whose root clade is flat (5.8S),
-                    # while deepcopy survives. Paired with the balanced concat_all
-                    # rewrite (which keeps the rebuilt result shallow enough to
-                    # pickle back to the parent process).
-                    c_tmp = c.copy("deepcopy")
+                    # Only deep-copy what is KEPT: a single tip appended to
+                    # clade_list, or the input handed to reconstruct. The former
+                    # upfront copy of every child re-copied the whole resolve_polytomy
+                    # comb (~D deep for conserved genes like 5.8S) at each recursion
+                    # level -> O(D^2). seperate_clade/reconstruct never mutate their
+                    # input, so the zero-length comb is descended in place instead.
+                    # (deepcopy, not the default cpickle copy, which RecursionErrors on
+                    # the deep comb; dist/len read identically on c and a copy of c.)
                     # zero clades
-                    if c_tmp.dist is None or c_tmp.dist <= self.zero:
+                    if c.dist is None or c.dist <= self.zero:
                         # Original version was == instead of >= . Revert if error occurs
                         # What does the "len" means here? -> len means number of tips
                         # If only one tip
-                        if len(c_tmp) <= 1:
+                        if len(c) <= 1:
                             # In the zero branch tip, the query with zero length should move to sp., because they cannot be fully determined
+                            c_tmp = c.copy("deepcopy")
                             clade_list.append(
                                 (
                                     get_taxon(c=c_tmp, gene=gene, mode=consist(c_tmp)),
@@ -1391,11 +1393,12 @@ class Tree_information:
                         # I'm not sure if any of the recursion enters here, but just in case
                         else:
                             clade_list = seperate_clade(
-                                clade=c_tmp, gene=gene, clade_list=clade_list
+                                clade=c, gene=gene, clade_list=clade_list
                             )
 
                     # non-zero clades
                     else:
+                        c_tmp = c.copy("deepcopy")
                         c2 = self.reconstruct(c_tmp, gene, opt)
                         clade_list.append(
                             (
