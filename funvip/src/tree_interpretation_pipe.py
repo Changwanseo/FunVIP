@@ -5,6 +5,8 @@ from funvip.src.tool import initialize_path, get_genus_species
 from funvip.src.tool import sizeof_fmt
 from funvip.src.hasher import encode, decode
 from funvip.src.reporter import Singlereport
+from funvip.src.exceptions import TreeError
+import traceback
 from copy import deepcopy
 import pandas as pd
 import re
@@ -56,12 +58,10 @@ def pipe_module_tree_interpretation(
             # If iqtree, missing supports are not shown
             # ete4 autodetects newick format regardless of software
             Tree(tree_name)
-        except:
-            logging.error(f"[DEVELOPMENTAL ERROR] Failed on importing tree {tree_name}")
-            raise Exception
+        except Exception as e:
+            raise TreeError(f"failed to parse tree file {tree_name}: {e}") from e
     else:
-        logging.error(f"Cannot find {tree_name}")
-        raise Exception
+        raise TreeError(f"cannot find tree file {tree_name}")
 
     # initialize before analysis
     Tree_style = tree_interpretation.Tree_style()
@@ -239,7 +239,8 @@ def synchronize(V, path, tree_info_list):
                     dict_species[" ".join(splited_species[:-1])].append(
                         int(splited_species[-1])
                     )
-            except:
+            except (ValueError, IndexError):
+                # species label does not end in an integer -> treat as unnumbered
                 dict_species[s] = [0]
 
         species = ""
@@ -283,8 +284,9 @@ def synchronize(V, path, tree_info_list):
         elif not (tree_info.gene in tree_info_dict[tree_info.group]):
             tree_info_dict[tree_info.group][tree_info.gene] = tree_info
         else:
-            logging.error("DEVELOPMENTAL ERROR, DUPLICATED TREE_INFO")
-            raise Exception
+            raise TreeError(
+                f"duplicated tree_info for group {tree_info.group} gene {tree_info.gene}"
+            )
 
     # Memoize iterative calling
     # For each group list
@@ -609,7 +611,9 @@ def _safe_pipe_module_tree_interpretation(*args):
     except Exception as e:
         group = args[1] if len(args) > 1 else "?"
         gene = args[2] if len(args) > 2 else "?"
-        logging.error(f"[TREE INTERPRETATION FAILED] {group} {gene}: {e!r}")
+        logging.error(
+            f"[TREE INTERPRETATION FAILED] {group} {gene}: {e!r}\n{traceback.format_exc()}"
+        )
         return None
 
 
@@ -623,7 +627,9 @@ def _safe_pipe_module_tree_visualization(*args):
             if ti is not None
             else "?"
         )
-        logging.error(f"[TREE VISUALIZATION FAILED] {gg}: {e!r}")
+        logging.error(
+            f"[TREE VISUALIZATION FAILED] {gg}: {e!r}\n{traceback.format_exc()}"
+        )
         return None
 
 
