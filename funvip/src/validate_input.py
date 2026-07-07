@@ -786,10 +786,18 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                         seq_error_list = []
 
                         # seq_string = manage_unicode(seq_string)
-                        for x in seq_string:  # x is every character of sequence
-                            if not x.lower() in "acgtryswkmbdhvn-.":
-                                seq_error_cnt += 1
-                                seq_error_list.append(x)
+                        # Fast path: check the unique characters once; only build the
+                        # per-character error list when an illegal character is present
+                        # (the common case is a clean sequence, so this avoids a
+                        # Python-level scan of every base of every sequence).
+                        _illegal_chars = set(seq_string.lower()) - set(
+                            "acgtryswkmbdhvn-."
+                        )
+                        if _illegal_chars:
+                            seq_error_list = [
+                                x for x in seq_string if x.lower() in _illegal_chars
+                            ]
+                            seq_error_cnt = len(seq_error_list)
 
                         if seq_error_cnt > 0:
                             warnings.append(

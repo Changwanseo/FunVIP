@@ -333,4 +333,9 @@ def concatenate_df(V, path, opt):
             fmt=opt.tableformat,
         )
 
+    # The per-gene search tables are only needed to build V.cSR above; drop them so
+    # they do not stay resident (and get re-pickled into every later session
+    # checkpoint) for the rest of the run.
+    V.dict_gene_SR = {}
+
     return V
