@@ -610,27 +610,19 @@ class FunVIP_var:
                 if group in self.dict_dataset:
                     if gene in self.dict_dataset[group]:
                         for _hash in remove_dict[group][gene]:
-                            if _hash in self.dict_dataset[group][gene].list_qr_FI:
-                                self.dict_dataset[group][gene].list_qr_FI.remove(
-                                    self.dict_hash_FI[_hash]
+                            for _attr in ("list_qr_FI", "list_db_FI", "list_og_FI"):
+                                _lst = getattr(
+                                    self.dict_dataset[group][gene], _attr
                                 )
-                                logging.warning(
-                                    f"{self.dict_hash_ID[_hash]} removed from dataset {group} {gene}. Please check the alignment and see the region is correct"
-                                )
-                            if _hash in self.dict_dataset[group][gene].list_db_FI:
-                                self.dict_dataset[group][gene].list_db_FI.remove(
-                                    self.dict_hash_FI[_hash]
-                                )
-                                logging.warning(
-                                    f"{self.dict_hash_ID[_hash]} removed from dataset {group} {gene}. Please check the alignment and see the region is correct"
-                                )
-                            if _hash in self.dict_dataset[group][gene].list_og_FI:
-                                self.dict_dataset[group][gene].list_og_FI.remove(
-                                    self.dict_hash_FI[_hash]
-                                )
-                                logging.warning(
-                                    f"{self.dict_hash_ID[_hash]} removed from dataset {group} {gene}. Please check the alignment and see the region is correct"
-                                )
+                                if any(x.hash == _hash for x in _lst):
+                                    setattr(
+                                        self.dict_dataset[group][gene],
+                                        _attr,
+                                        [x for x in _lst if x.hash != _hash],
+                                    )
+                                    logging.warning(
+                                        f"{self.dict_hash_id[_hash]} removed from dataset {group} {gene}. Please check the alignment and see the region is correct"
+                                    )
 
         # Finally, check again if the datasets meet criteria
         final_fail_list = []
