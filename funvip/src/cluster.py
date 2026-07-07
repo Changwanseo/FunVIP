@@ -260,9 +260,15 @@ def append_outgroup(df_search, gene, group, path, opt):
     # For each of the input, should use different cutoff
     ambiguous_db = set()
     if opt.suspicious is True:
+        # Pre-group once instead of rescanning the whole (per-group) search table
+        # with a boolean mask for every qseqid (was O(n_queries * len(df_search))).
+        df_search_by_qseqid = df_search.groupby("qseqid")
         for qseqid, _df in cutoff_set_df.groupby(["qseqid"]):
             # Select dataframe corresponding to current qseqid
-            df_qseqid = df_search[df_search["qseqid"] == qseqid[0]]
+            try:
+                df_qseqid = df_search_by_qseqid.get_group(qseqid[0])
+            except KeyError:
+                continue
 
             # Get the list of subjects, which is closer than furtest ingroup
             ambiguous_df = df_qseqid[
