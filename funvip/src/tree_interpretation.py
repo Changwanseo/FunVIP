@@ -86,6 +86,8 @@ import os
 import re
 import sys
 import json
+import logging
+from funvip.src.exceptions import TreeError
 
 # Default zero length branch for concatenation
 CONCAT_ZERO = 0  # for better binding
@@ -209,8 +211,7 @@ def _balanced_merge(clades):
 # clades were given in tuble, and root_dist is given
 def concat_all(clade_tuple, root_dist, root_support=0):
     if len(clade_tuple) == 0:
-        print("No clade input found, abort")
-        raise Exception
+        raise TreeError("concat_all called with no clades")
     # If one clade were input, return self
     elif len(clade_tuple) == 1:
         return clade_tuple[0].copy("deepcopy")
@@ -252,7 +253,7 @@ def concat_all(clade_tuple, root_dist, root_support=0):
             root_support=root_support,
         )
     else:
-        raise Exception
+        raise TreeError(f"concat_all: unexpected clade_tuple length {len(clade_tuple)}")
 
     return return_clade
 
@@ -313,10 +314,7 @@ def decide_type(query_list, db_list, outgroup, string, by="hash", priority="quer
             return "none"
 
     else:
-        print(
-            f"{bold_red}[ERROR] DEVELOPMENTAL ERROR, UNEXPECTED by for decide_type{reset}"
-        )
-        raise Exception
+        raise TreeError(f"decide_type: unexpected 'by' value {by!r}")
 
 
 # uint8 lookup for encoding aligned sequences: a/t/g/c -> 1..4, everything else (gap '-',
@@ -799,10 +797,9 @@ class Tree_information:
         if collections.Counter(hash_list_tree) != collections.Counter(
             hash_list_alignment
         ):
-            print(
-                f"{bold_red}[ERROR] content of tree and alignment is not identical for {self.tree_name}{reset}"
+            raise TreeError(
+                f"tree and alignment contents differ for {self.tree_name}"
             )
-            raise Exception
 
         # Encode each sequence once (uint8; gap and any non-atgc char -> 0, matching the old
         # "atgc-" cleaning). The per-partition overlap is applied to every pair (the old code
@@ -929,10 +926,10 @@ class Tree_information:
         )
 
         if self.opt.verbose >= 3:
-            print(f"[DEBUG] End of calculate zero")
+            logging.debug("End of calculate zero")
             process = psutil.Process(os.getpid())
             memory_info = process.memory_info()
-            print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
+            logging.debug(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
         # I think also finding minimal distance between non-identical sequences are also needed
         return self.zero
@@ -953,7 +950,7 @@ class Tree_information:
                 _n.support = 1.0
 
         # Check if outgroup sequences exists
-        print(f"[INFO] Rerooting {self.outgroup} in {self.tree_name}")
+        logging.info(f"Rerooting {self.outgroup} in {self.tree_name}")
         for leaf in self.t:
             if any(outgroup.hash in leaf.name for outgroup in self.outgroup):
                 outgroup_leaves.append(leaf)
@@ -983,19 +980,21 @@ class Tree_information:
                 _ladderize_ete3_compat(self.t)
                 self.outgroup_clade = outgroup_leaves[0]
             else:
-                print(
-                    f"{bold_red}[ERROR] no outgroup selected in {self.tree_name}{reset}"
-                )
-                raise Exception
+                # control flow: no outgroup in the primary path -> trigger the
+                # flexible-reroot fallback in the except below (TreeError is an
+                # Exception, so it is caught there).
+                raise TreeError(f"no outgroup selected in {self.tree_name}")
 
             # If number of outgroup leaves and outgroup clade does not matches, paraphyletic
             if len(outgroup_leaves) != len(self.outgroup_clade):
-                print(
-                    f"{yellow}[WARNING] outgroup seems to be paraphyletic in {self.tree_name}{reset}"
+                logging.warning(
+                    f"outgroup seems to be paraphyletic in {self.tree_name}"
                 )
 
-        except:
-            print(f"{yellow}[WARNING] no outgroup selected in {self.tree_name}{reset}")
+        except Exception:
+            logging.warning(
+                f"no outgroup selected in {self.tree_name}, trying flexible reroot"
+            )
 
             outgroup_flag = False
             # if outgroup_clade is on the root side, reroot with other leaf temporarily and reroot again
@@ -1013,22 +1012,16 @@ class Tree_information:
                         self.t.set_outgroup(self.outgroup_clade)
                         outgroup_flag = True
                         break
-                    except:
+                    except Exception:
+                        # this temp-root attempt failed; try the next leaf
                         pass
 
             if outgroup_flag is False:
-                # never erase this for debugging
-                print(
-                    f"{bold_red}[ERROR] Outgroup not selected in {self.tree_name}{reset}"
+                raise TreeError(
+                    f"outgroup could not be selected for {self.tree_name} "
+                    f"(outgroup_leaves={outgroup_leaves}, outgroup={self.outgroup}, "
+                    f"outgroup_clade={self.outgroup_clade})"
                 )
-                print(
-                    f"{bold_red}[ERROR] local variable outgroup_leaves : {outgroup_leaves}{reset}"
-                )
-                print(f"{bold_red}[ERROR] tree_info.outgroup : {self.outgroup}{reset}")
-                print(
-                    f"{bold_red}[ERROR] tree_info.outgroup_clade : {self.outgroup_clade}{reset}"
-                )
-                raise Exception
 
         # ete4 compat: restore support values destroyed by resolve_polytomy
         # (set_outgroup creates new nodes not in backup; those stay None for None→100 fix)
@@ -1059,10 +1052,10 @@ class Tree_information:
         self.Tree_style.ts.show_leaf_name = False
 
         if self.opt.verbose >= 3:
-            print(f"[DEBUG] End of reroot outgroup")
+            logging.debug("End of reroot outgroup")
             process = psutil.Process(os.getpid())
             memory_info = process.memory_info()
-            print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
+            logging.debug(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
     def collapse(self, collapse_info, clade, taxon):
         collapse_info.clade = clade
@@ -1073,7 +1066,7 @@ class Tree_information:
         elif len(clade) >= 2:
             collapse_info.collapse_type = "triangle"
         else:
-            raise Exception
+            raise TreeError(f"collapse: clade has {len(clade)} leaves (expected >=1)")
 
         if (
             any(
@@ -1132,14 +1125,9 @@ class Tree_information:
                 )
                 collapse_info.n_query += 1
             else:
-                print(
-                    f"{bold_red}[ERROR] DEVELOPMENTAL ERROR : UNEXPECTED LEAF TYPE FOR {leaf.name}{reset}"
+                raise TreeError(
+                    f"unexpected leaf type for {leaf.name} in {self.tree_name}"
                 )
-                print(self.tree_name)
-                print(f"Query: {sorted([FI.hash for FI in self.query_list])}")
-                print(f"DB: {sorted([FI.hash for FI in self.db_list])}")
-                print(f"Outgroup: {sorted([FI.hash for FI in self.outgroup])}")
-                raise Exception
 
     # Species level delimitaion on tree
     def tree_search(self, clade, gene, opt=None):
@@ -1165,7 +1153,7 @@ class Tree_information:
                 while 1:
                     self.sp_cnt += 1
                     if str(self.sp_cnt) in self.reserved_sp:
-                        print(f"Skipping {self.sp_cnt} to avoid overlap in database")
+                        logging.debug(f"Skipping {self.sp_cnt} to avoid overlap in database")
                         continue
                     else:
                         break
@@ -1187,10 +1175,10 @@ class Tree_information:
             local_generate_collapse_information(clade, opt=opt)
 
             if self.opt.verbose >= 3:
-                print(f"[DEBUG] End of Tree search with monophyletic branches")
+                logging.debug("End of Tree search with monophyletic branches")
                 process = psutil.Process(os.getpid())
                 memory_info = process.memory_info()
-                print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
+                logging.debug(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
             return
 
@@ -1222,19 +1210,18 @@ class Tree_information:
                     self.tree_search(child_clade, gene, opt=opt)
 
             if self.opt.verbose >= 3:
-                print(f"[DEBUG] End of Tree search with bifurcated branches")
+                logging.debug("End of Tree search with bifurcated branches")
                 process = psutil.Process(os.getpid())
                 memory_info = process.memory_info()
-                print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
+                logging.debug(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
             return
 
         # if error (more than two branches or no branches)
         else:
-            print(
-                f"{bold_red}[ERROR] DEVELOPMENTAL ERROR : FAILED TREE SEARCH ON LEAF {clade.children}{reset}"
+            raise TreeError(
+                f"tree_search: clade has {len(clade.children)} children (expected 1 or 2)"
             )
-            raise Exception
         # end of tree_search
 
     # Reconstruct tree tree to solve flat branches
@@ -1258,10 +1245,7 @@ class Tree_information:
                         query += 1
 
                 if db == 0 and query == 0:
-                    print(
-                        f"{bold_red}[ERROR] DEVELOPMENTAL ON CONSIST, {c} {db} {query}{reset}"
-                    )
-                    raise Exception
+                    raise TreeError(f"consist: clade has neither db nor query leaves: {c}")
                 elif db == 0 and query != 0:
                     return "query"
                 elif db != 0 and query == 0:
@@ -1277,11 +1261,10 @@ class Tree_information:
                     try:
                         FI = self.funinfo_dict[leaf.name]
                         return (FI.genus, FI.bygene_species[gene])
-                    except:
-                        print(
-                            f"{bold_red}[DEVELOPMENTAL ERROR] in leaf.name tree_interpretation.py line 869 {resety}"
-                        )
-                        raise Exception
+                    except KeyError as e:
+                        raise TreeError(
+                            f"leaf {leaf.name} has no funinfo / bygene_species[{gene}] entry"
+                        ) from e
 
                 taxon_dict = {}
 
@@ -1294,10 +1277,7 @@ class Tree_information:
                             taxon_dict[t(leaf)] = 1
 
                     if len(taxon_dict) == 0:
-                        print(
-                            f"{bold_red}[DEVELOPMENTAL ERROR] in tree_interpretation.py line 884 {taxon_dict}\n {c}{reset}"
-                        )
-                        raise Exception
+                        raise TreeError(f"get_taxon(db): empty taxon_dict for clade {c}")
                     # If only one species in the clade
                     elif len(taxon_dict) == 1:
                         # If only one taxon here, return the taxon
@@ -1315,10 +1295,7 @@ class Tree_information:
                             taxon_dict[("", "")] = 1
 
                     if len(taxon_dict) == 0:
-                        print(
-                            f"{bold_red}[DEVELOPMENTAL ERROR] Error in tree_interpretation.py line 912 {taxon_dict}\n {c}{reset}"
-                        )
-                        raise Exception
+                        raise TreeError(f"get_taxon(query): empty taxon_dict for clade {c}")
                     elif len(taxon_dict) == 1:
                         return list(taxon_dict.keys())[0]
                     else:
@@ -1356,8 +1333,7 @@ class Tree_information:
                                 taxon_dict[t(leaf)] += 1
 
                     if len(taxon_dict) == 0:
-                        print(f"{taxon_dict}\n {c}")
-                        raise Exception
+                        raise TreeError(f"get_taxon(both): empty taxon_dict for clade {c}")
                     elif len(taxon_dict) == 1:
                         return list(taxon_dict.keys())[0]
                     else:
@@ -1534,16 +1510,17 @@ class Tree_information:
             ).copy("deepcopy")
 
             if self.opt.verbose >= 3:
-                print(f"[DEBUG] End of reconstruct")
+                logging.debug("End of reconstruct")
                 process = psutil.Process(os.getpid())
                 memory_info = process.memory_info()
-                print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
+                logging.debug(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
             return concatanated_clade
 
         else:
-            print(f"[ERROR] {clade} {clade.children} {len(clade.children)}")
-            raise Exception
+            raise TreeError(
+                f"reconstruct: clade has {len(clade.children)} children (expected 0-2)"
+            )
         ## end of reconstruct
 
     def get_bgcolor(self):
@@ -1722,7 +1699,7 @@ class Tree_information:
             try:
                 int(text.text)
                 text_type = "bootstrap"
-            except:
+            except (ValueError, TypeError):
                 if text.text == "0.05":
                     text_type = "scale"
                 elif any(
@@ -1755,7 +1732,7 @@ class Tree_information:
                         int(species)
                         tspan = ET.SubElement(text, "{http://www.w3.org/2000/svg}tspan")
                         tspan.text = species
-                    except:
+                    except ValueError:
                         if "sp." in species:
                             tspan = ET.SubElement(
                                 text, "{http://www.w3.org/2000/svg}tspan"
@@ -1815,9 +1792,11 @@ class Tree_information:
                         if self.funinfo_dict[word.strip()].color is not None:
                             try:
                                 tspan.set("fill", self.funinfo_dict[word.strip()].color)
-                            except:
-                                print("DEVELOPMENTAL ERROR: Failed coloring tree")
-                                raise Exception
+                            except Exception:
+                                logging.debug(
+                                    f"failed to set tree tip color for {word.strip()}"
+                                )
+                                raise
 
                         elif (
                             decide_type(
@@ -1830,7 +1809,8 @@ class Tree_information:
                             == "query"
                         ):
                             tspan.set("fill", self.opt.visualize.highlight)
-                    except:
+                    except Exception:
+                        # word is not a known FI hash / coloring failed -> leave uncolored
                         pass
         # fit size of tree_xml to svg
         # find svg from tree_xml
@@ -1844,7 +1824,7 @@ class Tree_information:
         )
 
         if self.opt.verbose >= 3:
-            print(f"[DEBUG] End of Tree visualization")
+            logging.debug("End of Tree visualization")
             process = psutil.Process(os.getpid())
             memory_info = process.memory_info()
-            print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
+            logging.debug(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
