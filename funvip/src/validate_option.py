@@ -41,7 +41,7 @@ class Option:
     class Cluster_Option:
         def __init__(self):
             self.cutoff = 0.95
-            self.evalue = 10
+            self.evalue = 0.0001
             self.wordsize = 7
             self.outgroupoffset = 20
             self.max_target_seqs = 100
