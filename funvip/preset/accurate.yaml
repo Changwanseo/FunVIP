@@ -1,7 +1,7 @@
 MODE: identification
 CONTINUE: false
 QUERYONLY: true
-CONFIDENT: fale
+CONFIDENT: false
 MAXOUTGROUP: 3
 SEARCH: blast
 ALIGNMENT: mafft

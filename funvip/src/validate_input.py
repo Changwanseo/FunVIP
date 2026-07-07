@@ -208,7 +208,7 @@ class Funinfo:
         return error
 
     def update_id(self, id_, regexs=None):
-        if not regexs == None:
+        if regexs is not None:
             id_ = get_id(id_, tuple(regexs))
 
         # if cannot find id by regex
@@ -365,7 +365,7 @@ def input_fasta(path, opt, fasta_list, funinfo_dict, datatype):
         try:
             seq_list = list(SeqIO.parse(file, "fasta"))
             for seq in seq_list:
-                if not opt.regex == None:
+                if opt.regex is not None:
                     id_ = get_id(seq.description, tuple(opt.regex))
                 else:
                     id_ = seq.description
@@ -578,7 +578,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
             regex_genbank = r"(([A-Z]{1}[0-9]{5})(\.[0-9]{1}){0,1})|(([A-Z]{2}[\_]{0,1}[0-9]{6}){1}([\.][0-9]){0,1})|(([A-Z]{4}[0-9]{8})(\.[0-9]{1}){0,1})|(([A-Z]{6}[0-9]{9,})(\.[0-9]{1}){0,1})"
 
             # if gene name were not designated by user, use seq
-            opt.gene = list(set([gene.lower().strip() for gene in opt.gene]))
+            opt.gene = list(dict.fromkeys([gene.lower().strip() for gene in opt.gene]))
 
             # find all NCBI accessions in seq
             for gene in opt.gene:
@@ -819,7 +819,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
         # After successfully parsed this table, save it
         save.save_df(
             df,
-            f"{path.out_db}/Saved_{'.'.join(table.split('/')[-1].split('.')[:-1])}.{opt.tableformat}",
+            f"{path.out_query if datatype == 'query' else path.out_db}/Saved_{'.'.join(table.split('/')[-1].split('.')[:-1])}.{opt.tableformat}",
             fmt=opt.tableformat,
         )
 
@@ -935,7 +935,7 @@ def query_input(funinfo_dict, opt, path):
         shutil.copy(f"{file}", f"{path.out_query}")
 
     logging.info(
-        f"Total {len([funinfo_dict[key].datatype =='query' for key in funinfo_dict.keys()])} sequences parsed from query"
+        f"Total {sum(1 for key in funinfo_dict if funinfo_dict[key].datatype == 'query')} sequences parsed from query"
     )
 
     return funinfo_dict, GenMine_flag
