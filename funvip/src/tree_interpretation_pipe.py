@@ -21,13 +21,17 @@ from time import time
 
 ### For single dataset
 # Input : out, group, gene, V, path, opt
+# Whole-run FI collections (V.dict_hash_FI / V.list_FI) shared with
+# interpretation-pool workers via fork copy-on-write, set before the Pool is
+# created, instead of being pickled into every (group, gene) task tuple.
+_INTERP_SHARED = {}
+
+
 def pipe_module_tree_interpretation(
     out,
     group,
     gene,
     V_tup_genus,
-    funinfo_dict,
-    funinfo_list,
     hash_dict,
     query_list,
     outgroup,
@@ -36,6 +40,11 @@ def pipe_module_tree_interpretation(
     opt,
 ):
     # time_start = time()
+
+    # Read the whole-run FI collections from the fork-inherited shared store rather
+    # than receiving a freshly pickled copy of the entire universe per task.
+    funinfo_dict = _INTERP_SHARED["funinfo_dict"]
+    funinfo_list = _INTERP_SHARED["funinfo_list"]
 
     # for unexpectedly included sequence during clustering
     db_list = list(
@@ -652,6 +661,12 @@ def pipe_tree_interpretation(V, path, opt):
     funinfo_list = V.list_FI
     hash_dict = V.dict_hash_name
 
+    # Share the whole-run FI collections with pool workers via fork copy-on-write
+    # (must be set before the Pool below is created) instead of pickling them into
+    # every task; workers read them from _INTERP_SHARED.
+    _INTERP_SHARED["funinfo_dict"] = funinfo_dict
+    _INTERP_SHARED["funinfo_list"] = funinfo_list
+
     # Generate options using generator
     def generate_interpretation_opt():
         # make option variables
@@ -691,8 +706,6 @@ def pipe_tree_interpretation(V, path, opt):
                                 group,
                                 gene,
                                 V.tup_genus,
-                                funinfo_dict,
-                                funinfo_list,
                                 hash_dict,
                                 query_list,
                                 outgroup,
