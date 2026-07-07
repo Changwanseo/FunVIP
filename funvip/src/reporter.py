@@ -211,6 +211,7 @@ class Report:
                         # Check if data analysis had performed for specific FI, group, gene combination
                         if (
                             gene in FI.bygene_species
+                            and gene in FI.seq
                             and len(FI.seq[gene]) > 0
                             and gene in V.dict_dataset[FI.adjusted_group]
                         ):
@@ -450,8 +451,8 @@ class Report:
             ## Write options used (in concise form)
             if index_step(step) >= 0:
                 f.write(f"[OPTION]\n")
-                f.write(f"DB:                     {opt.query}\n")
-                f.write(f"QUERY:                  {opt.db}\n")
+                f.write(f"DB:                     {opt.db}\n")
+                f.write(f"QUERY:                  {opt.query}\n")
                 f.write(f"GENE:                   {opt.gene}\n")
                 f.write(f"EMAIL:                  {opt.email}\n")
                 f.write(f"API:                    {opt.api}\n")
@@ -563,7 +564,7 @@ class Report:
                 f.write("\n\n")
                 f.write("ID : Name of the strain\n")
                 f.write(
-                    "HASH : Temporary name of the strain to prevent unexpected error during run. Use this when manually edit intermediate step data and run from middle, or debugging unexpectively terminated run\n"
+                    "HASH : Temporary name of the strain to prevent unexpected error during run. Use this when manually edit intermediate step data and run from middle, or debugging unexpectedly terminated run\n"
                 )
                 f.write("DATATYPE : query or database\n")
                 f.write("GROUP_ORIGINAL : group name given by user\n")

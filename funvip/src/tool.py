@@ -79,7 +79,7 @@ def manage_unicode(string, column="", row=""):
 @lru_cache(maxsize=10000)
 def get_genus_species(
     string,
-    endwords=[
+    endwords=(
         "small",
         "18S",
         "ribosomal",
@@ -91,7 +91,7 @@ def get_genus_species(
         "strain",
         "beta",
         "tubulin",
-    ],
+    ),
     genus_list=None,
 ):
     return_genus = ""
