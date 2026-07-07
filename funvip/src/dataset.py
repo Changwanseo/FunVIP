@@ -207,59 +207,43 @@ class FunVIP_var:
         # Format : dict_funinfo = {group: {gene : [FI]}}
         dict_funinfo = {}
 
+        # Pre-index FIs by adjusted_group in a single pass (preserving list_FI
+        # order) so the per-group/per-gene loops below filter a small bucket
+        # instead of rescanning the whole FI universe each time -- the former was
+        # O(N_groups * N_genes * N_FI) and dominated wall-clock at metabarcoding
+        # scale. Order is preserved, so datasets are built identically.
+        group_query = {}
+        group_db = {}
+        for FI in self.list_FI:
+            if FI.datatype == "query":
+                group_query.setdefault(FI.adjusted_group, []).append(FI)
+            elif FI.datatype == "db":
+                group_db.setdefault(FI.adjusted_group, []).append(FI)
+
         for group in self.list_group:
             logging.info(f"Generating dataset for {group}")
 
-            # print(f"opt.queryonly: {opt.queryonly}")
-
             dict_funinfo[group] = {}
+
+            group_query_FI = group_query.get(group, [])
+            group_db_FI = group_db.get(group, [])
 
             # For queryonly case
             if opt.queryonly is True:
-                # whether to run this group
-                group_flag = False
-                for gene in self.list_db_gene:
-                    logging.debug(
-                        f"Searching dataset {group} {gene} includes query sequences"
-                    )
-                    list_qr = [
-                        FI
-                        for FI in self.list_FI
-                        if (
-                            gene in FI.seq
-                            and FI.datatype == "query"
-                            and FI.adjusted_group == group
-                        )
-                    ]
-
-                    # do not manage db when --queryonly True (--all False) and query does not exists
-                    if len(list_qr) > 0:
-                        group_flag = True
+                # whether to run this group: any query in this group carries any
+                # of the target genes
+                group_flag = any(
+                    gene in FI.seq
+                    for gene in self.list_db_gene
+                    for FI in group_query_FI
+                )
 
                 # if decided to run this group
                 if group_flag is True:
                     logging.info(f"Decided to construct dataset on {group}")
                     for gene in self.list_db_gene:
-                        list_qr = [
-                            FI
-                            for FI in self.list_FI
-                            if (
-                                gene in FI.seq
-                                and FI.datatype == "query"
-                                and FI.adjusted_group == group
-                            )
-                        ]
-
-                        list_db = [
-                            FI
-                            for FI in self.list_FI
-                            if (
-                                gene in FI.seq
-                                and FI.datatype == "db"
-                                and FI.adjusted_group == group
-                            )
-                        ]
-
+                        list_qr = [FI for FI in group_query_FI if gene in FI.seq]
+                        list_db = [FI for FI in group_db_FI if gene in FI.seq]
                         self.add_dataset(group, gene, list_qr, list_db, [])
 
                 else:
@@ -268,43 +252,26 @@ class FunVIP_var:
                     )
 
                 # for concatenated
-                list_qr = [
-                    FI
-                    for FI in self.list_FI
-                    if (FI.datatype == "query" and FI.adjusted_group == group)
-                ]
+                list_qr = list(group_query_FI)
 
                 # do not manage db when query only mode and query does not exists
                 if len(list_qr) > 0:
-                    list_db = [
-                        FI
-                        for FI in self.list_FI
-                        if (FI.datatype == "db" and FI.adjusted_group == group)
-                    ]
+                    list_db = list(group_db_FI)
                     self.add_dataset(group, "concatenated", list_qr, list_db, [])
 
             # For opt.queryonly is False -> run all dataset in database if possible
             else:
                 for gene in self.list_db_gene:
-                    list_qr = []
-                    for FI in self.list_FI:
-                        if (
-                            FI.datatype == "query"
-                            and FI.adjusted_group == group
-                            and gene in FI.seq
-                        ):
-                            if FI.seq[gene] != "":
-                                list_qr.append(FI)
-
-                    list_db = []
-                    for FI in self.list_FI:
-                        if (
-                            FI.datatype == "db"
-                            and FI.adjusted_group == group
-                            and gene in FI.seq
-                        ):
-                            if FI.seq[gene] != "":
-                                list_db.append(FI)
+                    list_qr = [
+                        FI
+                        for FI in group_query_FI
+                        if gene in FI.seq and FI.seq[gene] != ""
+                    ]
+                    list_db = [
+                        FI
+                        for FI in group_db_FI
+                        if gene in FI.seq and FI.seq[gene] != ""
+                    ]
 
                     # If none of the database is possible for this group and gene pair, it should be excluded
                     if len(list_db) > 0:
@@ -315,16 +282,8 @@ class FunVIP_var:
                         )
 
                 # for concatenated
-                list_qr = [
-                    FI
-                    for FI in self.list_FI
-                    if (FI.datatype == "query" and FI.adjusted_group == group)
-                ]
-                list_db = [
-                    FI
-                    for FI in self.list_FI
-                    if (FI.datatype == "db" and FI.adjusted_group == group)
-                ]
+                list_qr = list(group_query_FI)
+                list_db = list(group_db_FI)
                 self.add_dataset(group, "concatenated", list_qr, list_db, [])
 
         self.check_dict_group(opt)
