@@ -42,7 +42,10 @@ def pipe_tree(V, path, opt, model_dict):
 
     fasttree_opt = []  # for multiprocessing on fasttree
 
-    tree_dataset = deepcopy(V.dict_dataset)
+    # Shallow two-level copy: only `.pop(gene)` on the per-group dict mutates this
+    # structure below; the Dataset objects are read-only here, so a full deepcopy of
+    # the entire FI universe (measured ~126 MB at metabarcoding scale) is wasted.
+    tree_dataset = {group: dict(inner) for group, inner in V.dict_dataset.items()}
 
     # Before drawing tree, finalize datasets
     remove_dataset = []

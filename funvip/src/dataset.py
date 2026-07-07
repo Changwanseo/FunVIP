@@ -451,13 +451,12 @@ class FunVIP_var:
                         )
 
                     # Remove no seqs
-                    for fasta in fasta_list:
-                        save.save_fasta(
-                            fasta_list,
-                            gene,
-                            f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta",
-                            by="hash",
-                        )
+                    save.save_fasta(
+                        fasta_list,
+                        gene,
+                        f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta",
+                        by="hash",
+                    )
 
     # Validate if any multiple sequence alignment has no overlapping region
     def validate_alignments(self, path, opt):
