@@ -9,6 +9,7 @@ from copy import deepcopy
 from pathlib import Path
 from funvip.src.save import save_tree
 from funvip.src.tool import mkdir
+from funvip.src.exceptions import ExternalToolError, SearchError
 
 
 # Search methods
@@ -31,6 +32,8 @@ def blast(query, db, out, path, opt):
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
+    if Run != 0:
+        raise SearchError(f"blastn failed (exit code {Run}) for query {query} vs db {db}")
 
 
 # mmseqs
@@ -52,6 +55,8 @@ def mmseqs(query, db, out, tmp, path, opt):
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
+    if Run != 0:
+        raise SearchError(f"mmseqs easy-search failed (exit code {Run}) for query {query} vs db {db}")
 
 
 # DB building methods
@@ -81,7 +86,9 @@ def makeblastdb(fasta, db, path):
         CMD = f"{path_makeblastdb} -in {fasta_tmp} -blastdb_version 4 -title {db_tmp} -dbtype nucl"
         logging.info(CMD)
         # I cannot find any "quiet" options for makeblastdb
-        Run = subprocess.call(CMD, stdout=open(os.devnull, "wb"), shell=True)
+        Run = subprocess.call(CMD, stdout=subprocess.DEVNULL, shell=True)
+        if Run != 0:
+            raise ExternalToolError(f"makeblastdb failed (exit code {Run}) for {fasta}")
         # Change db names
         shutil.move(fasta_tmp + ".nsq", db + ".nsq")
         shutil.move(fasta_tmp + ".nin", db + ".nin")
@@ -95,11 +102,10 @@ def makeblastdb(fasta, db, path):
         CMD = f"makeblastdb -in '{fasta}' -blastdb_version 4 -title '{db}' -dbtype nucl"
         logging.info(CMD)
         # I cannot find any "quiet" options for makeblastdb
-        return_code = subprocess.call(CMD, stdout=open(os.devnull, "wb"), shell=True)
+        return_code = subprocess.call(CMD, stdout=subprocess.DEVNULL, shell=True)
 
         if return_code != 0:
-            logging.error(f"Make blast_db failed!!")
-            install_flag = 1
+            raise ExternalToolError(f"makeblastdb failed (exit code {return_code}) for {fasta}")
 
         # Change db names
         shutil.move(fasta + ".nsq", db + ".nsq")
@@ -122,6 +128,8 @@ def makemmseqsdb(fasta, db, path):
         CMD = f"mmseqs createdb '{fasta}' '{db}' --createdb-mode 0 --dbtype 2"
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
+    if Run != 0:
+        raise ExternalToolError(f"mmseqs createdb failed (exit code {Run}) for {fasta}")
 
 
 # Alignments
@@ -155,11 +163,9 @@ def MAFFT(
             CMD = f"mafft --thread {thread} --{algorithm} --maxiterate {maxiterate} --{adjust} --op {op} --ep {ep} --quiet '{fasta}' > '{out}'"
 
         logging.info(CMD)
-        try:
-            Run = subprocess.call(CMD, shell=True)
-        except:
-            logging.error(f"Failed on {CMD}")
-            raise Exception
+        Run = subprocess.call(CMD, shell=True)
+        if Run != 0:
+            raise ExternalToolError(f"MAFFT failed (exit code {Run}) for {fasta}")
 
 
 # Trimming
@@ -176,37 +182,40 @@ def Gblocks(fasta, out, path):
 
     try:
         shutil.move(f"{fasta}.gb", out)
-    except:  # when only one sequence and Gblocks failed
+    except FileNotFoundError:  # when only one sequence and Gblocks failed
         shutil.move(fasta, out)
 
-    # Parse and return column statistics
-    with open(f"{fasta}.gb.txt", "r") as f:
-        lines = f.readlines()
-        for line in lines:
-            if line.startswith("Flanks:"):
-                flank_log = line
-                flank_log = (
-                    flank_log.replace("Flanks:", "")
-                    .replace("  ", " ")
-                    .replace("[", "")
-                    .replace("]", "")
-                    .strip()
-                )
-                flank_log = flank_log.split(" ")
-                print(flank_log)
-                try:
-                    flank_log = [int(x) for x in flank_log]
-                    start_pos = flank_log[0]
-                    end_pos = flank_log[-1] - 1
-                except:
-                    start_pos = -1
-                    end_pos = -1
+    # Parse and return column statistics. (Gblocks returns a nonzero exit code even
+    # on success, so its exit code is intentionally not checked.) Default to the
+    # (-1, -1) failure sentinel so a missing/format-drifted .gb.txt cannot NameError.
+    start_pos = -1
+    end_pos = -1
+    if os.path.exists(f"{fasta}.gb.txt"):
+        with open(f"{fasta}.gb.txt", "r") as f:
+            for line in f:
+                if line.startswith("Flanks:"):
+                    flank_log = (
+                        line.replace("Flanks:", "")
+                        .replace("  ", " ")
+                        .replace("[", "")
+                        .replace("]", "")
+                        .strip()
+                        .split(" ")
+                    )
+                    logging.debug(f"Gblocks flanks for {fasta}: {flank_log}")
+                    try:
+                        flank_log = [int(x) for x in flank_log]
+                        start_pos = flank_log[0]
+                        end_pos = flank_log[-1] - 1
+                    except (ValueError, IndexError):
+                        start_pos = -1
+                        end_pos = -1
 
-    print(f"start_pos: {start_pos}, end_pos: {end_pos}")
+    logging.debug(f"Gblocks start_pos: {start_pos}, end_pos: {end_pos}")
 
     try:
         shutil.move(f"{fasta}.gb.txt", path.extlog)
-    except:
+    except FileNotFoundError:
         pass
 
     return (start_pos, end_pos)
@@ -229,10 +238,12 @@ def Trimal(fasta, out, path, algorithm="gt", threshold=0.2):
         CMD = f"{path.sys_path}/external/trimal.v1.4/trimAl/bin/trimal.exe -in {fasta} -out {out_dir} -{algorithm} -terminalonly -colnumbering > {out_colnumbering}"
 
     else:
-        CMD = f"trimal -in {fasta} -out {out} -{algorithm} -terminalonly -colnumbering > {out}.colnumbering"
+        CMD = f"trimal -in '{fasta}' -out '{out}' -{algorithm} -terminalonly -colnumbering > '{out}.colnumbering'"
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
+    if Run != 0 or not os.path.exists(out):
+        raise ExternalToolError(f"trimal failed (exit code {Run}) for {fasta}")
 
     # to remove unexpected hash included - maybe not needed after stabilization
     fasta_list = list(SeqIO.parse(out, "fasta"))
@@ -252,13 +263,13 @@ def Trimal(fasta, out, path, algorithm="gt", threshold=0.2):
             cols = [int(x) for x in cols]
             start_pos = cols[0]
             end_pos = cols[-1]
-        except:
+        except (ValueError, IndexError):
             start_pos = -2
             end_pos = -2
 
     try:
         shutil.move(f"{out}.colnumbering", path.extlog)
-    except:
+    except FileNotFoundError:
         pass
 
     # Trimal uses 0 based position, return with +1
@@ -291,10 +302,9 @@ def ModelFinder(fasta, opt, path, thread):
     elif opt.method.tree == "fasttree":
         model_term = "-m MF --mset JC,JC+G4,GTR,GTR+G4"
     else:
-        logging.error(
-            f"Modelterm cannot be selected to tree method {opt.method.tree} while running modelfinder"
+        raise ExternalToolError(
+            f"cannot select a model term for tree method {opt.method.tree!r} in ModelFinder"
         )
-        raise Exception
 
     if platform == "win32":
         if " " in fasta:
@@ -322,68 +332,66 @@ def RAxML(
     if model == "skip":
         model = ""
 
-    # Because RAxML does not allows out location, change directory for running
+    # Because RAxML does not allow an out location, change directory for running.
+    # Wrap in try/finally so the original cwd is always restored, even if RAxML
+    # (or CMD selection) fails -- otherwise later relative-path operations break.
     path_ori = os.getcwd()
     os.chdir(path.tmp)
+    try:
+        if platform == "win32":
+            if " " in fasta:
+                fasta = f'"{fasta}"'
+            if " " in out:
+                out = f'"{out}"'
 
-    if platform == "win32":
-        if " " in fasta:
-            fasta = f'"{fasta}"'
-        if " " in out:
-            out = f'"{out}"'
+            CMD = f"{path.sys_path}/external/RAxML_Windows/raxmlHPC-PTHREADS-AVX2.exe -s {fasta} -n {out} -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model} --silent"
+        elif platform == "darwin":
+            # For Rosetta
+            if (
+                subprocess.run(
+                    "raxmlHPC-PTHREADS -v",
+                    shell=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.STDOUT,
+                ).returncode
+                == 0
+            ):
+                CMD = f"raxmlHPC-PTHREADS -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
+            # For arm native
+            elif (
+                subprocess.run(
+                    "raxmlHPC -v",
+                    shell=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.STDOUT,
+                ).returncode
+                == 0
+            ):
+                CMD = f"raxmlHPC -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
+            else:
+                raise ExternalToolError(
+                    "cannot find a working RAxML for this Apple Silicon system"
+                )
 
-        CMD = f"{path.sys_path}/external/RAxML_Windows/raxmlHPC-PTHREADS-AVX2.exe -s {fasta} -n {out} -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model} --silent"
-    elif platform == "darwin":
-        # For Rossetta
-
-        if (
-            subprocess.run(
-                "raxmlHPC-PTHREADS -v",
-                shell=True,
-                stdout=open(os.devnull, "wb"),
-                stderr=subprocess.STDOUT,
-            ).returncode
-            == 0
-        ):
-            CMD = f"raxmlHPC-PTHREADS -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
-        # For arm native
-        elif (
-            subprocess.run(
-                "raxmlHPC -v",
-                shell=True,
-                stdout=open(os.devnull, "wb"),
-                stderr=subprocess.STDOUT,
-            ).returncode
-            == 0
-        ):
-            CMD = f"raxmlHPC -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model}"
         else:
-            logging.error("Cannot find correct RAxML for apple silicon system!")
-            raise Exception
+            if version == "old":
+                CMD = f"raxmlHPC-PTHREADS-AVX -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model} --silent"
+            elif version == "new":
+                CMD = f"raxmlHPC-PTHREADS-AVX2 -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model} --silent"
+            else:
+                raise ExternalToolError(f"unexpected RAxML version {version!r}")
 
-    else:
-        if version == "old":
-            CMD = f"raxmlHPC-PTHREADS-AVX -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model} --silent"
-        elif version == "new":
-            CMD = f"raxmlHPC-PTHREADS-AVX2 -s '{fasta}' -n '{out}' -p 1 -T {thread} -f a -# {bootstrap} -x 1 {model} --silent"
-        else:
-            logging.error(
-                f"DEVELOPMENTAL ERROR - unexpected RAxML version, {version} in ext.py"
-            )
-            raise Exception
+        if not (partition is None):
+            CMD += f" -q {partition}"
 
-    if not (partition is None):
-        CMD += f" -q {partition}"
+        logging.info(CMD)
+        Run = subprocess.call(CMD, shell=True)
+        if Run != 0:
+            raise ExternalToolError(f"RAxML failed (exit code {Run}) for {fasta}")
+    finally:
+        # Always restore the original working directory
+        os.chdir(path_ori)
 
-    logging.info(CMD)
-    Run = subprocess.call(CMD, shell=True)
-
-    if Run != 0:
-        logging.error(f"RAxML Failed!")
-        raise Exception
-
-    # Return result to original directory
-    os.chdir(path_ori)
     file = out.split("/")[-1]
     out = f"RAxML_bipartitions.{out}"
     save_tree(
@@ -418,6 +426,9 @@ def FastTree(fasta, out, hash_dict, path, model=""):
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
+    tree_file = f"{path.tmp}/{out}"
+    if Run != 0 or not os.path.exists(tree_file) or os.path.getsize(tree_file) == 0:
+        raise ExternalToolError(f"FastTree failed (exit code {Run}) for {fasta}")
     file = out.split("/")[-1]
     save_tree(
         out=f"{path.tmp}/{out}",
@@ -473,15 +484,13 @@ def IQTREE(
     try:
         if partition is None:
             shutil.move(f"{fasta}.contree", f"{path.tmp}/{out}")
-            print(f"DEBUG Moved {fasta}.contree to {path.tmp}/{out}")
         else:
             shutil.move(f"{partition}.contree", f"{path.tmp}/{out}")
-            print(f"DEBUG Moved {partition}.contree to {path.tmp}/{out}")
-
-    except:
-        logging.error(
-            "IQTREE FAILED. Maybe due to memory problem if partitioned analysis included."
-        )
+    except FileNotFoundError as e:
+        raise ExternalToolError(
+            f"IQTREE failed (exit code {Run}, no .contree produced) for {fasta}; "
+            "possibly a memory problem for partitioned analysis"
+        ) from e
 
     file = out.split("/")[-1]
     save_tree(
@@ -495,8 +504,7 @@ def IQTREE(
 # TCS calculation from T-COFFEE
 def TCS(fasta, thread, out):
     if platform == "win32":
-        logging.error("TCS(From T-COFFEE) is only available in Linux")
-        raise Exception
+        raise ExternalToolError("TCS (from T-COFFEE) is only available on Linux")
     else:
         # T_COFFEE env variable MAX_N_PID_4_TCOFFEE should be changed for 64bit machine
         # should be already done in installation check process
@@ -507,9 +515,8 @@ def TCS(fasta, thread, out):
     # Even though "quiet" option exists, TCS show some blank lines
     # Run = subprocess.call(CMD, stdout=open(os.devnull, "wb"), shell=True)
     Run = subprocess.run(
-        CMD, stdout=open(os.devnull, "wb"), stderr=subprocess.STDOUT, shell=True
+        CMD, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True
     ).returncode
 
     if Run != 0:
-        logging.error(f"TCS Failed!")
-        raise Exception
+        raise ExternalToolError(f"TCS (T-COFFEE) failed (exit code {Run})")

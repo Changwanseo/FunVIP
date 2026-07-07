@@ -340,10 +340,7 @@ def parse_model(modeltest_file, opt, path):
                                     )
                                     break
 
-                # Currently using BIC model
-                model_cmd = model_dict["BIC"]
-
-        except:
+        except Exception:
             logging.warning(f"Cannot parse modeltest file for {modeltest_file}")
 
     else:

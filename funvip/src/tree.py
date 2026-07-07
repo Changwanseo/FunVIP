@@ -49,7 +49,7 @@ def pipe_tree(V, path, opt, model_dict):
     for group in tree_dataset:
         for gene in tree_dataset[group]:
             # draw tree only when outgroup sequence exists
-            if tree_dataset[group][gene].list_og_FI == 0:
+            if len(tree_dataset[group][gene].list_og_FI) == 0:
                 logging.warning(
                     f"Passing tree construction of {group} {gene} dataset because no outgroup available"
                 )
