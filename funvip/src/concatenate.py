@@ -285,7 +285,7 @@ def concatenate_df(V, path, opt):
                 )
             return df
 
-        # Change to numpy for faster cazlculation
+        # Change to numpy for faster calculation
         np_bitscore = df_multigene_regression[
             [f"{gene}_bitscore" for gene in gene_list]
         ].to_numpy()

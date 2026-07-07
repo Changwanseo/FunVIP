@@ -37,7 +37,7 @@ def pipe_module_tree_interpretation(
 ):
     # time_start = time()
 
-    # for unexpectively included sequence during clustering
+    # for unexpectedly included sequence during clustering
     db_list = list(
         set([FI for FI in funinfo_list if FI.datatype == "db"])
         - set(outgroup)
@@ -192,7 +192,7 @@ def pipe_module_tree_interpretation(
 
 ### synchronize sp. numbers from multiple dataset
 # to use continuous sp numbers over trees
-# Seperated from multithreading, because this step should traverse over multiple trees, therefore cannot be done simultaniously
+# Seperated from multithreading, because this step should traverse over multiple trees, therefore cannot be done simultaneously
 def synchronize(V, path, tree_info_list):
     # Gets hash dict, and returns taxon name of hash_dict
     # Generate final taxon name for synchronizing

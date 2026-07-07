@@ -1129,7 +1129,7 @@ class Tree_information:
                     f"unexpected leaf type for {leaf.name} in {self.tree_name}"
                 )
 
-    # Species level delimitaion on tree
+    # Species level delimitation on tree
     def tree_search(self, clade, gene, opt=None):
         def local_generate_collapse_information(self, clade, opt=None):
             collapse_info = Collapse_information()

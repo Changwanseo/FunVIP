@@ -429,7 +429,7 @@ def _run_funvip():
         try:
             logging.info(f"Time report generation: {round(time_end-time_visualize,3)}s")
         except:
-            logging.warning(f"Failed logging reoprt generation time")
+            logging.warning(f"Failed logging report generation time")
 
         # At the end of the run, print critical messages once again to be noticed
         with open(path.criticallog, "r") as frclog:

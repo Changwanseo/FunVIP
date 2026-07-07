@@ -83,11 +83,11 @@ def assign_gene(result_dict, V, cutoff=0.99):
                 # get each of the dataframe for each FI
                 current_df = gene_result_grouped.get_group(f"{FI.hash}_{n}")
                 # sort by bitscore
-                # sorting has peformed after split for better performance
+                # sorting is performed after split for better performance
                 current_df.sort_values(by=["bitscore"], inplace=True, ascending=False)
                 # reset index to easily get maximum
                 current_df.reset_index(inplace=True, drop=True)
-                # get result stasifies over cutoff
+                # get result satisfies over cutoff
                 cutoff_df = current_df[
                     current_df["bitscore"] > current_df["bitscore"][0] * cutoff
                 ]
@@ -240,7 +240,7 @@ def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
 
     # print(f"Ingroup cutoff {bitscore_cutoff} selected for group {group} gene {gene}")
 
-    ## get result stasifies over cutoff
+    ## get result satisfies over cutoff
     # outgroup should be outside of ingroup
     cutoff_df = df_search[df_search["bitscore"] < bitscore_cutoff]
 
@@ -417,7 +417,7 @@ def group_cluster_opt_generator(V, opt, path):
 def outgroup_append_opt_generator(V, path, opt):
     opt_append_outgroup = []
 
-    #### Pararellize this part
+    #### Parallelize this part
     # Assign different outgroup for each dataset
 
     # if concatenated analysis is true
