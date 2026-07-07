@@ -97,13 +97,23 @@ def _run_funvip():
 
     # Reload previous session from shelve if --continue selected
     if opt.continue_from_previous is True:
+        from funvip.src.exceptions import ConfigError
+
         var = save.load_session(opt, savefile=path.save)
-        if "V" in var:
-            V = var["V"]
-        if "R" in var:
-            R = var["R"]
-        if "path" in var:
-            path = var["path"]
+        # A previous checkpoint that failed to save a required key (an unpicklable
+        # object logged only as a warning, an interrupted write, or a missing
+        # save.shelve) leaves these absent; resuming would silently run on an empty
+        # V and emit a 0-row result.csv reported as success. Fail clearly instead.
+        for _required in ("V", "R", "path"):
+            if _required not in var:
+                raise ConfigError(
+                    f"--continue was requested but the saved session at {path.save} is "
+                    f"missing required key '{_required}'. A previous checkpoint save was "
+                    "incomplete or the session file is absent; re-run from an earlier --step."
+                )
+        V = var["V"]
+        R = var["R"]
+        path = var["path"]
         if "model_dict" in var:
             model_dict = var["model_dict"]
         if "GenMine_flag" in var:

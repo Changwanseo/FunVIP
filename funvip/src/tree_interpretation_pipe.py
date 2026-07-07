@@ -395,6 +395,11 @@ def synchronize(V, path, tree_info_list):
 
     # Then, non-concatenated
     for group in tree_info_dict:
+        # A group whose concatenated tree failed interpretation (dropped by the
+        # per-item guard) can still have gene entries here; skip it rather than
+        # KeyError on the missing "concatenated" key and abort the whole run.
+        if "concatenated" not in tree_info_dict[group]:
+            continue
         for gene in tree_info_dict[group]:
             if gene != "concatenated":
                 tree_info = tree_info_dict[group]["concatenated"]
