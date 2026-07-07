@@ -16,7 +16,6 @@ from funvip.src.tool import (
     get_id,
     manage_unicode,
 )
-from funvip.src.logics import isnewicklegal
 from funvip.src.hasher import decode, newick_legal, hash_funinfo_list
 import shelve
 

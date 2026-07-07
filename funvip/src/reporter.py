@@ -293,61 +293,6 @@ class Report:
                 self.query_result["DATATYPE"] == "query"
             ]
 
-        ### Update statistics by result
-
-        # Groupby group
-        df_result_group = self.query_result.groupby(["GROUP_ASSIGNED"])
-
-        # Count groups
-        for group in sorted(list(set(self.query_result["GROUP_ASSIGNED"]))):
-            df_group = df_result_group.get_group((group,))
-
-            # Collect statistics
-            """
-            cnt_correctly_identified = list(df_group["STATUS"]).count(
-                "correctly identified"
-            )
-            cnt_undetermined = list(df_group["STATUS"]).count("undetermined")
-            cnt_new_species_candidate = list(df_group["STATUS"]).count(
-                "new species candidate"
-            )
-            cnt_misidentified = list(df_group["STATUS"]).count("misidentified")
-            cnt_error = list(df_group["STATUS"]).count("ERROR")
-            cnt_total = sum(
-                (
-                    cnt_correctly_identified,
-                    cnt_undetermined,
-                    cnt_new_species_candidate,
-                    cnt_misidentified,
-                    cnt_error,
-                )
-            )
-            """
-
-            # Write into dictionary
-            """
-            self.statistics["GROUP"].append(group)
-            self.statistics["IDENTIFIED"].append(cnt_correctly_identified)
-            self.statistics["AMBIGUOUS"].append(cnt_undetermined)
-            self.statistics["NEW SPECIES CANDIDATE"].append(cnt_new_species_candidate)
-            self.statistics["MISIDENTIFIED"].append(cnt_misidentified)
-            self.statistics["ERROR"].append(cnt_error)
-            self.statistics["TOTAL"].append(cnt_total)
-            """
-
-        # Add final summations
-        """
-        self.statistics["GROUP"].append("TOTAL")
-        self.statistics["IDENTIFIED"].append(sum(self.statistics["IDENTIFIED"]))
-        self.statistics["AMBIGUOUS"].append(sum(self.statistics["AMBIGUOUS"]))
-        self.statistics["NEW SPECIES CANDIDATE"].append(
-            sum(self.statistics["NEW SPECIES CANDIDATE"])
-        )
-        self.statistics["MISIDENTIFIED"].append(sum(self.statistics["MISIDENTIFIED"]))
-        self.statistics["ERROR"].append(sum(self.statistics["ERROR"]))
-        self.statistics["TOTAL"].append(sum(self.statistics["TOTAL"]))
-        """
-
     ### Main report runner
     # Update report by pipeline step
     def update_report(self, V, path, opt, step, version, GenMine_flag):

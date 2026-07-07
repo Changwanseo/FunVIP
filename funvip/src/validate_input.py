@@ -24,7 +24,7 @@ from pathlib import Path
 from time import sleep
 
 from funvip.src import save
-from funvip.src.logics import isnewicklegal, isuniquecolumn, isvalidcolor
+from funvip.src.logics import isuniquecolumn, isvalidcolor
 from funvip.src.hasher import decode, newick_legal, hash_funinfo_list
 
 # funinfo_dict: {"ID" : FI}

@@ -446,35 +446,6 @@ def taxon_count(
     )
 
 
-def genus_count(funinfo_dict, gene, clade):
-    taxon_dict = {}
-
-    for leaf in clade.leaves():
-        FI = funinfo_dict[leaf.name]
-        if (
-            decide_type(
-                query_list=self.query_list,
-                db_list=self.db_list,
-                outgroup=self.outgroup,
-                string=leaf.name,
-            )
-            == "db"
-            or decide_type(
-                query_list=self.query_list,
-                db_list=self.db_list,
-                outgroup=self.outgroup,
-                string=leaf.name,
-            )
-            == "outgroup"
-        ):
-            if not ((FI.genus, FI.bygene_species[gene]) in taxon_dict):
-                taxon_dict[(FI.genus, FI.bygene_species[gene])[0]] = 1
-            else:
-                taxon_dict[(FI.genus, FI.bygene_species[gene])[0]] += 1
-
-    return taxon_dict
-
-
 def designate_genus(funinfo_dict, query_list, db_list, outgroup, gene, clade):
     genus_dict = {}
 

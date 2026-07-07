@@ -26,38 +26,6 @@ def isvalidcolor(color: str) -> bool:
         return False
 
 
-def isnewicklegal(string: str) -> bool:
-    """
-    if string is newick legal -> return True
-    if string is newick illegal -> return False
-    """
-    NEWICK_ILLEGAL = (
-        "(",
-        '"',
-        "[",
-        ":",
-        ";",
-        "/",
-        "[",
-        "]",
-        "{",
-        "}",
-        "(",
-        ")",
-        ",",
-        "]",
-        "+",
-        '"',
-        ")",
-        " ",
-    )
-
-    if any(x in string for x in NEWICK_ILLEGAL):
-        return True
-    else:
-        return False
-
-
 def isuniquecolumn(
     list_column: list, column: tuple, table_name: str, check_none: bool = True
 ) -> bool:
