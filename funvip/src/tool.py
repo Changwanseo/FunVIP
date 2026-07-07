@@ -76,6 +76,26 @@ def manage_unicode(string, column="", row=""):
         raise Exception
 
 
+# Cache of parsed genus lists keyed by file path. genus_file is set once per run
+# by initialize_path(), but get_genus_species(genus_list=None) is called
+# per-sequence in validate_input, so without a cache the ~3k-line genus DB was
+# re-opened and re-read on every call.
+_genus_list_cache = {}
+
+
+def _load_genus_list():
+    gf = globals().get("genus_file")
+    if not gf or not os.path.exists(gf):
+        raise ValueError(
+            "get_genus_species(genus_list=None) needs the genus database path set "
+            f"by tool.initialize_path(); it was not initialized (genus_file={gf!r})"
+        )
+    if gf not in _genus_list_cache:
+        with open(gf, "r") as f:
+            _genus_list_cache[gf] = f.read().splitlines()
+    return _genus_list_cache[gf]
+
+
 @lru_cache(maxsize=10000)
 def get_genus_species(
     string,
@@ -99,8 +119,7 @@ def get_genus_species(
 
     # en for enumeratable object (splited string)
     if genus_list is None:
-        with open(genus_file, "r") as f:
-            genus_list = f.read().splitlines()
+        genus_list = _load_genus_list()
 
     en = string.replace(" ", "_").split("_")
 
