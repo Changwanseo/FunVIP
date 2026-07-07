@@ -291,6 +291,8 @@ def Modeltest_ng(fasta, out, path, models, thread):
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
+    if Run != 0:
+        raise ExternalToolError(f"modeltest-ng failed (exit code {Run}) for {fasta}")
 
 
 # IQTREE ModelFinder
@@ -315,6 +317,10 @@ def ModelFinder(fasta, opt, path, thread):
         CMD = f"iqtree --seqtype DNA -s '{fasta}' {model_term} -merit {opt.criterion} -nt AUTO -ntmax {thread} -mem {opt.memory} --quiet"
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
+    if Run != 0:
+        raise ExternalToolError(
+            f"IQTREE ModelFinder failed (exit code {Run}) for {fasta}"
+        )
 
 
 # Tree building
@@ -481,6 +487,11 @@ def IQTREE(
 
     logging.info(CMD)
     Run = subprocess.call(CMD, shell=True)
+    if Run != 0:
+        raise ExternalToolError(
+            f"IQTREE failed (exit code {Run}) for {fasta}; refusing to use any "
+            "stale .contree left by a previous run"
+        )
     try:
         if partition is None:
             shutil.move(f"{fasta}.contree", f"{path.tmp}/{out}")

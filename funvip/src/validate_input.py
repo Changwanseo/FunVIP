@@ -77,7 +77,8 @@ class Funinfo:
         else:
             self.seq[gene] = str(seq.seq).replace("-", "")
 
-        self.bygene_species[gene] = self.ori_species
+        if gene is not None:
+            self.bygene_species[gene] = self.ori_species
 
         return error
 

@@ -335,8 +335,8 @@ class Option:
             pass
 
         try:
-            if not parser.continue_from_previous is None:
-                self.continue_from_previous = parser.continue_from_previous
+            if parser.continue_from_previous is True:
+                self.continue_from_previous = True
         except:
             pass
 
@@ -383,7 +383,7 @@ class Option:
             pass
 
         try:
-            if not parser.notcs is None:
+            if parser.notcs is True:
                 self.method.tcs = False
         except:
             pass
@@ -575,8 +575,8 @@ class Option:
             pass
 
         try:
-            if not parser.allow_innertrimming is None:
-                self.allow_innertrimming = parser.allow_innertrimming
+            if parser.allow_innertrimming is True:
+                self.allow_innertrimming = True
         except:
             pass
 
@@ -1007,7 +1007,7 @@ class Option:
             self.method.tcs = False
         else:
             # Check if tcs available
-            cmd = "export MAX_N_PID_4_TCOFFEE=4194304 | t_coffee -help"
+            cmd = "MAX_N_PID_4_TCOFFEE=4194304 t_coffee -help"
             return_code = subprocess.run(
                 cmd,
                 shell=True,
@@ -1303,6 +1303,7 @@ class Option:
             self.maxoutgroup = int(self.maxoutgroup)
             if self.maxoutgroup < 1:
                 list_warning.append(f"invalid maxoutgroup, automatically selecting 1")
+                self.maxoutgroup = 1
         except:
             list_warning.append(f"invalid maxoutgroup, automatically selecting 1")
             self.maxoutgroup = 1

@@ -1,5 +1,6 @@
 import logging
 import re
+import numpy as np
 from matplotlib import colors as mcolors  # for color debugging
 
 # Move all simple logics function deciding True all False here
@@ -15,8 +16,8 @@ def isnan(value) -> bool:
 def isvalidcolor(color: str) -> bool:
 
     colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
-    # Check if color is named colors
-    if color in colors.keys():
+    # Check if color is named colors (CSS4 keys are lowercase; normalize input)
+    if color.lower() in colors:
         return True
     # Check if color is available hex color
     elif re.fullmatch(r"^#(?:[0-9a-fA-F]{3}){1,2}$", color):
