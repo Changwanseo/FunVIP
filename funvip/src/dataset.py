@@ -294,7 +294,7 @@ class FunVIP_var:
                             and gene in FI.seq
                         ):
                             if FI.seq[gene] != "":
-                                list_db.append(FI)
+                                list_qr.append(FI)
 
                     list_db = []
                     for FI in self.list_FI:
@@ -386,7 +386,7 @@ class FunVIP_var:
                         pass
                     elif not (FI.bygene_species):
                         FI.bygene_species = self.dict_hash_FI[h].bygene_species
-                    elif self.dict_hash_FI[h].bygene_species:
+                    elif not (self.dict_hash_FI[h].bygene_species):
                         self.dict_hash_FI[h].bygene_species = FI.bygene_species
                     else:
                         raise DatasetError(
@@ -478,11 +478,11 @@ class FunVIP_var:
                             f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta"
                         )
                     ):
-                        logger.warning(
+                        logging.warning(
                             f"Alignment file {path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta does not exists"
                         )
 
-                        fail_list.append(group_gene)
+                        fail_list.append((group, gene))
 
                     else:
                         # If alignment exists, check if alignment does have overlapping regions
@@ -496,17 +496,16 @@ class FunVIP_var:
 
                         # Remove sequences that has not been existed during alignment stage
                         seq_id_list = [seq.id for seq in seq_list]
-                        for FI in self.dict_dataset[group][gene].list_db_FI:
-                            if not (FI.hash in seq_id_list):
-                                self.dict_dataset[group][gene].list_db_FI.remove(FI)
-
-                        for FI in self.dict_dataset[group][gene].list_qr_FI:
-                            if not (FI.hash in seq_id_list):
-                                self.dict_dataset[group][gene].list_qr_FI.remove(FI)
-
-                        for FI in self.dict_dataset[group][gene].list_og_FI:
-                            if not (FI.hash in seq_id_list):
-                                self.dict_dataset[group][gene].list_og_FI.remove(FI)
+                        dataset = self.dict_dataset[group][gene]
+                        dataset.list_db_FI = [
+                            FI for FI in dataset.list_db_FI if FI.hash in seq_id_list
+                        ]
+                        dataset.list_qr_FI = [
+                            FI for FI in dataset.list_qr_FI if FI.hash in seq_id_list
+                        ]
+                        dataset.list_og_FI = [
+                            FI for FI in dataset.list_og_FI if FI.hash in seq_id_list
+                        ]
 
                         # Remove empty sequences
                         remove_hash = []

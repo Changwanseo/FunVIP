@@ -1172,7 +1172,7 @@ class Tree_information:
         ## start of tree_search
 
         if len(clade.children) == 1:
-            local_generate_collapse_information(clade, opt=opt)
+            local_generate_collapse_information(self, clade, opt=opt)
 
             if self.opt.verbose >= 3:
                 logging.debug("End of Tree search with monophyletic branches")

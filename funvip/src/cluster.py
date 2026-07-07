@@ -337,7 +337,7 @@ def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
                 )
 
                 # Move outgroup within ambiguous db to outgroup
-                for FI in ambiguous_db:
+                for FI in list(ambiguous_db):
                     if FI.group == subject_group:
                         ambiguous_db.remove(FI)
                         outgroup_dict[subject_group].append(FI)
@@ -367,7 +367,7 @@ def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
         )
 
         # Move outgroup within ambiguous db to outgroup
-        for FI in ambiguous_db:
+        for FI in list(ambiguous_db):
             if FI.group == max_group:
                 ambiguous_db.remove(FI)
                 outgroup_dict[max_group].append(FI)
