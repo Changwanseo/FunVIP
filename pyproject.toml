@@ -8,7 +8,7 @@ requires-python = ">=3.9, <3.14"
 license = {text = "GPL-3.0"}
 dependencies = [
     "biopython>=1.84",
-    "ete4",
+    "ete4>=4.4.0,<4.5.0",
     "Cython",
     "contourpy>=1.0",
     "dendropy>=4.0.0, <5.0.0",
@@ -17,7 +17,7 @@ dependencies = [
     "matplotlib",
     "numpy>=1.20.0,<2.0.0",
     "openpyxl>=3.1.0",
-    "pandas>=2.2.2",
+    "pandas>=2.2.2,<4.0.0",
     "psutil",
     "pyyaml",
     "sip>=4.19.4",
@@ -39,6 +39,9 @@ content-type = "text/markdown"
 FunID = "funvip.main:main"
 FunVIP = "funvip.main:main"
 
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+
 [tool.setuptools]
 include-package-data = true
 
@@ -56,5 +59,12 @@ build-backend = "setuptools_ext"
 
 [metadata]
 obsoletes-dist = "FunID"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: end-to-end tests that shell out to external tools (deselected by default)",
+]
+addopts = "-m 'not integration'"
 
 

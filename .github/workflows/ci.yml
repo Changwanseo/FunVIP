@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Fast, broad matrix. The unit tests import only lightweight deps (pandas,
+  # numpy, matplotlib, biopython, pyyaml, psutil, unidecode) -- NOT ete4 -- so
+  # they run across Python versions and OSes without ete4's Cython build hurdle.
+  unit:
+    name: unit / py${{ matrix.python }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install unit-test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest "pandas>=2.2.2,<4.0.0" "numpy<2" matplotlib biopython pyyaml psutil unidecode
+      - name: Run unit tests
+        run: pytest -q
+        env:
+          PYTHONPATH: .
+
+  # One combo that exercises the real install path: ete4 (via conda, which is the
+  # reliable channel for it) plus a pip install of the package, then a full import
+  # smoke test. If ete4 is unavailable for a given python/OS this job reports it --
+  # that is the signal for which combos the packaged install supports. Adjust the
+  # channels/version here as ete4 availability changes.
+  install-smoke:
+    name: full install (conda) / ubuntu / py3.12
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: "3.12"
+          channels: conda-forge,bioconda
+          channel-priority: flexible
+          auto-activate-base: false
+          activate-environment: funvip-ci
+      - name: Install ete4 via conda
+        run: conda install -y "ete4>=4.4.0,<4.5.0"
+      - name: Install FunVIP with test extras
+        run: pip install -e ".[test]"
+      - name: Import smoke test + unit tests
+        run: |
+          python -c "import funvip.main; print('funvip.main imports OK')"
+          pytest -q

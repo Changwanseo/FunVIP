@@ -67,3 +67,10 @@ DB.fasta
 /funvip/FunVIP.egg-info/*
 CLAUDE.md
 .claude/
+
+# Python + pytest caches
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
