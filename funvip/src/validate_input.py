@@ -431,6 +431,22 @@ def input_fasta(path, opt, fasta_list, funinfo_dict, datatype):
 
 
 # getting datafile from excel or tabular file
+def _resolve_genmine():
+    """Resolve the GenMine executable next to the running interpreter rather than
+    via a bare shell PATH lookup. A different, incompatible GenMine version
+    installed elsewhere on PATH (another venv, a stray global pip install) would
+    otherwise silently shadow the one FunVIP was installed with, and GenMine's
+    output format has changed between versions -- validate_input's parsing of
+    its results would then quietly fail (raw accessions left unreplaced) with no
+    error, instead of a normal, cleanly-diagnosable version mismatch.
+    """
+    exe_name = "GenMine.exe" if sys.platform == "win32" else "GenMine"
+    candidate = os.path.join(os.path.dirname(sys.executable), exe_name)
+    if os.path.isfile(candidate):
+        return candidate
+    return shutil.which("GenMine") or "GenMine"
+
+
 def input_table(funinfo_dict, path, opt, table_list, datatype):
     # Whether to check if GenMine has run
     GenMine_flag = 0
@@ -626,7 +642,11 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                 else:
                     GenMine_path = path.GenMine
 
-                cmd = f"GenMine -c {accession_path} -o {GenMine_path} -e {opt.email}"
+                genmine_exe = _resolve_genmine()
+                if " " in genmine_exe:
+                    genmine_exe = f'"{genmine_exe}"'
+
+                cmd = f"{genmine_exe} -c {accession_path} -o {GenMine_path} -e {opt.email}"
                 logging.info(cmd)
 
                 sleep(5)  # To run GenMine safetly between run and run
@@ -656,8 +676,11 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                     download_df = pd.read_excel(GenMine_df_list[0])
 
                     # Generate download_dict (I think this can be done with pandas operation, but a bit tricky. Will be done later)
+                    # Key on the version-less accession: GenMine returns some accessions
+                    # with a ".N" version suffix and some without depending on which NCBI
+                    # fetch path served them, but the lookup below always strips the version.
                     for n, acc in enumerate(download_df["acc"]):
-                        download_dict[acc.strip()] = download_df["seq"][n]
+                        download_dict[acc.strip().split(".")[0]] = download_df["seq"][n]
 
                     # replace accession to sequence downloaded
                     def update_from_GenMine(string):

@@ -47,18 +47,25 @@ def _build_ete4_from_source():
     """Download the ete4 sdist, apply the Windows build fix (etetoolkit/ete PR #783),
     and pip-install it. Needs a C/C++ compiler and internet; runs at most once."""
     import glob
+    import json
     import tarfile
     import tempfile
+    import urllib.request
 
     with tempfile.TemporaryDirectory() as tmp:
-        # Only ete4 must come as source (it has no wheel); build deps like Cython
-        # and setuptools should stay as wheels. `--no-binary :all:` would force
-        # Cython itself to compile from source, which is slow and fails on Windows.
-        _pip(
-            "download", f"ete4=={_ETE4_SRC_VERSION}", "--no-deps",
-            "--no-binary", "ete4", "-d", tmp,
+        # Fetch the raw sdist tarball directly (not via `pip download`): pip would
+        # invoke the sdist's build backend to resolve metadata, which runs ete4's
+        # unpatched setup.py and hits the exact Windows path bug (PR #783) we are
+        # about to patch -- before we ever get a chance to apply the patch.
+        with urllib.request.urlopen(
+            f"https://pypi.org/pypi/ete4/{_ETE4_SRC_VERSION}/json"
+        ) as resp:
+            release = json.load(resp)
+        sdist_url = next(
+            f["url"] for f in release["urls"] if f["packagetype"] == "sdist"
         )
-        sdist = glob.glob(os.path.join(tmp, "ete4-*.tar.gz"))[0]
+        sdist = os.path.join(tmp, "ete4.tar.gz")
+        urllib.request.urlretrieve(sdist_url, sdist)
         with tarfile.open(sdist) as tar:
             try:
                 tar.extractall(tmp, filter="data")
