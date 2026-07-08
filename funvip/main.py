@@ -51,9 +51,12 @@ def _build_ete4_from_source():
     import tempfile
 
     with tempfile.TemporaryDirectory() as tmp:
+        # Only ete4 must come as source (it has no wheel); build deps like Cython
+        # and setuptools should stay as wheels. `--no-binary :all:` would force
+        # Cython itself to compile from source, which is slow and fails on Windows.
         _pip(
             "download", f"ete4=={_ETE4_SRC_VERSION}", "--no-deps",
-            "--no-binary", ":all:", "-d", tmp,
+            "--no-binary", "ete4", "-d", tmp,
         )
         sdist = glob.glob(os.path.join(tmp, "ete4-*.tar.gz"))[0]
         with tarfile.open(sdist) as tar:
