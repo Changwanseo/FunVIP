@@ -8,7 +8,16 @@ requires-python = ">=3.9, <3.14"
 license = {text = "GPL-3.0"}
 dependencies = [
     "biopython>=1.84",
-    "ete4>=4.4.0,<4.5.0",
+    # ete4 has no Windows wheel on PyPI and cannot compile there, so it is a
+    # dependency only off Windows. On Windows, FunVIP installs a prebuilt ete4
+    # wheel bundled under funvip/_vendor/ete4_wheels on first run (see
+    # _ensure_ete4 in main.py); the wheel is installed with --no-deps, so ete4's
+    # own runtime deps are listed as Windows-only dependencies just below.
+    "ete4>=4.4.0,<4.5.0; platform_system != 'Windows'",
+    "bottle; platform_system == 'Windows'",
+    "cheroot; platform_system == 'Windows'",
+    "brotli; platform_system == 'Windows'",
+    "requests; platform_system == 'Windows'",
     "Cython",
     "contourpy>=1.0",
     "dendropy>=4.0.0, <5.0.0",
@@ -47,10 +56,11 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["funvip", "funvip.src", "funvip.external", "funvip.data", "funvip.preset", "funvip.test_dataset" ]
+include = ["funvip", "funvip.src", "funvip.external", "funvip.data", "funvip.preset", "funvip.test_dataset", "funvip._vendor" ]
 
 [tool.setuptools.package-data]
 funvip = ["data/*", "external/*", "preset/*", "src/*", "test_dataset/*"]
+"funvip._vendor" = ["ete4_wheels/*.whl", "ete4_wheels/*.txt", "ete4_wheels/LICENSE*", "ete4_wheels/README*"]
 
 
 [build-system]

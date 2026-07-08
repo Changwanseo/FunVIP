@@ -18,7 +18,70 @@ def _ensure_deterministic_hash():
 _ensure_deterministic_hash()
 
 
+def _ensure_ete4():
+    """Make ete4 importable. ete4 has no Windows wheel on PyPI and cannot compile
+    there, so on Windows it is not a pip dependency; instead FunVIP installs the
+    prebuilt wheel bundled under funvip/_vendor/ete4_wheels on the first run. This
+    is a no-op on Linux/macOS and once ete4 is already importable."""
+    try:
+        import ete4  # noqa: F401
+
+        return
+    except ImportError:
+        pass
+
+    if sys.platform != "win32":
+        # Off Windows ete4 is an ordinary dependency; a failed import is a genuine
+        # installation problem, so let it surface rather than masking it.
+        raise
+
+    import glob
+    import importlib
+    import subprocess
+
+    tag = f"cp{sys.version_info.major}{sys.version_info.minor}"
+    wheel_dir = os.path.join(os.path.dirname(__file__), "_vendor", "ete4_wheels")
+    wheels = sorted(
+        glob.glob(os.path.join(wheel_dir, f"ete4-*-{tag}-{tag}-win_amd64.whl"))
+    )
+    if not wheels:
+        raise SystemExit(
+            f"[FunVIP] No bundled ete4 wheel for Python {tag} was found in\n"
+            f"    {wheel_dir}\n"
+            "Use Python 3.10-3.13 on Windows, or build a wheel with "
+            "tools/ete4-windows/ (see its README)."
+        )
+
+    wheel = wheels[-1]
+    print(
+        f"[FunVIP] First Windows run: installing bundled ete4 "
+        f"({os.path.basename(wheel)}). This happens only once.",
+        flush=True,
+    )
+    try:
+        subprocess.check_call(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "--no-deps",
+                "--disable-pip-version-check",
+                wheel,
+            ]
+        )
+    except subprocess.CalledProcessError as e:
+        raise SystemExit(
+            f"[FunVIP] Could not install the bundled ete4 wheel ({wheel}): {e}\n"
+            f'Try manually:  pip install "{wheel}"'
+        )
+
+    importlib.invalidate_caches()
+    import ete4  # noqa: F401  -- verify it imports now
+
+
 def _run_funvip():
+    _ensure_ete4()  # install the bundled ete4 wheel on first Windows run (no-op elsewhere)
     from funvip.src import align
     from funvip.src import tree_interpretation_pipe
     from funvip.src import cluster

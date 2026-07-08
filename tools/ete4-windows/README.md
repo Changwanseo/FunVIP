@@ -41,19 +41,22 @@ extension (so a green run means the wheel actually *works* on Windows, not just 
 it compiled). To make a first "does it even compile?" run faster, narrow
 `CIBW_BUILD` in the workflow to a single version, e.g. `cp312-win_amd64`.
 
-## Using the wheels
+## Using the wheels: bundle them into FunVIP
 
-Host the wheels where users can reach them (e.g. attach them to a **GitHub Release**),
-then a Windows install becomes, for example:
+FunVIP bundles these wheels and installs the matching one on the **first Windows
+run** (see `_ensure_ete4` in `funvip/main.py`), so Windows users run the exact same
+`pip install FunVIP` as Linux/macOS. To wire that up:
 
-```
-pip install ete4 --only-binary :all: --find-links https://github.com/<you>/<repo>/releases/download/<tag>/
-pip install funvip
-```
+1. Download the workflow's `ete4-<version>-windows-wheels` artifact.
+2. Drop the `.whl` files into **`funvip/_vendor/ete4_wheels/`** and commit them
+   (they are declared as package data, so they ship inside the FunVIP wheel/sdist).
+3. Release FunVIP as usual. On a user's first Windows run, FunVIP `pip install`s the
+   wheel for their Python version from that folder (offline, `--no-deps`; ete4's
+   runtime deps are already pulled in as Windows-only FunVIP dependencies).
 
-(or wrap that in a one-line `.bat` so users do not type anything). FunVIP itself
-already bundles the Windows binaries of the other external tools under
-`funvip/external/`, so ete4 is the last missing piece for a Windows install.
+The other external tools are already bundled for Windows under `funvip/external/`,
+so ete4 is the last missing piece. Keep the bundled wheel version within FunVIP's
+ete4 pin (`>=4.4.0,<4.5.0`).
 
 ## Even cleaner: upstream the patch
 
