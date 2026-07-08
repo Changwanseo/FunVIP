@@ -54,7 +54,7 @@ class CommandParser:
         )
         group_test.add_argument(
             "--test",
-            help="Use test dataset, [Penicillium, Terrei, Sanghuangporus]",
+            help="Run on a bundled test dataset, one of [penicillium, terrei, sanghuangporus]. Requires --email for the bundled GenBank accessions.",
             type=str,
         )
 
@@ -84,7 +84,7 @@ class CommandParser:
         )
         group_run.add_argument(
             "--mode",
-            help="Mode setup in species identification, see documents for detailed explanations, [validation, identification] default : validation",
+            help="Analysis mode, one of [identification, validation]. default : identification",
             type=str,
         )
         group_run.add_argument(
@@ -95,12 +95,12 @@ class CommandParser:
         )
         group_run.add_argument(
             "--step",
-            help="[WIP] Steps to continue from previous run, will be ignored if invalid --continue option [setup, search, cluster, align, trim, concatenate, modeltest, tree, visualize, report]",
+            help="With --continue, resume from this pipeline step, one of [setup, search, cluster, align, trim, concatenate, modeltest, tree, visualize, report]. Ignored without a valid --continue.",
             type=str,
         )
         group_run.add_argument(
             "--level",
-            help="Taxonomic level for each phylogenetic tree. Should be one of [subseries, series, subsection, section, subtribe, tribe, subfamily, family, suborder, order, subclass, class, subphylum, phylum, subdivision, division, subkingdom, kingdom]",
+            help="Taxonomic level at which each phylogenetic tree is built, one of [genus, subseries, series, subsection, section, subtribe, tribe, subfamily, family, suborder, order, subclass, class, subphylum, phylum, subdivision, division, subkingdom, kingdom]. default : genus",
             type=str,
         )
         group_run.add_argument(
@@ -119,7 +119,7 @@ class CommandParser:
         )
         group_method.add_argument(
             "--search",
-            help="Search methods to be used in selecting genes, groups and outgroups, [blast, mmseqs], default : mmseqs",
+            help="Search method for selecting genes, groups and outgroups, one of [blast, mmseqs]. default : blast",
             type=str,
         )
         group_method.add_argument(
@@ -176,7 +176,7 @@ class CommandParser:
 
         group_visualize.add_argument(
             "--backgroundcolor",
-            help='List of background colors to be shown in tree, default: #f4f4f4, #c6c6c6. Input should be used with quotes, delimit with spaces and recommended to be used as hex codes. To remove background, use --backgroundcolor "#FFFFFF" "#FFFFFF" ',
+            help='Alternating background band colors in the tree, space-delimited hex codes in quotes. default: "#ffe0e0" "#ffefef". To remove the background use --backgroundcolor "#FFFFFF" "#FFFFFF".',
             nargs="*",
             type=str,
         )
@@ -193,7 +193,7 @@ class CommandParser:
         )
         group_visualize.add_argument(
             "--fsize",
-            help="Font size to use for phylogenetic tree, default: 10",
+            help="Font size for phylogenetic tree labels, default: 14",
             type=float,
         )
         group_visualize.add_argument(
@@ -214,7 +214,8 @@ class CommandParser:
         )
         group_run.add_argument(
             "--maxoutgroup",
-            help="Maximum outgroup numbers to include in phylogenetic analysis, default : 1",
+            help="Maximum number of outgroup sequences to include in each phylogenetic tree, default : 3",
+            type=int,
         )
         group_advanced.add_argument(
             "--collapsedistcutoff",
@@ -223,12 +224,12 @@ class CommandParser:
         )
         group_advanced.add_argument(
             "--collapsebscutoff",
-            help="Minimum bootstrap to be considered as same species, default : 100",
+            help="Minimum bootstrap support to collapse a clade as one species; the default 101 (above the 100 maximum) disables bootstrap-based collapsing. default : 101",
             type=float,
         )
         group_advanced.add_argument(
             "--bootstrap",
-            help="Boostrap number for tree analysis, will be ignored if fasttree is selected for tree method, default : 1000",
+            help="Bootstrap replicates for tree analysis (ignored when tree method is fasttree). default : 100 (the accurate preset uses 1000)",
             type=int,
         )
         group_advanced.add_argument(
@@ -252,7 +253,7 @@ class CommandParser:
         group_advanced.add_argument(
             "--cluster-evalue",
             dest="cluster_evalue",
-            help="E-value cutoffs for blast/mmseqs search, default : 0.0000001",
+            help="E-value cutoff for the blast/mmseqs clustering search; an explicit value overrides the preset. default : 0.0001",
             type=float,
         )
         group_advanced.add_argument(
@@ -271,7 +272,8 @@ class CommandParser:
         group_advanced.add_argument(
             "--mafft-algorithm",
             dest="mafft_algorithm",
-            help="MAFFT algorithm for alignment, see mafft documents, will be ignored if mafft not selected for alignment option, default : auto",
+            help="MAFFT algorithm for alignment (see MAFFT docs). default : auto",
+            type=str,
         )
         group_advanced.add_argument(
             "--mafft-op",
@@ -288,10 +290,11 @@ class CommandParser:
         group_advanced.add_argument(
             "--trimal-algorithm",
             dest="trimal_algorithm",
-            help="Trimal algorithm for trimming, see trimal documents, will be ignored if trimal not selected for trimming option, default : gt",
+            help="trimAl algorithm for trimming (see trimAl docs). default : gt",
+            type=str,
         )
         group_advanced.add_argument(
-            "--trimal-gt", dest="trimal_gt", help="gt value for trimal", type=float
+            "--trimal-gt", dest="trimal_gt", help="trimAl -gt (gap threshold), between 0 and 1. default : 0.2", type=float
         )
         group_advanced.add_argument(
             "--allow-innertrimming",
@@ -301,7 +304,7 @@ class CommandParser:
         )
         group_advanced.add_argument(
             "--criterion",
-            help="Modeltest criterion to use, either AIC, AICc or BIC",
+            help="Model-selection criterion for modeltest, one of [AIC, AICc, BIC]. default : BIC",
             type=str,
         )
 

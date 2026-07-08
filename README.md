@@ -25,8 +25,6 @@ Bug reports are always welcomed
 
 
 
-#### IMPORTANT NOTICE: The python dependency for Linux platform has changed from 3.12 to 3.11 for TCS inclusion. Please remake conda environment for FunVIP 0.3.25 update
-
 ## Tutorial
 * [Part 1 - Getting started!](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/tutorial.md)
 * [Part 2 - Preparing database and query](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/tutorial2.md)
@@ -34,6 +32,7 @@ Bug reports are always welcomed
 <br><br/>
 ## Documentation
 * See [Documentation](https://github.com/Changwanseo/FunVIP/blob/main/Documentation.md) for advanced usage !
+* See the [command-line parameter reference](docs/parameters.md) for every option, or run `FunVIP --help`
 <br><br/>
 ## Requirements
 - Conda or Mamba environment
@@ -53,6 +52,10 @@ Bug reports are always welcomed
 <br><br/>
 ### Example
 ```FunVIP --db Penicillium.xlsx --query Query.xlsx --email {Your email} --thread 8 --gene ITS BenA RPB2 CaM --preset fast```
+
+### Quick check
+Verify your installation on a bundled dataset (needs an e-mail for the GenBank accessions):
+```FunVIP --test terrei --email {Your email}```
 
 \* See documentation for detailed usage
 <br><br/>
@@ -88,11 +91,12 @@ tabular (```.xlsx```, ```.csv```,  ```.parquet```, ```.ftr```) form
 * TREE_METHOD : fasttree is fastest, but least accurate (However, still a lot accurate than NJ tree). It is treated that iqtree is faster but slightly less accurate than raxml, but iqtree requires at least 1000 bootstrap. So in case of speed, raxml could be a little bit faster when low bootstrap selected-->
 
 ## Results
-* ```Section Assignment.xlsx``` : Your clustering result is here. You can find which of your sequences are clustered to which section 
-* ```Identification_result.xlsx``` : Your final identification result. Shows how your sequences were assigned to species level through tree-based identification
-* ```report.xlsx``` : overall statistics about the tree. If your find taxon ends with numbers, these taxon are found to be paraphyletic, so should be checked
-* ```/Tree/{section}_{gene}.svg``` : Final collapsed tree in svg format. Can be edited in vector graphics programs, or in powerpoint (by ungroup)
-* ```/Tree/{section}_{gene}_original.svg ``` : Uncollapsed tree for inspection
+Outputs are written to `{outdir}/{runname}/`:
+* ```{runname}.result.csv``` : Final identification result: how each query was assigned to the group and species level through tree-based identification
+* ```{runname}.dataset.csv``` : Clustering result: which group (e.g. genus/section) each sequence was assigned to
+* ```{runname}.report.txt``` : Run report with the options used and a per-step summary. Taxa ending with a number are paraphyletic and should be checked
+* ```07_Tree/{runname}_{group}_{gene}.svg``` : Final collapsed tree (SVG), editable in vector-graphics programs or PowerPoint (ungroup)
+* ```07_Tree/{runname}_{group}_{gene}_original.svg``` : Uncollapsed tree for inspection
 
 * Example output tree of FunVIP
 ![image](https://github.com/user-attachments/assets/7291c990-62d0-4579-8ae7-adc5d39a7fed)
@@ -105,6 +109,9 @@ Will be tested by our lab memebers to fix bugs and advance features~~
 2. Beta release part 2 (As paper published ~ When pipeline gets stabled, ver 0.4)
 Will be tested by peer taxonomists
 3. Stable release (ver 1.0)
+
+## Running the tests
+```pytest``` runs the fast unit tests (no external tools needed). ```pytest -m integration``` runs the end-to-end terrei test (needs the external tools on PATH and ```FUNVIP_TEST_EMAIL``` set). See [tests/README.md](tests/README.md).
 
 ## License
 [GPL 3.0](https://github.com/Changwanseo/FunVIP/blob/main/LICENSE)
