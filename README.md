@@ -42,10 +42,10 @@ Bug reports are always welcomed
 \* Recently, Mamba is a lot faster than conda. See [here](https://github.com/conda-forge/miniforge?tab=readme-ov-file) to how to install mamba environment
 <br><br/>
 ## Installation
-* [Windows](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/installation.md##Windows)
-* [Mac - apple silicon](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/installation.md##Apple )
-* [Linux](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/installation.md##Linux)
-* [from source](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/installation.md##Installation)
+* [Windows](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/installation.md#windows)
+* [Mac - apple silicon](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/installation.md#apple-silicon-mac)
+* [Linux](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/installation.md#linux)
+* [from source](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/installation.md#installation-from-source-for-developers)
 
 ### Quick install (conda / mamba)
 The external aligners and tree tools install via conda; FunVIP and its Python dependencies (including ete4) install via pip (which works on Linux/macOS).
