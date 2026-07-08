@@ -1017,7 +1017,9 @@ class Option:
 
             if shutil.which("t_coffee") is None:
                 print(
-                    f"[WARNING] t-coffee (TCS) not installed! Excluding from analysis"
+                    "[WARNING] t-coffee (TCS) not found on PATH; skipping TCS. "
+                    "To enable TCS, build a working t-coffee with "
+                    "tools/tcoffee/build_tcoffee_for_tcs.sh (see tools/tcoffee/README.md)."
                 )
                 self.method.tcs = False
 

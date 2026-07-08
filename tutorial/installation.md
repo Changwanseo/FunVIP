@@ -29,13 +29,18 @@ development version, install from source (below) instead.
 1. ```conda create -n FunVIP python=3.12```
 2. ```conda activate FunVIP```
 3. ```conda config --add channels conda-forge```
-4. ```conda install -c bioconda raxml iqtree "modeltest-ng==0.1.7" mmseqs2 "blast>=2.12" mafft trimal gblocks fasttree "t-coffee>=13"```
+4. ```conda install -c bioconda raxml iqtree "modeltest-ng==0.1.7" mmseqs2 "blast>=2.12" mafft trimal gblocks fasttree```
 5. ```pip install FunVIP```
 6. run ```FunVIP --test terrei --email <your email>``` to check installation
 
-* t-coffee (used only for the optional TCS alignment-validation step) can be
-  omitted; FunVIP detects that it is missing and skips TCS automatically. Omit it
-  if you hit memory problems.
+* **TCS (optional) — do not `conda install t-coffee`.** t-coffee is deliberately
+  left out of the command above. It is needed only for the optional TCS
+  alignment-validation step, and the prebuilt bioconda t-coffee crash-loops and can
+  consume all system memory on modern kernels (those with a large
+  `kernel.pid_max`). FunVIP detects when t-coffee is absent and skips TCS
+  automatically, so most users need to do nothing. If you specifically need TCS,
+  build a working t-coffee with ```tools/tcoffee/build_tcoffee_for_tcs.sh```
+  (see ```tools/tcoffee/README.md```).
 * For an Intel Mac this recipe may also work, but it is untested. Feedback welcome.
 
 <br><br/>
@@ -83,7 +88,7 @@ fails to install. Use one of:
 3. ```conda create -n FunVIP python=3.12```
 4. ```conda activate FunVIP```
 5. ```conda config --add channels conda-forge```
-6. ```conda install -c bioconda raxml iqtree "modeltest-ng==0.1.7" mmseqs2 "blast>=2.12" mafft trimal gblocks fasttree "t-coffee>=13"```
+6. ```conda install -c bioconda raxml iqtree "modeltest-ng==0.1.7" mmseqs2 "blast>=2.12" mafft trimal gblocks fasttree```   (t-coffee omitted on purpose; see the TCS note in the Linux section)
 7. ```pip install -e ".[test]"```   (editable install + test dependencies; use ```pip install ./``` for a plain install)
 8. run ```pytest``` for the unit tests, and ```FunVIP --test terrei --email <your email>``` for an end-to-end check
 
