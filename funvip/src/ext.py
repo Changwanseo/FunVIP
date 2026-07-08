@@ -523,11 +523,45 @@ def TCS(fasta, thread, out):
         CMD = f"t_coffee -infile {fasta} -cpu {thread} -method fast_pair -type DNA -evaluate -output score_ascii -outfile {out} -quiet"
 
     logging.info(CMD)
-    # Even though "quiet" option exists, TCS show some blank lines
-    # Run = subprocess.call(CMD, stdout=open(os.devnull, "wb"), shell=True)
-    Run = subprocess.run(
-        CMD, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True
-    ).returncode
+    # Even though "quiet" option exists, TCS shows some blank lines.
+    # Some t-coffee builds leak memory unboundedly; cap the child's address space
+    # and wall time and kill the whole process group on timeout, so a runaway
+    # t-coffee cannot consume the machine (it fails -> TCS is reported as failed,
+    # not left hanging and leaking).
+    import os
+    import signal
+    import resource
+
+    _AS_CAP = 8 * 1024**3  # 8 GB address-space cap for the t-coffee subprocess
+
+    def _limit_tcs_child():
+        os.setsid()
+        try:
+            resource.setrlimit(resource.RLIMIT_AS, (_AS_CAP, _AS_CAP))
+        except (ValueError, OSError):
+            pass
+
+    proc = subprocess.Popen(
+        CMD,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.STDOUT,
+        shell=True,
+        preexec_fn=_limit_tcs_child,
+    )
+    try:
+        # Bound a hung/slow t-coffee. A leaking one is stopped sooner by the
+        # address-space cap above; this backstops a t-coffee that hangs at low
+        # memory. Legit TCS on normal alignments finishes well within this.
+        Run = proc.wait(timeout=300)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        proc.wait()
+        raise ExternalToolError(
+            "TCS (T-COFFEE) timed out (possible t-coffee memory leak/hang)"
+        )
 
     if Run != 0:
         raise ExternalToolError(f"TCS (T-COFFEE) failed (exit code {Run})")

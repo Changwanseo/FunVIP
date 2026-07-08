@@ -1006,15 +1006,13 @@ class Option:
             )
             self.method.tcs = False
         else:
-            # Check if tcs available
-            cmd = "MAX_N_PID_4_TCOFFEE=4194304 t_coffee -help"
-            return_code = subprocess.run(
-                cmd,
-                shell=True,
-                stdout=open(os.devnull, "wb"),
-                stderr=subprocess.STDOUT,
-            ).returncode
-            if return_code != 0:
+            # Only check that t-coffee is present on PATH; do NOT execute it here.
+            # Some t-coffee builds leak memory unboundedly on startup (even
+            # `t_coffee -help`), which would hang option validation and consume all
+            # system memory.
+            import shutil
+
+            if shutil.which("t_coffee") is None:
                 print(
                     f"[WARNING] t-coffee (TCS) not installed! Excluding from analysis"
                 )

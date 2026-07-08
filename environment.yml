@@ -23,7 +23,11 @@ dependencies:
   - iqtree         # 3.1.2
   - raxml          # 8.2.x
   - modeltest-ng   # 0.1.7
-  - t-coffee       # optional, only needed for TCS alignment validation
+  # - t-coffee     # OMITTED BY DEFAULT. TCS (optional alignment validation) needs
+  #                t-coffee, but some builds (e.g. the current bioconda one) leak
+  #                memory unboundedly on startup -- even `t_coffee -help` -- which
+  #                hangs FunVIP and consumes all RAM. Install a working t-coffee
+  #                yourself only if you want TCS; FunVIP skips it when absent.
   - pip
   - pip:
       - FunVIP
