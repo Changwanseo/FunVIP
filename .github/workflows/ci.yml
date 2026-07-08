@@ -35,13 +35,13 @@ jobs:
         env:
           PYTHONPATH: .
 
-  # One combo that exercises the real install path: ete4 (via conda, which is the
-  # reliable channel for it) plus a pip install of the package, then a full import
-  # smoke test. If ete4 is unavailable for a given python/OS this job reports it --
-  # that is the signal for which combos the packaged install supports. Adjust the
-  # channels/version here as ete4 availability changes.
+  # One combo that exercises the real Linux install path: a fresh conda env, then a
+  # pip install of the package. ete4 is pulled and built from PyPI by pip (not conda:
+  # conda-forge's ete4 lags PyPI and does not have the pinned version), matching the
+  # documented install (conda for the external tools, pip for FunVIP + ete4). Then a
+  # full import + unit-test smoke test.
   install-smoke:
-    name: full install (conda) / ubuntu / py3.12
+    name: full install (conda env + pip) / ubuntu / py3.12
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -55,9 +55,7 @@ jobs:
           channel-priority: flexible
           auto-activate-base: false
           activate-environment: funvip-ci
-      - name: Install ete4 via conda
-        run: conda install -y "ete4>=4.4.0,<4.5.0"
-      - name: Install FunVIP with test extras
+      - name: Install FunVIP with test extras (pip pulls + builds ete4 from PyPI)
         run: pip install -e ".[test]"
       - name: Import smoke test + unit tests
         run: |
