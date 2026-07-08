@@ -2,11 +2,7 @@
 
 FunVIP needs two things: the Python package (installed with `pip`, which pulls in
 ete4 and the other Python dependencies) and a set of external command-line tools
-(installed with `conda` from the bioconda / conda-forge channels). ete4 installs
-from PyPI on **Linux and macOS**; **Windows has no PyPI ete4**, so FunVIP bundles a
-prebuilt ete4 for Windows and installs it automatically on the first run (the
-external tools are bundled for Windows too). The Windows steps are therefore the
-same `pip install` as the other platforms.
+(installed with `conda` from the bioconda / conda-forge channels).
 
 The bundled test run `FunVIP --test terrei --email <your email>` at the end of
 each recipe checks the installation. `--test` is case-insensitive, so `terrei`
@@ -34,13 +30,9 @@ development version, install from source (below) instead.
 5. ```pip install FunVIP```
 6. run ```FunVIP --test terrei --email <your email>``` to check installation
 
-* **TCS (optional): do not `conda install t-coffee`.** t-coffee is deliberately
-  left out of the command above. It is needed only for the optional TCS
-  alignment-validation step, and the prebuilt bioconda t-coffee crash-loops and can
-  consume all system memory on modern kernels (those with a large
-  `kernel.pid_max`). FunVIP detects when t-coffee is absent and skips TCS
-  automatically, so most users need to do nothing. If you specifically need TCS,
-  build a working t-coffee with ```tools/tcoffee/build_tcoffee_for_tcs.sh```
+* TCS (optional alignment validation) is left out on purpose: the bioconda
+  t-coffee can cause memory problems, and FunVIP skips TCS automatically when it is
+  absent. To use TCS, build t-coffee with ```tools/tcoffee/build_tcoffee_for_tcs.sh```
   (see ```tools/tcoffee/README.md```).
 * For an Intel Mac this recipe may also work, but it is untested. Feedback welcome.
 
@@ -71,17 +63,13 @@ development version, install from source (below) instead.
 <br><br/>
 
 ### Windows
-Same as Linux, with nothing extra to install: the external tools are bundled for
-Windows (in `funvip/external/`), and FunVIP installs a prebuilt **ete4** for you on
-the first run (ete4 has no PyPI wheel for Windows). Use Python 3.10-3.13.
 1. ```conda create -n FunVIP python=3.12```
 2. ```conda activate FunVIP```
 3. ```pip install FunVIP```
 4. run ```FunVIP --test terrei --email <your email>``` to check installation
 
-The first run prints `installing bundled ete4 ...` once and then continues. WSL or
-Docker also work if you prefer: open an Ubuntu (WSL) shell and follow the Linux
-recipe, or build the Docker image (`docker build -t funvip .`).
+* Docker and WSL2 also work (build the image with `docker build -t funvip .`, or
+  open an Ubuntu WSL shell and follow the Linux recipe).
 
 <br><br/>
 
