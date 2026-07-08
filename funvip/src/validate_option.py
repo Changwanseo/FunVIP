@@ -1007,9 +1007,12 @@ class Option:
             self.method.tcs = False
         else:
             # Only check that t-coffee is present on PATH; do NOT execute it here.
-            # Some t-coffee builds leak memory unboundedly on startup (even
-            # `t_coffee -help`), which would hang option validation and consume all
-            # system memory.
+            # The bioconda t-coffee SIGSEGV-crash-loops and consumes all memory on
+            # ANY invocation -- even `t_coffee -help` -- when the OS PID exceeds its
+            # compiled MAX_N_PID=260000 (i.e. on kernels with a large pid_max). Its
+            # PID indexes an undersized static array; the overflow faults and its
+            # signal handler re-faults forever. Running it just to detect it would
+            # hang option validation and eat RAM, so we never execute it.
             import shutil
 
             if shutil.which("t_coffee") is None:

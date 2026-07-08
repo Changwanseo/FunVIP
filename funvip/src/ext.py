@@ -524,10 +524,17 @@ def TCS(fasta, thread, out):
 
     logging.info(CMD)
     # Even though "quiet" option exists, TCS shows some blank lines.
-    # Some t-coffee builds leak memory unboundedly; cap the child's address space
-    # and wall time and kill the whole process group on timeout, so a runaway
-    # t-coffee cannot consume the machine (it fails -> TCS is reported as failed,
-    # not left hanging and leaking).
+    # Root cause of the "t-coffee eats all RAM" problem: the bioconda t-coffee
+    # indexes a static array by the raw OS PID but is compiled with MAX_N_PID=260000.
+    # On kernels with a large kernel.pid_max (e.g. 4194304) the process PID overflows
+    # that array -> SIGSEGV -> t-coffee's own signal handler re-runs the faulting
+    # instruction in an infinite loop, growing the heap until all memory is gone.
+    # It is a crash-loop, not a real leak, and it fires on ANY invocation (even
+    # `t_coffee -version`). The documented MAX_N_PID_4_TCOFFEE override is not
+    # compiled into this binary, so it cannot be raised at runtime. We cannot fix a
+    # third-party binary here, so bound it: cap the child's address space and wall
+    # time and kill its whole process group on timeout, so a crash-looping t-coffee
+    # is reported as failed instead of taking down the machine.
     import os
     import signal
     import resource

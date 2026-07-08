@@ -24,10 +24,15 @@ dependencies:
   - raxml          # 8.2.x
   - modeltest-ng   # 0.1.7
   # - t-coffee     # OMITTED BY DEFAULT. TCS (optional alignment validation) needs
-  #                t-coffee, but some builds (e.g. the current bioconda one) leak
-  #                memory unboundedly on startup -- even `t_coffee -help` -- which
-  #                hangs FunVIP and consumes all RAM. Install a working t-coffee
-  #                yourself only if you want TCS; FunVIP skips it when absent.
+  #                t-coffee, but the bioconda build crash-loops and consumes all RAM
+  #                on modern kernels: it indexes a static array by raw PID yet is
+  #                compiled with MAX_N_PID=260000, so when kernel.pid_max is large
+  #                (e.g. 4194304, the current default) its own PID overflows the
+  #                array -> SIGSEGV -> infinite fault loop. The MAX_N_PID_4_TCOFFEE
+  #                override is NOT compiled into that binary, so it cannot be raised
+  #                at runtime. For working TCS use a t-coffee built with
+  #                MAX_N_PID >= pid_max (or a host with pid_max < 260000). FunVIP
+  #                caps + times out t-coffee and skips TCS cleanly when it fails.
   - pip
   - pip:
       - FunVIP
