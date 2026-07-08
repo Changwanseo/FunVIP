@@ -440,8 +440,13 @@ def _resolve_genmine():
     its results would then quietly fail (raw accessions left unreplaced) with no
     error, instead of a normal, cleanly-diagnosable version mismatch.
     """
+    import sysconfig
+
     exe_name = "GenMine.exe" if sys.platform == "win32" else "GenMine"
-    candidate = os.path.join(os.path.dirname(sys.executable), exe_name)
+    # Console scripts live in the interpreter's script dir: bin/ on POSIX,
+    # Scripts\ on Windows -- NOT next to python.exe, which on Windows is the env
+    # root, so dirname(sys.executable) would miss GenMine.exe there.
+    candidate = os.path.join(sysconfig.get_path("scripts"), exe_name)
     if os.path.isfile(candidate):
         return candidate
     return shutil.which("GenMine") or "GenMine"
