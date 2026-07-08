@@ -2,13 +2,13 @@
 
 FunVIP depends on **ete4**, which upstream does **not** ship for Windows:
 
-- PyPI has only an **sdist** (source) for ete4 — so `pip install` tries to compile,
+- PyPI has only an **sdist** (source) for ete4, so `pip install` tries to compile,
   and that compile fails on Windows.
 - conda-forge builds ete4 only for **linux-64 / osx-64 / osx-arm64** (no win-64);
   bioconda has no ete4 at all.
 
 Because ete4 is a hard FunVIP dependency, this means FunVIP currently **cannot be
-installed with pip or conda on Windows** — only WSL/Docker work. This directory
+installed with pip or conda on Windows**; only WSL/Docker work. This directory
 produces a prebuilt Windows wheel so ordinary Windows users can install FunVIP
 without a compiler or a terminal-heavy workflow.
 

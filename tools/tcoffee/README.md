@@ -52,7 +52,7 @@ above it.
 
 ## Alternatives (no compiling)
 
-- Run FunVIP **without TCS** (the default when t-coffee is absent) — nothing to do.
+- Run FunVIP **without TCS** (the default when t-coffee is absent); nothing to do.
 - On a host where you have root, lowering `kernel.pid_max` below 260000 also avoids
   the crash, but it is system-wide and affects everything else, so it is not
   recommended on shared machines.

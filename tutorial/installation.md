@@ -3,9 +3,9 @@
 FunVIP needs two things: the Python package (installed with `pip`, which pulls in
 ete4 and the other Python dependencies) and a set of external command-line tools
 (installed with `conda` from the bioconda / conda-forge channels). ete4 installs
-cleanly on **Linux and macOS**. **Windows has no prebuilt ete4** — PyPI ships
-source only (so `pip` tries to compile it and fails) and conda-forge has no
-Windows build — so a native `pip` or `conda` install is **not currently possible
+cleanly on **Linux and macOS**. **Windows has no prebuilt ete4** (PyPI ships
+source only, so `pip` tries to compile it and fails, and conda-forge has no
+Windows build), so a native `pip` or `conda` install is **not currently possible
 on Windows**; use **WSL or Docker** instead (see the Windows section).
 
 The bundled test run `FunVIP --test terrei --email <your email>` at the end of
@@ -34,7 +34,7 @@ development version, install from source (below) instead.
 5. ```pip install FunVIP```
 6. run ```FunVIP --test terrei --email <your email>``` to check installation
 
-* **TCS (optional) — do not `conda install t-coffee`.** t-coffee is deliberately
+* **TCS (optional): do not `conda install t-coffee`.** t-coffee is deliberately
   left out of the command above. It is needed only for the optional TCS
   alignment-validation step, and the prebuilt bioconda t-coffee crash-loops and can
   consume all system memory on modern kernels (those with a large
