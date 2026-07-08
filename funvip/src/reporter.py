@@ -84,8 +84,7 @@ class Report:
             "IDENTIFIED": [],
             "NEW SPECIES CANDIDATE": [],
             "MISIDENTIFIED": [],
-            "AMBIGUOUS": [],
-            "ERROR": [],
+            "UNDETERMINED": [],
             "TOTAL": [],
         }
 
@@ -293,6 +292,46 @@ class Report:
                 self.query_result["DATATYPE"] == "query"
             ]
 
+        self.update_statistics()
+
+    # Per-group counts of query identification outcomes, from the STATUS column.
+    def update_statistics(self):
+        cols = [
+            "IDENTIFIED",
+            "NEW SPECIES CANDIDATE",
+            "MISIDENTIFIED",
+            "UNDETERMINED",
+        ]
+        self.statistics = {"GROUP": [], **{c: [] for c in cols}, "TOTAL": []}
+        if self.query_result is None or len(self.query_result) == 0:
+            return
+        # STATUS (set in update_result) -> human-facing statistics category
+        category = {
+            "match": "IDENTIFIED",  # given name confirmed by the tree
+            "assigned": "IDENTIFIED",  # unnamed query assigned a species
+            "new species": "NEW SPECIES CANDIDATE",
+            "conflict": "MISIDENTIFIED",  # assigned differs from the given name
+            "failed": "UNDETERMINED",  # could not be resolved
+        }
+        df = self.query_result
+        df = df[df["DATATYPE"] == "query"]
+        for group in sorted(set(df["GROUP_ASSIGNED"])):
+            sub = df[df["GROUP_ASSIGNED"] == group]
+            counts = {c: 0 for c in cols}
+            for status in sub["STATUS"]:
+                cat = category.get(str(status).strip())
+                if cat is not None:
+                    counts[cat] += 1
+            self.statistics["GROUP"].append(group)
+            for c in cols:
+                self.statistics[c].append(counts[c])
+            self.statistics["TOTAL"].append(len(sub))
+        # Grand-total row
+        if self.statistics["GROUP"]:
+            self.statistics["GROUP"].append("TOTAL")
+            for c in cols + ["TOTAL"]:
+                self.statistics[c].append(sum(self.statistics[c]))
+
     ### Main report runner
     # Update report by pipeline step
     def update_report(self, V, path, opt, step, version, GenMine_flag):
@@ -323,6 +362,7 @@ class Report:
             self.update_result(V, opt)
             self.report_table(V, path, opt, step)
             self.report_text(V, path, opt, step, version, GenMine_flag)
+            self.report_html(V, path, opt, version)
         else:
             logging.error(
                 f"DEVELOPMENTAL ERROR : BAD STEP INPUT {step} WHILE UPDATE REPORT"
@@ -467,30 +507,23 @@ class Report:
 
             ## Write identification statistics
             # Should be written after tree_interpretation
-            '''
             if index_step(step) >= 9:
                 f.write(f"[STATISTICS]\n")
                 f.write(tabulate(self.statistics, headers=self.statistics.keys()))
                 f.write("\n\n")
                 f.write(
-                    "IDENTIFIED : Number of well-identified strains without any concerns. \n"
-                )
-                """
-                f.write(
-                    "AMBIGUOUS : Multiple clades with same taxon name. Your database may contain misidentified sequences. \n"
-                )
-                """
-                f.write(
-                    "NEW SPECIES CANDIDATE : New species candidate strains found by topology, phylogenetic distance and bootstrap criteria\n"
+                    "IDENTIFIED : Query strains assigned a species (a given name confirmed by the tree, or an unnamed query newly assigned)\n"
                 )
                 f.write(
-                    "MISIDENTIFIED : Strains that shows different identification result from original annotation\n"
+                    "NEW SPECIES CANDIDATE : Query strains flagged as a new species candidate by topology, phylogenetic distance and bootstrap\n"
                 )
                 f.write(
-                    "ERROR : Strains that cannot be analyzed. Please check if appropriate database sequence / outgroup sequences are given\n"
+                    "MISIDENTIFIED : Query strains whose assigned species differs from the given name\n"
+                )
+                f.write(
+                    "UNDETERMINED : Query strains that could not be resolved to a species (check the database and outgroup sequences)\n"
                 )
                 f.write("\n\n")
-            '''
 
             ## Write identification result
             # Should be written after tree_interpretation
@@ -801,7 +834,7 @@ class Report:
 
         if index_step(step) >= 9:
             list_table.append("identification")
-            # list_table.append("statistics")
+            list_table.append("statistics")
 
         # Write tables
         for table in list_table:
@@ -830,5 +863,57 @@ class Report:
                 )
                 raise Exception
 
-    def report_html(V, path, opt):
-        pass
+    def report_html(self, V, path, opt, version):
+        import os
+        import glob
+        import html as _html
+
+        result_df = (
+            self.query_result
+            if (self.query_result is not None and opt.queryonly is True)
+            else pd.DataFrame(self.result)
+        )
+        stats_df = pd.DataFrame(self.statistics)
+
+        # Link the collapsed tree figures (relative to the report), skipping the
+        # uncollapsed *_original.svg companions.
+        trees = sorted(
+            t
+            for t in glob.glob(f"{path.out_tree}/{opt.runname}_*.svg")
+            if not t.endswith("_original.svg")
+        )
+        tree_items = "".join(
+            f'<li><a href="{_html.escape(os.path.relpath(t, path.root))}">'
+            f"{_html.escape(os.path.basename(t))}</a></li>"
+            for t in trees
+        ) or "<li>(no tree figures)</li>"
+
+        css = (
+            "body{font-family:Arial,Helvetica,sans-serif;margin:2rem;color:#222;"
+            "line-height:1.4}h1{color:#7a1f1f;margin-bottom:0}h2{color:#7a1f1f;"
+            "border-bottom:1px solid #e0c0c0;padding-bottom:2px;margin-top:2rem}"
+            ".meta{color:#555;margin-top:.3rem}table{border-collapse:collapse;"
+            "margin:.6rem 0;font-size:13px}th,td{border:1px solid #ccc;"
+            "padding:3px 8px;text-align:left}th{background:#f4f4f4}"
+            ".tables{overflow-x:auto}"
+        )
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        doc = (
+            "<!doctype html>\n<html lang='en'><head><meta charset='utf-8'>"
+            f"<title>FunVIP report - {_html.escape(str(opt.runname))}</title>"
+            f"<style>{css}</style></head><body>\n"
+            "<h1>FunVIP identification report</h1>\n"
+            f"<p class='meta'>Run <b>{_html.escape(str(opt.runname))}</b> "
+            f"&middot; FunVIP {_html.escape(str(version.FunVIP))} "
+            f"&middot; {now}</p>\n"
+            "<h2>Statistics</h2>\n<div class='tables'>"
+            f"{stats_df.to_html(index=False, border=0)}</div>\n"
+            "<h2>Identification result</h2>\n<div class='tables'>"
+            f"{result_df.to_html(index=False, border=0)}</div>\n"
+            f"<h2>Trees</h2>\n<ul>{tree_items}</ul>\n"
+            "</body></html>\n"
+        )
+        with open(
+            f"{path.root}/{opt.runname}.report.html", "w", encoding="UTF8"
+        ) as f:
+            f.write(doc)
