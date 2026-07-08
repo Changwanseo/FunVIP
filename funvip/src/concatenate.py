@@ -269,20 +269,30 @@ def concatenate_df(V, path, opt):
             )
 
         def vectorized_prediction(df, gene_list, coeff, grad):
-            for k, gene in enumerate(gene_list):
-                linear_constant = (coeff[k] - df[f"{gene}_bitscore"]) / grad[k]
-                mean_linear_constant = linear_constant.mean()
-
-                # Fill missing bitscores
-                """
-                df[f"{gene}_bitscore"].fillna(
-                    coeff[k] - mean_linear_constant * grad[k], inplace=True
-                )
-                """
-                df.fillna(
-                    {f"{gene}_bitscore": coeff[k] - mean_linear_constant * grad[k]},
-                    inplace=True,
-                )
+            # Fill a row's missing gene bitscore by projecting the row's KNOWN gene
+            # bitscores onto the fitted regression line (X_i = coeff_i - t*grad_i) and
+            # reading off the missing coordinate. The former version used each gene's
+            # column mean, which reduces algebraically to a single constant per gene
+            # and ignores the row's other genes entirely. t is the least-squares line
+            # parameter over the row's present dimensions:
+            #   t = -sum_j grad_j (X_j - coeff_j) / sum_j grad_j^2   (j = present genes)
+            cols = [f"{gene}_bitscore" for gene in gene_list]
+            coeff_a = np.asarray(coeff, dtype=float)
+            grad_a = np.asarray(grad, dtype=float)
+            X = df[cols].to_numpy(dtype=float)
+            present = ~np.isnan(X)
+            a = X - coeff_a  # NaN where missing
+            grad_row = np.broadcast_to(grad_a, X.shape)
+            num = np.sum(np.where(present, grad_row * a, 0.0), axis=1)
+            den = np.sum(np.where(present, grad_row**2, 0.0), axis=1)
+            with np.errstate(divide="ignore", invalid="ignore"):
+                t = np.where(den > 0, -num / den, 0.0)
+            pred = coeff_a[None, :] - t[:, None] * grad_a[None, :]
+            # Bitscores are non-negative; guard a line that extrapolates below zero.
+            pred = np.clip(pred, 0.0, None)
+            X_filled = np.where(present, X, pred)
+            for i, col in enumerate(cols):
+                df[col] = X_filled[:, i]
             return df
 
         # Change to numpy for faster calculation
