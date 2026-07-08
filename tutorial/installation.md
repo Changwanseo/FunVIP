@@ -85,5 +85,32 @@ development version, install from source (below) instead.
 
 <br><br/>
 
-### Upgrade FunVIP
+### Upgrade FunVIP (within the 1.x series)
+Both sides use ete4, so a plain pip upgrade is fine:
 ```pip install FunVIP --upgrade```
+
+### Migrating from 0.5.x to 1.0
+
+**Do not `pip install --upgrade` across this jump.** FunVIP 0.5.x is built on
+**ete3**; 1.0 switched to **ete4**. These are different packages, not two versions
+of one, so a pip upgrade leaves the old `ete3` (and other stale 0.5.x dependencies)
+behind alongside the new ones, which can conflict. Rebuild the conda environment
+from scratch instead:
+
+```
+# 1. leave and delete the old environment (use your existing env's name)
+conda deactivate
+conda env remove -n FunVIP
+
+# 2. recreate it fresh, pick the recipe for your platform above, e.g. Linux:
+conda create -n FunVIP python=3.12
+conda activate FunVIP
+conda config --add channels conda-forge
+conda install -c bioconda raxml iqtree "modeltest-ng==0.1.7" mmseqs2 "blast>=2.12" mafft trimal gblocks fasttree
+pip install FunVIP
+FunVIP --test terrei --email <your email>
+```
+
+Only the Python environment is rebuilt: your input data, databases, and result
+folders are untouched. If you installed with the one-file recipe, the equivalent is
+`conda env remove -n funvip` followed by `conda env create -f environment.yml`.
