@@ -58,6 +58,12 @@ The other external tools are already bundled for Windows under `funvip/external/
 so ete4 is the last missing piece. Keep the bundled wheel version within FunVIP's
 ete4 pin (`>=4.4.0,<4.5.0`).
 
+If no bundled wheel matches the user's Python, `_ensure_ete4` falls back to
+**building ete4 from source** (applying the same patch, via pip) on first run. That
+needs a C/C++ compiler on the user's machine, so it is only a developer/edge-case
+fallback: bundling the wheels is what lets ordinary Windows users install with no
+compiler.
+
 ## Even cleaner: upstream the patch
 
 The best outcome is to get PR #783 merged and ask the ete4 maintainers to publish

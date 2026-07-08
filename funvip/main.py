@@ -18,11 +18,70 @@ def _ensure_deterministic_hash():
 _ensure_deterministic_hash()
 
 
+# ete4 version fetched when building from source on Windows. Matches the pin in
+# pyproject.toml and the bundled wheels; the source patch in _build_ete4_from_source
+# targets this version.
+_ETE4_SRC_VERSION = "4.4.0"
+
+
+def _pip(*args):
+    import subprocess
+
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "--disable-pip-version-check", *args]
+    )
+
+
+def _patch_line(path, old, new):
+    with open(path, encoding="utf-8") as fh:
+        text = fh.read()
+    if new in text:
+        return
+    if old not in text:
+        raise RuntimeError(f"expected text not found while patching {os.path.basename(path)}")
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(text.replace(old, new))
+
+
+def _build_ete4_from_source():
+    """Download the ete4 sdist, apply the Windows build fix (etetoolkit/ete PR #783),
+    and pip-install it. Needs a C/C++ compiler and internet; runs at most once."""
+    import glob
+    import tarfile
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        _pip(
+            "download", f"ete4=={_ETE4_SRC_VERSION}", "--no-deps",
+            "--no-binary", ":all:", "-d", tmp,
+        )
+        sdist = glob.glob(os.path.join(tmp, "ete4-*.tar.gz"))[0]
+        with tarfile.open(sdist) as tar:
+            try:
+                tar.extractall(tmp, filter="data")
+            except TypeError:  # filter= added in Python 3.12
+                tar.extractall(tmp)
+        src = next(d for d in glob.glob(os.path.join(tmp, "ete4-*")) if os.path.isdir(d))
+        _patch_line(
+            os.path.join(src, "setup.py"),
+            "from os.path import isfile", "from os.path import isfile, sep",
+        )
+        _patch_line(
+            os.path.join(src, "setup.py"),
+            "path.replace('/', '.')", "path.replace(sep, '.')",
+        )
+        _patch_line(
+            os.path.join(src, "ete4", "config.py"),
+            "os.environ['HOME']", "os.path.expanduser('~')",
+        )
+        _pip("install", "--no-deps", src)
+
+
 def _ensure_ete4():
-    """Make ete4 importable. ete4 has no Windows wheel on PyPI and cannot compile
-    there, so on Windows it is not a pip dependency; instead FunVIP installs the
-    prebuilt wheel bundled under funvip/_vendor/ete4_wheels on the first run. This
-    is a no-op on Linux/macOS and once ete4 is already importable."""
+    """Make ete4 importable. ete4 has no Windows wheel on PyPI, so on Windows it is
+    not a pip dependency; instead FunVIP installs a prebuilt wheel bundled under
+    funvip/_vendor/ete4_wheels, or, if none is bundled for this Python, builds ete4
+    from source (patched for Windows). No-op on Linux/macOS and once ete4 imports."""
     try:
         import ete4  # noqa: F401
 
@@ -37,43 +96,36 @@ def _ensure_ete4():
 
     import glob
     import importlib
-    import subprocess
 
     tag = f"cp{sys.version_info.major}{sys.version_info.minor}"
     wheel_dir = os.path.join(os.path.dirname(__file__), "_vendor", "ete4_wheels")
     wheels = sorted(
         glob.glob(os.path.join(wheel_dir, f"ete4-*-{tag}-{tag}-win_amd64.whl"))
     )
-    if not wheels:
-        raise SystemExit(
-            f"[FunVIP] No bundled ete4 wheel for Python {tag} was found in\n"
-            f"    {wheel_dir}\n"
-            "Use Python 3.10-3.13 on Windows, or build a wheel with "
-            "tools/ete4-windows/ (see its README)."
-        )
-
-    wheel = wheels[-1]
-    print(
-        f"[FunVIP] First Windows run: installing bundled ete4 "
-        f"({os.path.basename(wheel)}). This happens only once.",
-        flush=True,
-    )
     try:
-        subprocess.check_call(
-            [
-                sys.executable,
-                "-m",
-                "pip",
-                "install",
-                "--no-deps",
-                "--disable-pip-version-check",
-                wheel,
-            ]
-        )
-    except subprocess.CalledProcessError as e:
+        if wheels:
+            wheel = wheels[-1]
+            print(
+                f"[FunVIP] First Windows run: installing bundled ete4 "
+                f"({os.path.basename(wheel)}). This happens only once.",
+                flush=True,
+            )
+            _pip("install", "--no-deps", wheel)
+        else:
+            print(
+                f"[FunVIP] First Windows run: no bundled ete4 wheel for Python {tag}; "
+                "building ete4 from source now (one-time; needs a C/C++ compiler and "
+                "internet, may take a few minutes).",
+                flush=True,
+            )
+            _build_ete4_from_source()
+    except Exception as e:
         raise SystemExit(
-            f"[FunVIP] Could not install the bundled ete4 wheel ({wheel}): {e}\n"
-            f'Try manually:  pip install "{wheel}"'
+            f"[FunVIP] Could not set up ete4 automatically: {e}\n"
+            "If the build failed for lack of a compiler, install one with:\n"
+            "    conda install -c conda-forge cxx-compiler\n"
+            "then rerun. Otherwise place a prebuilt ete4 wheel in "
+            "funvip/_vendor/ete4_wheels (see tools/ete4-windows/)."
         )
 
     importlib.invalidate_caches()
