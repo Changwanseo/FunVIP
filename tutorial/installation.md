@@ -3,9 +3,10 @@
 FunVIP needs two things: the Python package (installed with `pip`, which pulls in
 ete4 and the other Python dependencies) and a set of external command-line tools
 (installed with `conda` from the bioconda / conda-forge channels). ete4 installs
-cleanly from PyPI on **Linux and macOS**; on **Windows** use conda / WSL / Docker
-(see the Windows section), because ete4's Cython build does not install with a
-bare `pip install` there.
+cleanly on **Linux and macOS**. **Windows has no prebuilt ete4** — PyPI ships
+source only (so `pip` tries to compile it and fails) and conda-forge has no
+Windows build — so a native `pip` or `conda` install is **not currently possible
+on Windows**; use **WSL or Docker** instead (see the Windows section).
 
 The bundled test run `FunVIP --test terrei --email <your email>` at the end of
 each recipe checks the installation. `--test` is case-insensitive, so `terrei`
@@ -70,8 +71,9 @@ development version, install from source (below) instead.
 <br><br/>
 
 ### Windows
-A bare `pip install FunVIP` does not work on Windows because ete4's Cython build
-fails to install. Use one of:
+Neither `pip install FunVIP` nor a conda install works natively on Windows: the
+required dependency **ete4 ships no Windows build** (PyPI has source only, so `pip`
+tries to compile it and fails; conda-forge has no win-64 package). Use one of:
 
 - **Docker (simplest):** from the repository root,
   ```
@@ -79,6 +81,11 @@ fails to install. Use one of:
   docker run --rm -v "%cd%:/data" funvip --test terrei --email <your email> --outdir /data/out
   ```
 - **WSL2:** open an Ubuntu (WSL) shell and follow the Linux recipe above.
+
+Native Windows support is in progress: `tools/ete4-windows/` holds a CI recipe that
+builds an ete4 Windows wheel. Once such wheels are published, a native `pip` install
+will be possible (the other external tools are already bundled for Windows under
+`funvip/external/`).
 
 <br><br/>
 
