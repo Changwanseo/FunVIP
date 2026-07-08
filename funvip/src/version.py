@@ -1,346 +1,207 @@
-# Version management module
+# Version management + external-tool preflight
 import sys
+import shutil
+import logging
 import subprocess
-from importlib.metadata import version
+from importlib.metadata import version as _pkg_version
 
-# import
+from funvip.src.exceptions import ConfigError
 
 
-"""
-version = {
-    "FunVIP": "0.3.19.0.1.3",
-    "BLASTn": "",
-    "MMseqs2": "",
-    "MAFFT": "",
-    "TrimAl": "",
-    "Gblocks": "0.91b",
-    "FastTree": "",
-    "IQTREE2": "",
-    "RAxML": "",
-}
-"""
+def _probe(candidates, args, parse):
+    """Return a version string for the first available command among `candidates`,
+    or '' if none is found or the probe/parse fails. Never raises."""
+    for cmd in candidates:
+        if shutil.which(cmd) is None:
+            continue
+        try:
+            result = subprocess.run(
+                [cmd, *args], capture_output=True, text=True, timeout=30
+            )
+        except Exception:
+            continue
+        try:
+            parsed = parse(result.stdout or "", result.stderr or "")
+        except Exception:
+            parsed = ""
+        if parsed:
+            return parsed.strip()
+    return ""
 
 
 class Version:
+    """Best-effort version stamp for the report. Probes only succeed for tools
+    that are installed; anything missing or unparseable is left as '' rather than
+    crashing the run (a run only needs the tools for its selected methods, which
+    the preflight verifies separately)."""
+
     def __init__(self, opt, path):
-        self.FunVIP = ""
-        self.GenMine = ""
-        self.BLASTn = ""
-        self.MMseqs2 = ""
-        self.MAFFT = ""
-        self.trimAl = ""
+        win = sys.platform == "win32"
+        ext = f"{path.sys_path}/external"
+
+        def cand(linux, win_path):
+            return [win_path] if win else linux
+
+        try:
+            self.FunVIP = _pkg_version("FunVIP")
+        except Exception:
+            self.FunVIP = ""
+        try:
+            self.GenMine = _pkg_version("GenMine")
+        except Exception:
+            self.GenMine = ""
+
+        self.BLASTn = _probe(
+            cand(["blastn"], f"{ext}/BLAST_Windows/bin/blastn.exe"),
+            ["-version"],
+            lambda o, e: o.split("\n")[0].split(" ")[1] if o.strip() else "",
+        )
+        self.MMseqs2 = _probe(
+            cand(["mmseqs"], f"{ext}/mmseqs_Windows/mmseqs.bat"),
+            ["-h"],
+            lambda o, e: o.split("Version: ")[1].split("\n")[0] if "Version: " in o else "",
+        )
+        self.MAFFT = _probe(
+            cand(["mafft"], f"{ext}/MAFFT_Windows/mafft-win/mafft.bat"),
+            ["--version"],
+            lambda o, e: e.split("\n")[-2].split(" ")[0] if e.strip() else "",
+        )
+        self.trimAl = _probe(
+            cand(["trimal"], f"{ext}/trimal.v1.4/trimAl/bin/trimal.exe"),
+            ["--version"],
+            lambda o, e: o.split("\n")[1].split(" ")[1] if o.count("\n") >= 1 else "",
+        )
         self.Gblocks = "0.91b"
-        self.Modeltest_NG = ""
-        self.FastTree = ""
-        self.IQTREE2 = ""
-        self.RAxML = ""
-
-        # For windows platform
-        if sys.platform == "win32":
-            ### FunVIP
-            self.FunVIP = version("FunVIP")
-
-            ### GenMine
-            self.GenMine = version("GenMine")
-
-            ### BLASTn
-            CMD = [f"{path.sys_path}/external/BLAST_Windows/bin/blastn.exe", "-version"]
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        self.Modeltest_NG = (
+            "not supported"
+            if win
+            else _probe(
+                ["modeltest-ng"],
+                ["--version"],
+                lambda o, e: o.split("ModelTest-NG ")[1].split(" ")[0]
+                if "ModelTest-NG " in o
+                else "",
             )
-            stdout, stderr = result.communicate()
-            stdout_str = stdout.decode("utf-8")
-            ## tableformat
-            # blastn: blastn: 2.12.0+
-            #   Package: blast 2.12.0, build Jun  4 2021 03:25:07
-            self.BLASTn = stdout_str.split("\n")[0].split(" ")[1].strip()
-            # print("BLASTn", self.BLASTn)
-
-            ### MMSeqs2
-            CMD = [
-                f"{path.sys_path}/external/mmseqs_Windows/mmseqs.bat",
-                "-h",
+        )
+        self.FastTree = _probe(
+            cand(["FastTree", "fasttree"], f"{ext}/FastTree_Windows/FastTree.exe"),
+            ["-expert"],
+            lambda o, e: e.split(" ")[4] if len(e.split(" ")) > 4 else "",
+        )
+        self.IQTREE2 = _probe(
+            cand(["iqtree", "iqtree2"], f"{ext}/iqtree/bin/iqtree2.exe"),
+            ["--version"],
+            lambda o, e: o.split(" ")[3] if len(o.split(" ")) > 3 else "",
+        )
+        if win:
+            raxml_cand = [
+                f"{ext}/RAxML_Windows/raxmlHPC-PTHREADS-AVX2.exe"
+                if opt.avx
+                else f"{ext}/RAxML_Windows/raxmlHPC-PTHREADS-SSE3.exe"
             ]
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            stdout_str = stdout.decode("utf-8")
-            self.MMseqs2 = stdout_str.split("Version: ")[1].split("\n")[0].strip()
-            # print("MMseqs2", self.MMseqs2)
-
-            ### MAFFT
-            CMD = [
-                f"{path.sys_path}/external/MAFFT_Windows/mafft-win/mafft.bat",
-                "--version",
+        elif opt.avx:
+            raxml_cand = [
+                "raxmlHPC-PTHREADS-AVX2",
+                "raxmlHPC-PTHREADS-SSE3",
+                "raxmlHPC",
             ]
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            # MAFFT, output is on the stderr
-            stderr_str = stderr.decode("utf-8")
-            self.MAFFT = stderr_str.split("\n")[-2].split(" ")[0].strip()
-            # print("MAFFT", self.MAFFT)
-
-            ### TrimAl
-            CMD = [
-                f"{path.sys_path}/external/trimal.v1.4/trimAl/bin/trimal.exe",
-                "--version",
-            ]
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            stdout_str = stdout.decode("utf-8")
-            self.trimAl = stdout_str.split("\n")[1].split(" ")[1]
-            # print("trimAl", self.trimAl)
-
-            ### Modeltest-ng
-            ## Not supported in Windows
-            self.Modeltest_NG = "not supported"
-
-            ### FastTree
-            ## Also use stderr of FastTree
-            CMD = [
-                f"{path.sys_path}/external/FastTree_Windows/FastTree.exe",
-                "-expert",
-            ]
-
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            stdout_str = stdout.decode("utf-8")
-            stderr_str = stderr.decode("utf-8")
-            self.FastTree = stderr_str.split(" ")[4]
-            # print("FastTree", self.FastTree)
-
-            ### IQTREE
-            CMD = [
-                f"{path.sys_path}/external/iqtree/bin/iqtree2.exe",
-                "--version",
-            ]
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            stdout_str = stdout.decode("utf-8")
-            self.IQTREE2 = stdout_str.split(" ")[3]
-            # print("IQTREE2", self.IQTREE2)
-
-            ### RAxML
-            if opt.avx is True:
-                CMD = [
-                    f"{path.sys_path}/external/RAxML_Windows/raxmlHPC-PTHREADS-AVX2.exe",
-                    "-v",
-                ]
-            else:
-                CMD = [
-                    f"{path.sys_path}/external/RAxML_Windows/raxmlHPC-PTHREADS-SSE3.exe",
-                    "-v",
-                ]
-
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            stdout_str = stdout.decode("utf-8")
-            self.RAxML = stdout_str.split("\n")[2].split(" ")[4]
-            # print("RAxML", self.RAxML)
-
-        # For apple silicon platform
-        elif sys.platform == "darwin":
-            ### FunVIP
-            self.FunVIP = version("FunVIP")
-
-            ### GenMine
-            self.GenMine = version("GenMine")
-
-            ### BLASTn
-            CMD = ["blastn", "-version"]
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            stdout_str = stdout.decode("utf-8")
-            ## Format
-            # blastn: blastn: 2.12.0+
-            #   Package: blast 2.12.0, build Jun  4 2021 03:25:07
-            self.BLASTn = stdout_str.split("\n")[0].split(" ")[1].strip()
-            # print("BLASTn", self.BLASTn)
-
-            ### MMSeqs2
-            CMD = ["mmseqs", "-h"]
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            stdout_str = stdout.decode("utf-8")
-            self.MMseqs2 = stdout_str.split("Version: ")[1].split("\n")[0].strip()
-            # print("MMseqs2", self.MMseqs2)
-
-            ### MAFFT
-            CMD = ["mafft", "--version"]
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            # MAFFT, output is on the stderr
-            stderr_str = stderr.decode("utf-8")
-            self.MAFFT = stderr_str.split("\n")[-2].split(" ")[0].strip()
-            # print("MAFFT", self.MAFFT)
-
-            ### TrimAl
-            CMD = ["trimal", "--version"]
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            stdout_str = stdout.decode("utf-8")
-            self.trimAl = stdout_str.split("\n")[1].split(" ")[1]
-            # print("trimAl", self.trimAl)
-
-            ### Modeltest-ng
-            ## Not supported in apple silicon
-            self.Modeltest_NG = "not supported"
-
-            ### FastTree
-            ## Also use stderr of FastTree
-            CMD = ["FastTree", "-expert"]
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            stderr_str = stderr.decode("utf-8")
-            self.FastTree = stderr_str.split(" ")[4]
-            # print("FastTree", self.FastTree)
-
-            ### IQTREE
-            CMD = ["iqtree", "--version"]
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            stdout_str = stdout.decode("utf-8")
-            self.IQTREE2 = stdout_str.split(" ")[3]
-            # print("IQTREE2", self.IQTREE2)
-
-            ### RAxML
-            if opt.avx is True:
-                CMD = ["raxmlHPC-PTHREADS-AVX2", "-v"]
-            else:
-                CMD = ["raxmlHPC-PTHREADS-SSE3", "-v"]
-
-            try:
-                result = subprocess.Popen(
-                    CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
-            # For arm native raxml
-            except:
-                CMD = ["raxmlHPC", "-v"]
-
-                result = subprocess.Popen(
-                    CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
-
-            stdout, stderr = result.communicate()
-            stdout_str = stdout.decode("utf-8")
-            self.RAxML = stdout_str.split("\n")[2].split(" ")[4]
-            # print("RAxML", self.RAxML)
-
-        # For linux platform
         else:
-            ### FunVIP
-            self.FunVIP = version("FunVIP")
+            raxml_cand = ["raxmlHPC-PTHREADS-SSE3", "raxmlHPC"]
+        self.RAxML = _probe(
+            raxml_cand,
+            ["-v"],
+            lambda o, e: o.split("\n")[2].split(" ")[4]
+            if o.count("\n") >= 2 and len(o.split("\n")[2].split(" ")) > 4
+            else "",
+        )
 
-            ### GenMine
-            self.GenMine = version("GenMine")
 
-            ### BLASTn
-            CMD = ["blastn", "-version"]
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+def _needed_tools(opt):
+    """(label, [command candidates], required) for the tools the selected methods
+    will actually invoke."""
+    tools = []
+
+    search = str(opt.method.search).lower()
+    if search == "blast":
+        tools += [
+            ("BLAST+ (blastn)", ["blastn"], True),
+            ("BLAST+ (makeblastdb)", ["makeblastdb"], True),
+        ]
+    elif search == "mmseqs":
+        tools += [("MMseqs2", ["mmseqs"], True)]
+
+    tools += [("MAFFT", ["mafft"], True)]
+
+    if opt.method.tcs is True:
+        tools += [("T-COFFEE (TCS)", ["t_coffee"], False)]
+
+    trim = str(opt.method.trim).lower()
+    if trim == "trimal":
+        tools += [("trimAl", ["trimal"], True)]
+    elif trim == "gblocks":
+        tools += [("Gblocks", ["Gblocks"], True)]
+
+    modeltest = str(opt.method.modeltest).lower()
+    if modeltest in ("modeltest-ng", "modeltestng"):
+        tools += [("modeltest-ng", ["modeltest-ng"], True)]
+    elif modeltest == "iqtree":
+        tools += [("IQ-TREE (ModelFinder)", ["iqtree", "iqtree2"], True)]
+
+    tree = str(opt.method.tree).lower()
+    if tree == "fasttree":
+        tools += [("FastTree", ["FastTree", "fasttree"], True)]
+    elif tree == "iqtree":
+        tools += [("IQ-TREE", ["iqtree", "iqtree2"], True)]
+    elif tree == "raxml":
+        cands = (
+            ["raxmlHPC-PTHREADS-AVX2", "raxmlHPC-PTHREADS-SSE3", "raxmlHPC"]
+            if opt.avx
+            else ["raxmlHPC-PTHREADS-SSE3", "raxmlHPC"]
+        )
+        tools += [("RAxML", cands, True)]
+
+    # de-duplicate by label (e.g. IQ-TREE can be both modeltest and tree)
+    seen, out = set(), []
+    for label, cands, req in tools:
+        if label not in seen:
+            seen.add(label)
+            out.append((label, cands, req))
+    return out
+
+
+def preflight(opt):
+    """Verify the external tools the selected methods need are available; raise a
+    clear ConfigError listing what is missing. Optional tools (TCS) only warn.
+    On Windows the tools are bundled, so this is a no-op."""
+    if sys.platform == "win32":
+        logging.info("Windows platform: using the bundled external tools")
+        return
+
+    present, missing = [], []
+    for label, candidates, required in _needed_tools(opt):
+        found = next((c for c in candidates if shutil.which(c)), None)
+        if found:
+            present.append(f"{label} [{found}]")
+        elif required:
+            missing.append((label, candidates))
+        else:
+            logging.warning(
+                f"Optional tool {label} not found on PATH "
+                f"({', '.join(candidates)}); that step will be skipped"
             )
-            stdout, stderr = result.communicate()
-            stdout_str = stdout.decode("utf-8")
-            ## Format
-            # blastn: blastn: 2.12.0+
-            #   Package: blast 2.12.0, build Jun  4 2021 03:25:07
-            self.BLASTn = stdout_str.split("\n")[0].split(" ")[1].strip()
-            # print("BLASTn", self.BLASTn)
 
-            ### MMSeqs2
-            CMD = ["mmseqs", "-h"]
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            stdout_str = stdout.decode("utf-8")
-            self.MMseqs2 = stdout_str.split("Version: ")[1].split("\n")[0].strip()
-            # print("MMseqs2", self.MMseqs2)
+    if present:
+        logging.info("External tools found: " + ", ".join(present))
 
-            ### MAFFT
-            CMD = ["mafft", "--version"]
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            # MAFFT, output is on the stderr
-            stderr_str = stderr.decode("utf-8")
-            self.MAFFT = stderr_str.split("\n")[-2].split(" ")[0].strip()
-            # print("MAFFT", self.MAFFT)
-
-            ### TrimAl
-            CMD = ["trimal", "--version"]
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            stdout_str = stdout.decode("utf-8")
-            self.trimAl = stdout_str.split("\n")[1].split(" ")[1]
-            # print("trimAl", self.trimAl)
-
-            ### Modeltest-ng
-            ## Not supported in Windows
-            CMD = ["modeltest-ng", "--version"]
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            stdout_str = stdout.decode("utf-8")
-            self.Modeltest_NG = stdout_str.split("ModelTest-NG ")[1].split(" ")[0]
-
-            ### FastTree
-            ## Also use stderr of FastTree
-            CMD = ["FastTree", "-expert"]
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            stderr_str = stderr.decode("utf-8")
-            self.FastTree = stderr_str.split(" ")[4]
-            # print("FastTree", self.FastTree)
-
-            ### IQTREE
-            CMD = ["iqtree", "--version"]
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            stdout_str = stdout.decode("utf-8")
-            self.IQTREE2 = stdout_str.split(" ")[3]
-            # print("IQTREE2", self.IQTREE2)
-
-            ### RAxML
-            if opt.avx is True:
-                CMD = ["raxmlHPC-PTHREADS-AVX2", "-v"]
-            else:
-                CMD = ["raxmlHPC-PTHREADS-SSE3", "-v"]
-
-            result = subprocess.Popen(
-                CMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            stdout, stderr = result.communicate()
-            stdout_str = stdout.decode("utf-8")
-            self.RAxML = stdout_str.split("\n")[2].split(" ")[4]
+    if missing:
+        detail = "\n".join(
+            f"  - {label}: none of [{', '.join(cands)}] found on PATH"
+            for label, cands in missing
+        )
+        raise ConfigError(
+            "Required external tools for the selected methods are not on PATH:\n"
+            f"{detail}\n"
+            "Install them (e.g. `conda install -c bioconda blast mmseqs2 mafft "
+            "trimal fasttree iqtree raxml modeltest-ng t-coffee`) or choose "
+            "different --search / --trim / --modeltest / --tree methods."
+        )

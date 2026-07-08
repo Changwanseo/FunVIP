@@ -39,7 +39,7 @@ def _run_funvip():
     from funvip.src.command import CommandParser
     from funvip.src.tool import index_step
     from funvip.src.opt_generator import opt_generator
-    from funvip.src.version import Version
+    from funvip.src.version import Version, preflight
     from time import time
     from time import sleep
     import pandas as pd
@@ -89,6 +89,10 @@ def _run_funvip():
     version = Version(opt, path)
 
     logger.setup_logging(list_info, list_warning, list_error, path, opt, tool)
+
+    # Fail fast (before any heavy work) with a clear message if a required
+    # external tool for the selected methods is not available on PATH.
+    preflight(opt)
 
     # V contains all intermediate variables for FunVIP Run
     V = dataset.FunVIP_var()
