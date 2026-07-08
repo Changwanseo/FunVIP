@@ -1,0 +1,33 @@
+diff --git a/ete4/config.py b/ete4/config.py
+index 4de6cb9..5a23000 100644
+--- a/ete4/config.py
++++ b/ete4/config.py
+@@ -11,7 +11,7 @@ import requests
+ 
+ # Helper function to define global ETE_* variables.
+ def ete_path(xdg_var, default):
+-    return os.environ.get(xdg_var, os.environ['HOME'] + default) + '/ete'
++    return os.environ.get(xdg_var, os.path.expanduser('~') + default) + '/ete'
+ 
+ ETE_DATA_HOME   = ete_path('XDG_DATA_HOME',   '/.local/share')
+ ETE_CONFIG_HOME = ete_path('XDG_CONFIG_HOME', '/.config')
+diff --git a/setup.py b/setup.py
+index 20a4a25..fb5d715 100644
+--- a/setup.py
++++ b/setup.py
+@@ -1,13 +1,13 @@
+ from setuptools import setup, Extension
+ 
+ from glob import glob
+-from os.path import isfile
++from os.path import isfile, sep
+ 
+ from Cython.Build import cythonize
+ 
+ 
+ def make_extension(path):  # to create cython extensions the way we want
+-    name = path.replace('/', '.')[:-len('.pyx')]  # / -> .  and remove .pyx
++    name = path.replace(sep, '.')[:-len('.pyx')]  # / -> .  and remove .pyx
+     return Extension(name, [path], extra_compile_args=['-O3'])
+ 
+ setup(

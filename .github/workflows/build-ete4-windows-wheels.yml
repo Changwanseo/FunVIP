@@ -1,0 +1,80 @@
+name: build-ete4-windows-wheels
+
+# Build Windows (win_amd64) wheels for ete4, which upstream does NOT ship for
+# Windows (PyPI has an sdist only; conda-forge has no win-64 build). ete4 is a
+# hard FunVIP dependency, so without a Windows wheel FunVIP cannot be pip/conda
+# installed on Windows at all. This applies the small etetoolkit/ete PR #783
+# path-separator fix (tools/ete4-windows/ete4-windows.patch) and builds wheels
+# with cibuildwheel.
+#
+# Trigger manually: Actions tab -> "build-ete4-windows-wheels" -> "Run workflow".
+# The built wheels are uploaded as a downloadable artifact.
+#
+# ete4 is GPL-3.0-or-later; if you redistribute these wheels, also publish the
+# corresponding (patched) source and keep ete4's LICENSE. See
+# tools/ete4-windows/README.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ete4_version:
+        description: "ete4 version to build Windows wheels for"
+        required: true
+        default: "4.4.0"
+
+jobs:
+  build-windows-wheels:
+    name: ete4 ${{ github.event.inputs.ete4_version }} win_amd64
+    runs-on: windows-latest
+    steps:
+      - name: Checkout FunVIP (for the patch)
+        uses: actions/checkout@v4
+
+      - name: Set up host Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download and unpack the ete4 source
+        shell: bash
+        run: |
+          set -euxo pipefail
+          VER="${{ github.event.inputs.ete4_version }}"
+          python -m pip install --upgrade pip
+          python -m pip download "ete4==${VER}" --no-deps --no-binary :all: -d sdist
+          tar -xzf "sdist/ete4-${VER}.tar.gz"
+          echo "ETE4_SRC=ete4-${VER}" >> "$GITHUB_ENV"
+
+      - name: Apply the Windows build patch (etetoolkit/ete PR #783)
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd "$ETE4_SRC"
+          git init -q                     # give `git apply` a worktree to operate in
+          git apply --verbose "../tools/ete4-windows/ete4-windows.patch"
+          echo "--- patched lines ---"
+          grep -n "replace(sep" setup.py
+          grep -n "expanduser" ete4/config.py
+
+      - name: Build wheels with cibuildwheel
+        shell: bash
+        env:
+          # FunVIP-supported CPythons; narrow this to speed up a first "does it
+          # compile?" check (e.g. just cp312-win_amd64).
+          CIBW_BUILD: "cp310-win_amd64 cp311-win_amd64 cp312-win_amd64 cp313-win_amd64"
+          CIBW_BUILD_VERBOSITY: "1"
+          # Import test loads the compiled Cython .pyd -- proves the wheel actually
+          # works on Windows, not merely that it compiled. Single-quoted Python
+          # strings keep this robust under Windows cmd.
+          CIBW_TEST_COMMAND: python -c "import ete4; from ete4 import Tree; print('ete4', ete4.__version__)"
+        run: |
+          set -euxo pipefail
+          python -m pip install cibuildwheel
+          python -m cibuildwheel --output-dir wheelhouse "$ETE4_SRC"
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: ete4-${{ github.event.inputs.ete4_version }}-windows-wheels
+          path: wheelhouse/*.whl
+          if-no-files-found: error
