@@ -1,0 +1,29 @@
+# Reproducible conda/mamba environment for FunVIP.
+#
+#   conda env create -f environment.yml     # or: mamba env create -f environment.yml
+#   conda activate funvip
+#   FunVIP --test terrei --email you@example.com
+#
+# The external aligners/tree tools come from conda (bioconda/conda-forge); FunVIP
+# and its Python dependencies (incl. ete4) come from PyPI, which installs cleanly
+# on Linux/macOS. To use the development version instead of the PyPI release,
+# remove the `- FunVIP` pip line below and run `pip install -e .` from the repo.
+name: funvip
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.12
+  # External tools (tested versions in comments; unpinned to track conda updates)
+  - blast          # 2.17.0
+  - mmseqs2        # 18.8cc5c
+  - mafft          # 7.526
+  - trimal         # 1.5.x
+  - fasttree       # 2.2.0
+  - iqtree         # 3.1.2
+  - raxml          # 8.2.x
+  - modeltest-ng   # 0.1.7
+  - t-coffee       # optional, only needed for TCS alignment validation
+  - pip
+  - pip:
+      - FunVIP

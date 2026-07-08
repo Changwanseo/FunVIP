@@ -46,6 +46,19 @@ Bug reports are always welcomed
 * [Mac - apple silicon](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/installation.md##Apple )
 * [Linux](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/installation.md##Linux)
 * [from source](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/installation.md##Installation)
+
+### Quick install (conda / mamba)
+The external aligners and tree tools install via conda; FunVIP and its Python dependencies (including ete4) install via pip (which works on Linux/macOS).
+```bash
+conda env create -f environment.yml   # or: mamba env create -f environment.yml
+conda activate funvip
+FunVIP --test terrei --email you@example.com
+```
+Or run everything in a container (no local install; handy on Windows/WSL):
+```bash
+docker build -t funvip .
+docker run --rm -v "$PWD:/data" funvip --test terrei --email you@example.com --outdir /data/out
+```
 <br><br/>
 ## Usage
 ```FunVIP --db {Your database file} --query {Your query file} --email {Your email} --gene {Your genes} --preset {fast or accurate}```
