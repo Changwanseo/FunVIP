@@ -57,7 +57,12 @@ jobs:
           activate-environment: funvip-ci
       - name: Install FunVIP with test extras (pip pulls + builds ete4 from PyPI)
         run: pip install -e ".[test]"
-      - name: Import smoke test + unit tests
+      - name: Smoke test (entry point runs full import chain) + unit tests
         run: |
-          python -c "import funvip.main; print('funvip.main imports OK')"
+          # Use the console entry point, not `python -c "import funvip.main"`:
+          # importing funvip.main triggers _ensure_deterministic_hash, which
+          # re-execs the interpreter to set PYTHONHASHSEED, and for `python -c`
+          # the re-exec drops the code and errors. `FunVIP --version` re-execs
+          # cleanly and still imports the whole chain (including ete4).
+          FunVIP --version
           pytest -q
