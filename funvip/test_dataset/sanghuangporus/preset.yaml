@@ -4,7 +4,7 @@ GENE:
 - ITS
 CONCATENATE: true
 DB:
-- FunVIP_Sanghaungporus_db.xlsx
+- FunVIP_Sanghuangporus_db.xlsx
 QUERY:
 - FunVIP_Sanghuangporus_query.xlsx
 LEVEL: genus
