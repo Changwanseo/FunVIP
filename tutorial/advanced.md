@@ -21,7 +21,7 @@ Utilize validation ability of FunVIP as much as possible.
 
 Try to put all putative database and queries that you are going to use for the analysis at the initial run.
 
-Run initial run with fast mode (because there will be a lot of sequneces).
+Run the initial run with the fast preset (because there will be a lot of sequences).
 
 Filter out invalid databases according to the result of the first run.
 

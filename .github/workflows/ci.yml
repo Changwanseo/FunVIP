@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Fast, broad matrix. The unit tests import only lightweight deps (pandas,
+  # numpy, matplotlib, biopython, pyyaml, psutil, unidecode) -- NOT ete4 -- so
+  # they run across Python versions and OSes without ete4's Cython build hurdle.
+  unit:
+    name: unit / py${{ matrix.python }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install unit-test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest "pandas>=2.2.2,<4.0.0" "numpy<2" matplotlib biopython pyyaml psutil unidecode tabulate
+      - name: Run unit tests
+        run: pytest -q
+        env:
+          PYTHONPATH: .
+
+  # One combo that exercises the real Linux install path: a fresh conda env, then a
+  # pip install of the package. ete4 is pulled and built from PyPI by pip (not conda:
+  # conda-forge's ete4 lags PyPI and does not have the pinned version), matching the
+  # documented install (conda for the external tools, pip for FunVIP + ete4). Then a
+  # full import + unit-test smoke test.
+  install-smoke:
+    name: full install (conda env + pip) / ubuntu / py3.12
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: "3.12"
+          channels: conda-forge,bioconda
+          channel-priority: flexible
+          auto-activate-base: false
+          activate-environment: funvip-ci
+      - name: Install FunVIP with test extras (pip pulls + builds ete4 from PyPI)
+        run: pip install -e ".[test]"
+      - name: Smoke test (package imports) + unit tests
+        run: |
+          # The install step above is the real check: it proves ete4 builds from
+          # its PyPI sdist and the whole dependency set resolves in a fresh env.
+          # We intentionally do NOT import ete4 here -- ete4 eagerly imports PyQt6
+          # (GUI), which needs Qt system libraries (libGL, libEGL, libX11, ...) that
+          # a headless runner may lack. That is a runtime/deployment concern, not an
+          # install one, and real users have those libs. funvip's package init is
+          # import-safe (no ete4/Qt), so this check stays reliable.
+          python -c "import funvip; print('funvip imports OK')"
+          pytest -q
+
+  # Same as install-smoke, on Apple Silicon macOS. The macOS-specific value is
+  # confirming ete4 compiles from its PyPI sdist on osx-arm64 (conda-forge lags the
+  # pinned version, so ete4 comes via pip here too). Qt-free smoke, as on Linux
+  # (macOS provides Qt at runtime via conda's pyqt in the documented recipe).
+  install-smoke-macos:
+    name: full install (conda env + pip) / macos-arm64 / py3.12
+    runs-on: macos-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: "3.12"
+          channels: conda-forge,bioconda
+          channel-priority: flexible
+          auto-activate-base: false
+          activate-environment: funvip-ci
+      - name: Install FunVIP with test extras (pip pulls + builds ete4 from PyPI)
+        run: pip install -e ".[test]"
+      - name: Smoke test (package imports) + unit tests
+        run: |
+          python -c "import funvip; print('funvip imports OK')"
+          pytest -q

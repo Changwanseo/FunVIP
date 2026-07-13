@@ -2,6 +2,7 @@ from funvip.src import cluster, tool, hasher, validate_input, save
 from funvip.src.ext import blast, makeblastdb, mmseqs, makemmseqsdb
 from funvip.src.save import save_df
 from funvip.src.tool import mkdir
+from funvip.src.exceptions import ConfigError, InputError, SearchError
 import copy
 import pandas as pd
 import numpy as np
@@ -45,8 +46,7 @@ def create_search_db(opt, db_fasta, db, path) -> None:
     ):
         makemmseqsdb(fasta=db_fasta, db=db, path=path)
     else:
-        logging.error("DEVELOPMENTAL ERROR on building search DB!")
-        raise Exception
+        raise SearchError("cannot build search DB: method is neither blast nor mmseqs")
 
 
 # Merge fragmented search matches from given blast or mmseqss results
@@ -56,26 +56,22 @@ def merge_fragments(df) -> pd.DataFrame():
         if len(set(series)) == 1:
             return list(series)[0]
         elif len(set(series)) == 0:
-            logging.error(f"Found 0 values in {series} while merging search results")
-            raise Exception
+            raise SearchError(f"found 0 values in {series} while merging search results")
         else:
-            logging.error(
-                f"Found {len(set(series))} values in {series} while merging search results"
+            raise SearchError(
+                f"found {len(set(series))} conflicting values in {series} while merging search results"
             )
-            raise Exception
 
     # Calculate overall percent identity of fragments
     def calculate_pident(df):
         pident = df["pident"]
         length = df["length"]
         if len(pident) != len(length):
-            logging.error(
-                f"During merge blast fragments, found pident {pident} and len {length} are different"
+            raise SearchError(
+                f"while merging fragments, pident and length differ in length: {len(pident)} vs {len(length)}"
             )
-            raise Exception
         elif len(pident) == 0:
-            logging.error(f"No percent identitiy {pident} found")
-            raise Exception
+            raise SearchError(f"no percent identity found while merging fragments: {pident}")
         else:
             # Calculate overall percent identity
             return np.sum(np.array(pident) * np.array(length)) / np.sum(length)
@@ -147,8 +143,7 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
 
     if opt.cachedb is True or opt.usecache is True:
         if _hash is None:
-            logging.error(f"Database file {db_fasta} missing")
-            raise Exception
+            raise InputError(f"database file {db_fasta} is missing")
 
         # Try to parse DB
         if opt.usecache is True:
@@ -191,6 +186,16 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
                     # Create search database
                     create_search_db(opt, db_fasta, db, path)
 
+        else:
+            # usecache=False, cachedb=True: build DB and save to cache
+            logging.info(
+                f"--cachedb selected, {opt.method.search.lower()} database will be saved"
+            )
+            mkdir(f"{path.in_db}/{opt.method.search.lower()}/{_hash}")
+            db = f"{path.in_db}/{opt.method.search.lower()}/{_hash}/{_hash}"
+            logging.info("The database is in first run, caching database")
+            create_search_db(opt, db_fasta, db, path)
+
     else:
         mkdir(f"{path.tmp}/{opt.runname}/{_hash}")
         db = f"{path.tmp}/{opt.runname}/{_hash}/{_hash}"
@@ -229,8 +234,7 @@ def search(query_fasta, db_fasta, path, opt) -> pd.DataFrame():
         # remove temporary file
         # shutil.rmtree(f"{path.tmp}/{opt.runname}")
     else:
-        logging.error("DEVELOPMENTAL ERROR on searching!")
-        raise Exception
+        raise SearchError("cannot run search: method is neither blast nor mmseqs")
 
     # Parse out
     df = pd.read_csv(
@@ -297,10 +301,9 @@ def search_df(V, path, opt):
             V.list_db_gene.remove(gene)
 
     if len(V.list_db_gene) == 0:
-        logging.error(
-            f"None of the gene seems to be valid in analysis. Please check your --gene flag"
+        raise ConfigError(
+            "no valid gene found in the database; check your --gene flag and the database gene columns"
         )
-        raise Exception
 
     # get query fasta from funinfo_list
     list_qr_FI = tool.select(V.list_FI, datatype="query")
@@ -380,7 +383,8 @@ def search_df(V, path, opt):
                     if isinstance(df_search, pd.DataFrame):
                         if not df_search.empty:
                             dict_unclassified[gene] = df_search
-                except:
+                except NameError:
+                    # df_search was deleted above (no result exceeded outgroupoffset)
                     pass
 
             # assign gene by search result to unassigned sequences
@@ -412,10 +416,10 @@ def search_df(V, path, opt):
             else:
                 # If db column and query column does not matches -> should be moved to validate_input
                 if not (gene in V.list_db_gene):
-                    logging.error(
-                        f"Gene {gene} found in query, but not found in database. Please add {gene} column to database"
+                    raise InputError(
+                        f"gene {gene} is present in the query but not in the database; "
+                        f"add a {gene} column to the database"
                     )
-                    raise Exception
 
         # BLAST or mmseqs search
         # This part should be changed by using former search result for faster performance

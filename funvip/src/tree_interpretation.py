@@ -1,6 +1,6 @@
 # tree interpretation pipeline - collapse and visualize tree
-from ete3 import (
-    Tree,
+from ete4 import Tree
+from ete4.treeview import (
     TreeStyle,
     NodeStyle,
     TextFace,
@@ -8,6 +8,66 @@ from ete3 import (
     RectFace,
     faces,
 )
+
+# Fix ete4 bug: _leaf() uses hasattr(node, "_img_style") but ete4 stores
+# _img_style in node.props (dict), so hasattr always returns False, making
+# draw_descendants=False a no-op. Patch all modules that have their own copy.
+def _ete4_fixed_leaf(node):
+    collapsed = "_img_style" in node.props and not node.img_style["draw_descendants"]
+    return collapsed or node.is_leaf
+
+import ete4.treeview.qt_render as _ete4_qt_render
+import ete4.treeview.qt_rect_render as _ete4_qt_rect_render
+import ete4.treeview.qt_face_render as _ete4_qt_face_render
+import ete4.treeview.qt_gui as _ete4_qt_gui
+
+_ete4_qt_render._leaf = _ete4_fixed_leaf
+_ete4_qt_rect_render._leaf = _ete4_fixed_leaf
+_ete4_qt_face_render._leaf = _ete4_fixed_leaf
+_ete4_qt_gui._leaf = _ete4_fixed_leaf
+
+
+def _ladderize_ete3_compat(node):
+    """Replicate ete3's ladderize(direction=1) tie-breaking behavior.
+
+    ete3 sorts ascending by leaf count (stable), then calls reverse().
+    ete4 sorts descending (stable) with a secondary key len(children).
+    When subtrees have equal leaf counts, the two-step ete3 approach reverses
+    tied items while ete4's one-step approach preserves their original order —
+    producing different sp. N numbering for balanced clades.
+    """
+    if node.is_leaf:
+        return 1
+    n2s = {}
+    for child in node.children:
+        n2s[child] = _ladderize_ete3_compat(child)
+    node.children.sort(key=lambda x: n2s[x])  # ascending stable (leaf count)
+    node.children.reverse()                     # reverse = ete3 direction=1
+    return sum(n2s.values())
+
+
+def _ete4_make_root_consistent(t):
+    """ete4 compat: ete4's assert_root_consistency (called inside unroot/set_outgroup)
+    requires root.dist in {0, None}, no 'support' on the root, and equal support on the
+    two root children. FastTree/RAxML trees read from newick routinely violate the last
+    (e.g. support 1.0 vs 0.0), raising AssertionError. Coerce the current root to a
+    consistent state before any reroot operation."""
+    try:
+        if getattr(t, "dist", None) not in (0, None):
+            t.dist = 0
+        if "support" in getattr(t, "props", {}):
+            t.props.pop("support", None)
+        ch = t.children
+        if len(ch) == 2:
+            s = ch[0].support if ch[0].support is not None else ch[1].support
+            if s is None:
+                s = 1.0
+            ch[0].support = s
+            ch[1].support = s
+    except Exception:
+        pass
+
+
 from Bio import SeqIO
 from copy import deepcopy
 from time import sleep
@@ -19,12 +79,15 @@ from funvip.src.tool import get_id, get_genus_species
 from itertools import combinations
 import tracemalloc
 import dendropy
+import numpy as np
 import collections
 import psutil
 import os
 import re
 import sys
 import json
+import logging
+from funvip.src.exceptions import TreeError
 
 # Default zero length branch for concatenation
 CONCAT_ZERO = 0  # for better binding
@@ -106,28 +169,58 @@ def concat_clade(
     root_support=0,
 ):
     tmp = Tree()
-    tmp.dist = root_dist
-    tmp.support = root_support
-    tmp.add_child(clade1, dist=dist1, support=support1)
-    tmp.add_child(clade2, dist=dist2, support=support2)
+    tmp.dist = root_dist if root_dist is not None else CONCAT_ZERO
+    tmp.support = root_support if root_support is not None else 0
+    tmp.add_child(clade1, dist=dist1 if dist1 is not None else CONCAT_ZERO,
+                  support=support1 if support1 is not None else 1)
+    tmp.add_child(clade2, dist=dist2 if dist2 is not None else CONCAT_ZERO,
+                  support=support2 if support2 is not None else 1)
     return tmp
+
+
+## Combine clades into a BALANCED (log-depth) binary tree for concat_all.
+# Bottom-up left-to-right pairwise merge (preserves leaf order). Each input
+# clade keeps its OWN dist/support as its edge; every glue node created here is
+# (dist=CONCAT_ZERO, support=0), matching the internal nodes of the former
+# left-deep comb. Input clades are deep-copied once (as concat_all did), so the
+# caller's clades are not mutated.
+def _balanced_merge(clades):
+    nodes = [c.copy("deepcopy") for c in clades]
+    while len(nodes) > 1:
+        merged = []
+        for i in range(0, len(nodes), 2):
+            if i + 1 < len(nodes):
+                a, b = nodes[i], nodes[i + 1]
+                merged.append(
+                    concat_clade(
+                        clade1=a,
+                        clade2=b,
+                        dist1=a.dist,
+                        dist2=b.dist,
+                        support1=a.support,
+                        support2=b.support,
+                    )
+                )
+            else:
+                merged.append(nodes[i])
+        nodes = merged
+    return nodes[0]
 
 
 ## concat all given branches for concatenation
 # clades were given in tuble, and root_dist is given
 def concat_all(clade_tuple, root_dist, root_support=0):
     if len(clade_tuple) == 0:
-        print("No clade input found, abort")
-        raise Exception
+        raise TreeError("concat_all called with no clades")
     # If one clade were input, return self
     elif len(clade_tuple) == 1:
-        return clade_tuple[0].copy("newick")
+        return clade_tuple[0].copy("deepcopy")
     # If two clades were input, concat it and return
     elif len(clade_tuple) == 2:
-        return_clade = clade_tuple[0].copy("newick")
+        return_clade = clade_tuple[0].copy("deepcopy")
         return_clade = concat_clade(
             clade1=return_clade,
-            clade2=clade_tuple[1].copy("newick"),
+            clade2=clade_tuple[1].copy("deepcopy"),
             dist1=return_clade.dist,
             dist2=clade_tuple[1].dist,
             support1=return_clade.support,
@@ -135,23 +228,23 @@ def concat_all(clade_tuple, root_dist, root_support=0):
             root_dist=root_dist,
             root_support=root_support,
         )
-    # If more than 3 clades were input, iteratively concat
+    # If more than 3 clades were input, concat into a BALANCED (log-depth) tree.
     # If more than 2 species exists, and sp included, which taxon sp should be included cannot be decided
     # In that case, move sp clade to last
+    # Was a left-deep comb (for c in clade_tuple[1:-1]: concat onto accumulator),
+    # so a k-member same-taxon group became a k-deep nesting -> ete4 copy /
+    # multiprocessing-pickle RecursionError (5.8S skipped) and O(n^2) build cost.
+    # Balanced form is byte-identical for k<=4 (balanced==comb there); for k>=5 it
+    # only rearranges the zero-dist/zero-support glue nodes. Each original clade
+    # still keeps its own dist/support as its edge, every glue node is
+    # (dist=CONCAT_ZERO, support=0), the last clade stays a direct child of the
+    # root, and the root carries root_dist/root_support -- so identification is
+    # unchanged (leaf sets + per-clade edges + root dist/support are preserved).
     elif len(clade_tuple) >= 3:
-        return_clade = clade_tuple[0].copy("newick")
-        for c in clade_tuple[1:-1]:
-            return_clade = concat_clade(
-                clade1=return_clade,
-                clade2=c.copy("newick"),
-                dist1=return_clade.dist,
-                dist2=c.dist,
-                support1=return_clade.support,
-                support2=c.support,
-            )
+        return_clade = _balanced_merge(clade_tuple[:-1])
         return_clade = concat_clade(
             clade1=return_clade,
-            clade2=clade_tuple[-1].copy("newick"),
+            clade2=clade_tuple[-1].copy("deepcopy"),
             dist1=return_clade.dist,
             dist2=clade_tuple[-1].dist,
             support1=return_clade.support,
@@ -160,7 +253,7 @@ def concat_all(clade_tuple, root_dist, root_support=0):
             root_support=root_support,
         )
     else:
-        raise Exception
+        raise TreeError(f"concat_all: unexpected clade_tuple length {len(clade_tuple)}")
 
     return return_clade
 
@@ -184,36 +277,93 @@ class Tree_style:
         self.ts.show_leaf_name = False
 
 
-@lru_cache(maxsize=10000)
-def decide_type(query_list, db_list, outgroup, string, by="hash", priority="query"):
-    query = False
-    db = False
+# Cache the hash sets derived from (query_list, db_list, outgroup). decide_type is called
+# once per leaf inside consist/get_taxon/taxon_count, i.e. O(n * tree-depth) times during
+# reconstruct; recomputing three O(n) lists and doing O(n) list-membership on every call made
+# it the dominant cost (~O(n^3) on the deep FastTree combs). The three input tuples are set
+# once per tree on Tree_information, so key on their object identity and rebuild only when they
+# change (a new tree). Single entry: holds one tree's sets, replaced (old GC'd) when the tree
+# changes, so RAM stays O(n) per worker; separate worker processes each keep their own.
+# (The former @lru_cache was ineffective: its key was these big list-tuples, so every lookup
+# re-hashed them in O(n).)
+_DECIDE_TYPE_HASHSETS = None
 
-    query_hash_list = [FI.hash for FI in query_list]
-    db_hash_list = [FI.hash for FI in db_list]
-    outgroup_hash_list = [FI.hash for FI in outgroup]
+
+def decide_type(query_list, db_list, outgroup, string, by="hash", priority="query"):
+    global _DECIDE_TYPE_HASHSETS
+    c = _DECIDE_TYPE_HASHSETS
+    if c is None or c[0] is not query_list or c[1] is not db_list or c[2] is not outgroup:
+        c = (
+            query_list,
+            db_list,
+            outgroup,
+            frozenset(FI.hash for FI in query_list),
+            frozenset(FI.hash for FI in db_list),
+            frozenset(FI.hash for FI in outgroup),
+        )
+        _DECIDE_TYPE_HASHSETS = c
 
     if by == "hash":
-        if string in query_hash_list:
+        if string in c[3]:
             return "query"
-        elif string in db_hash_list:
+        elif string in c[4]:
             return "db"
-        elif string in outgroup_hash_list:
+        elif string in c[5]:
             return "outgroup"
         else:
             return "none"
 
     else:
-        print(
-            f"{bold_red}[ERROR] DEVELOPMENTAL ERROR, UNEXPECTED by for decide_type{reset}"
+        raise TreeError(f"decide_type: unexpected 'by' value {by!r}")
+
+
+# uint8 lookup for encoding aligned sequences: a/t/g/c -> 1..4, everything else (gap '-',
+# ambiguity codes, any non-atgc char) -> 0. Matches the old per-char cleaning
+# ("'-' if char not in 'atgc-' else char"), where both '-' and non-atgc collapse to gap.
+_ATGC_CODE = np.zeros(256, dtype=np.uint8)
+for _i, _c in enumerate(b"atgc"):
+    _ATGC_CODE[_c] = _i + 1
+
+
+def _encode_alignment(seq_list):
+    # Encode every aligned sequence once (O(n*L)) into an (n, L) uint8 matrix so calculate_zero
+    # can compare overlaps with numpy instead of per-pair Python char loops.
+    n = len(seq_list)
+    L = len(seq_list[0].seq)
+    arr = np.zeros((n, L), dtype=np.uint8)
+    for i, record in enumerate(seq_list):
+        buf = np.frombuffer(
+            str(record.seq).lower().encode("ascii", "replace"), dtype=np.uint8
         )
-        raise Exception
+        arr[i] = _ATGC_CODE[buf]
+    return arr
 
 
 # count number of taxons in the clade
-def taxon_count(
+# Subtree taxon-count memoization, active only during tree_search (topology is static
+# there; solve_flat mutations already happened). Keyed by id(node) so it does not pollute
+# node.props (ete4 nodes are __slots__ and reject arbitrary attributes) and is not written
+# to newick. Cleared per tree by _tc_cache_begin/_tc_cache_end so id() reuse across trees
+# cannot cause stale hits. Toggle off with FUNVIP_NO_TC_MEMO for A/B verification.
+_TC_CACHE = None
+
+
+def _tc_cache_begin():
+    global _TC_CACHE
+    if not os.environ.get("FUNVIP_NO_TC_MEMO"):
+        _TC_CACHE = {}
+
+
+def _tc_cache_end():
+    global _TC_CACHE
+    _TC_CACHE = None
+
+
+def _taxon_count_flat(
     funinfo_dict, query_list, db_list, outgroup, clade, gene, count_query=False
 ):
+    # Original non-memoized full-leaf scan. Reference for the FUNVIP_TC_ASSERT self-check
+    # and used whenever memoization is inactive.
     taxon_dict = {}
 
     for leaf in clade:
@@ -221,23 +371,15 @@ def taxon_count(
         taxon = None
         if count_query == True:
             taxon = (FI.genus, FI.bygene_species[gene])
-        elif (
-            decide_type(
+        else:
+            _leaf_type = decide_type(
                 query_list=query_list,
                 db_list=db_list,
                 outgroup=outgroup,
                 string=leaf.name,
             )
-            == "db"
-            or decide_type(
-                query_list=query_list,
-                db_list=db_list,
-                outgroup=outgroup,
-                string=leaf.name,
-            )
-            == "outgroup"
-        ):
-            taxon = (FI.genus, FI.bygene_species[gene])
+            if _leaf_type == "db" or _leaf_type == "outgroup":
+                taxon = (FI.genus, FI.bygene_species[gene])
 
         if not (taxon is None):
             if not (taxon in taxon_dict):
@@ -248,40 +390,67 @@ def taxon_count(
     return taxon_dict
 
 
-def genus_count(funinfo_dict, gene, clade):
-    taxon_dict = {}
-
-    for leaf in clade.iter_leaves():
-        FI = funinfo_dict[leaf.name]
-        if (
-            decide_type(
-                query_list=self.query_list,
-                db_list=self.db_list,
-                outgroup=self.outgroup,
-                string=leaf.name,
-            )
-            == "db"
-            or decide_type(
-                query_list=self.query_list,
-                db_list=self.db_list,
-                outgroup=self.outgroup,
-                string=leaf.name,
-            )
-            == "outgroup"
-        ):
-            if not ((FI.genus, FI.bygene_species[gene]) in taxon_dict):
-                taxon_dict[(FI.genus, FI.bygene_species[gene])[0]] = 1
+def taxon_count(
+    funinfo_dict, query_list, db_list, outgroup, clade, gene, count_query=False
+):
+    # Memoized recursive path (active during tree_search). Equivalent to the flat scan:
+    # leaf iteration of a node equals the ordered concatenation of its children's leaves,
+    # so the merged dict has identical keys, counts, and insertion order (which
+    # find_majortaxon tie-breaks on). Turns the repeated full-subtree rescans (O(n^2) on
+    # many-species genera) into one post-order (O(n)). Set FUNVIP_TC_ASSERT to verify the
+    # memoized result against the flat scan on every call.
+    if _TC_CACHE is not None:
+        key = (id(clade), gene, count_query)
+        hit = _TC_CACHE.get(key)
+        if hit is not None:
+            # hand out a copy: callers must never mutate the shared cached dict
+            result = dict(hit)
+        else:
+            taxon_dict = {}
+            if clade.is_leaf:
+                FI = funinfo_dict[clade.name]
+                taxon = None
+                if count_query == True:
+                    taxon = (FI.genus, FI.bygene_species[gene])
+                elif decide_type(
+                    query_list=query_list,
+                    db_list=db_list,
+                    outgroup=outgroup,
+                    string=clade.name,
+                ) in ("db", "outgroup"):
+                    taxon = (FI.genus, FI.bygene_species[gene])
+                if taxon is not None:
+                    taxon_dict[taxon] = 1
             else:
-                taxon_dict[(FI.genus, FI.bygene_species[gene])[0]] += 1
+                for child in clade.children:
+                    cd = taxon_count(
+                        funinfo_dict, query_list, db_list, outgroup, child, gene, count_query
+                    )
+                    for k, v in cd.items():
+                        taxon_dict[k] = taxon_dict.get(k, 0) + v
+            _TC_CACHE[key] = taxon_dict
+            result = dict(taxon_dict)
+        if os.environ.get("FUNVIP_TC_ASSERT"):
+            _flat = _taxon_count_flat(
+                funinfo_dict, query_list, db_list, outgroup, clade, gene, count_query
+            )
+            if list(result.items()) != list(_flat.items()):
+                sys.stderr.write(
+                    f"[TC_ASSERT] mismatch cq={count_query} "
+                    f"leaves={[l.name for l in clade]}\n  memo={result}\n  flat={_flat}\n"
+                )
+        return result
 
-    return taxon_dict
+    return _taxon_count_flat(
+        funinfo_dict, query_list, db_list, outgroup, clade, gene, count_query
+    )
 
 
 def designate_genus(funinfo_dict, query_list, db_list, outgroup, gene, clade):
     genus_dict = {}
 
     # Get genus_count
-    for leaf in clade.iter_leaves():
+    for leaf in clade.leaves():
         FI = funinfo_dict[leaf.name]
         if (
             decide_type(
@@ -433,10 +602,10 @@ def is_monophyletic(
     if len(taxon_dict.keys()) == 0:
         for children in clade.children:
             # if any of the branch length was too long for single clade
-            if children.dist > opt.collapsedistcutoff:
+            if children.dist is not None and children.dist > opt.collapsedistcutoff:
                 return False
-            # or bootstrap is to distinctive
-            elif children.support > opt.collapsebscutoff:
+            # or bootstrap is to distinctive (support may be None for leaves in ete4)
+            elif children.support is not None and children.support > opt.collapsebscutoff:
                 return False
         return True
     # if taxon dict.keys() have 1 species: 1 kinds of species
@@ -457,13 +626,13 @@ def is_monophyletic(
                 clade=children,
                 gene=gene,
             )[1].startswith("sp."):
-                if children.dist > opt.collapsedistcutoff:
+                if children.dist is not None and children.dist > opt.collapsedistcutoff:
                     return False
-                elif children.support > opt.collapsebscutoff:
+                elif children.support is not None and children.support > opt.collapsebscutoff:
                     return False
-                elif other_children.dist > opt.collapsebscutoff:
+                elif other_children.dist is not None and other_children.dist > opt.collapsebscutoff:
                     return False
-                elif other_children.dist > opt.collapsedistcutoff:
+                elif other_children.dist is not None and other_children.dist > opt.collapsedistcutoff:
                     return False
         return True
     else:
@@ -522,22 +691,35 @@ class Tree_information:
     def __init__(self, tree, Tree_style, group, gene, opt):
         self.tree_name = tree  # for debugging
         self.t = Tree(tree)
+        # ete4: root node has dist=None when newick has no explicit root branch length
+        # Normalize to 0.0 so all dist comparisons work correctly
+        for _n in self.t.traverse():
+            if _n.dist is None:
+                _n.dist = 0.0
         self.t_publish = (
             None  # for publish tree - will substitute tree_original in long_term
         )
         self.dendro_t = dendropy.Tree.get(
-            path=self.tree_name, schema="newick"
+            path=self.tree_name, schema="newick", preserve_underscores=True
         )  # dendropy format for distance calculation
+        # ete4 compat: dendropy converts unquoted Newick underscores to spaces by default,
+        # so pdc keys ('Genus species') would not match alignment ids ('Genus_species') and
+        # calculate_zero() raises KeyError. preserve_underscores=True keeps them aligned.
 
         # if support ranges from 0 to 1, change it from 0 to 100
-        # b for branch
-        support_set = set()
-        for b in self.t.traverse():
-            support_set.add(b.support)
+        # b for branch (leaves have support=None in ete4, skip them)
+        support_set = set(
+            b.support for b in self.t.traverse() if b.support is not None
+        )
 
-        if max(support_set) <= 1:
+        # Track whether scale conversion happens — used by pipe to normalize
+        # ete4's None-support nodes for ete3-compatible reconstruct behavior
+        self.support_scaled = False
+        if support_set and max(support_set) <= 1:
             for b in self.t.traverse():
-                b.support = int(100 * b.support)
+                if b.support is not None:
+                    b.support = int(100 * b.support)
+            self.support_scaled = True
 
         self.query_list = []
         self.db_list = []
@@ -566,7 +748,7 @@ class Tree_information:
     # to find out already existing new species number to avoid overlapping
     # e.g. avoid sp 5 if P. sp 5 already exsits in database
     def reserve_sp(self):  # does not seems to be working currently
-        for leaf in self.t.iter_leaves():
+        for leaf in self.t.leaves():
             FI = self.funinfo_dict[leaf.name]
             taxon = (FI.genus, FI.ori_species)
             sys.stdout.flush()
@@ -586,137 +768,139 @@ class Tree_information:
         if collections.Counter(hash_list_tree) != collections.Counter(
             hash_list_alignment
         ):
-            print(
-                f"{bold_red}[ERROR] content of tree and alignment is not identical for {self.tree_name}{reset}"
+            raise TreeError(
+                f"tree and alignment contents differ for {self.tree_name}"
             )
-            raise Exception
 
-        # Find identical or including pairs in alignment
-        identical_pairs = []
-        # different_pairs = []
+        # Encode each sequence once (uint8; gap and any non-atgc char -> 0, matching the old
+        # "atgc-" cleaning). The per-partition overlap is applied to every pair (the old code
+        # reused the loop name `gene` in `for gene in gene_order`, clobbering the `gene` argument).
+        ids = [str(record.id).strip() for record in seq_list]
+        arr = _encode_alignment(seq_list)
+        nongap = arr != 0
+        n_seq, n_col = arr.shape
 
-        # make phylogenetic distance matrix
-        pdc = self.dendro_t.phylogenetic_distance_matrix().as_data_table()._data
+        if gene == "concatenated":
+            spans = []
+            _offset = 0
+            for _g in partition_dict["order"]:
+                spans.append((_offset, _offset + partition_dict["len"][_g]))
+                _offset += partition_dict["len"][_g]
+        else:
+            spans = [(0, n_col)]
+
+        def _overlap_compare(i, j):
+            # returns (differ?, overlapping_cnt) over the per-partition overlap; None if no overlap
+            both = nongap[i] & nongap[j]
+            valid = np.zeros(n_col, dtype=np.bool_)
+            for a, b in spans:
+                nz = np.flatnonzero(both[a:b])
+                if nz.size:
+                    valid[a + nz[0] : a + nz[-1] + 1] = True
+            if not valid.any():
+                return None
+            eq = arr[i][valid] == arr[j][valid]
+            return (not bool(eq.all()), int(eq.sum()))
+
+        # diff_min = min patristic distance among pairs that DIFFER. Any different pair with a
+        # patristic distance < zero_init must lie inside one <= zero_init-connected cluster (a path
+        # summing to < zero_init has every branch < zero_init), so only within-cluster pairs can set
+        # a diff_min below zero_init. And whenever diff_min < zero_init the final self.zero is
+        # max(diff_min - 1e-8, floor) regardless of max_identical (self.zero is capped at
+        # diff_min - 1e-8 because diff_min < zero_init <= max(zero_init, max_identical)). So in the
+        # common (metabarcoding) case we avoid both the O(n^2) phylogenetic distance matrix and the
+        # O(n^2) all-pairs scan; only clean, well-separated data (no different pair < zero_init)
+        # falls back to the full scan below.
+        zero_init = self.zero
+        idx_of = {name: k for k, name in enumerate(ids)}
+
+        _parent = {}
+
+        def _find(x):
+            while _parent.get(x, x) != x:
+                _parent[x] = _parent.get(_parent[x], _parent[x])
+                x = _parent[x]
+            return x
+
+        def _union(a, b):
+            _parent.setdefault(a, a)
+            _parent.setdefault(b, b)
+            _parent[_find(a)] = _find(b)
+
+        for _nd in self.t.traverse():
+            _parent.setdefault(id(_nd), id(_nd))
+            if _nd.up is not None and (_nd.dist or 0) <= zero_init:
+                _union(id(_nd), id(_nd.up))
+
+        _clusters = {}
+        for _lf in self.t.leaves():
+            _clusters.setdefault(_find(id(_lf)), []).append(_lf)
 
         diff_min = 999999
-        for seq1, seq2 in combinations(seq_list, 2):
-            if not (
-                str(seq1.id).strip() == str(seq2.id).strip()
-                or (seq1.id, seq2.id) in identical_pairs
-                or (seq2.id, seq1.id) in identical_pairs
-            ):
-                """
-                # Chenge unusable chars into gap
-                seq1_str = str(seq1.seq).lower()
-                seq2_str = str(seq2.seq).lower()
+        for _cl in _clusters.values():
+            if len(_cl) < 2:
+                continue
+            for _a in range(len(_cl)):
+                _ia = idx_of[_cl[_a].name]
+                for _b in range(_a + 1, len(_cl)):
+                    _cmp = _overlap_compare(_ia, idx_of[_cl[_b].name])
+                    if _cmp is not None and _cmp[0]:
+                        _pat = self.t.get_distance(_cl[_a], _cl[_b])
+                        if _pat < diff_min:
+                            diff_min = _pat
 
-                for char in set(seq1_str) - {"a", "t", "g", "c", "-"}:
-                    seq1_str = seq1_str.replace(char, "-")
-
-                for char in set(seq2_str) - {"a", "t", "g", "c", "-"}:
-                    seq2_str = seq2_str.replace(char, "-")
-                """
-
-                seq1_str, seq2_str = str(seq1.seq).lower(), str(seq2.seq).lower()
-                seq1_str = "".join(
-                    "-" if char not in "atgc-" else char for char in seq1_str
-                )
-                seq2_str = "".join(
-                    "-" if char not in "atgc-" else char for char in seq2_str
-                )
-
-                identical_flag = True
-                # To prevent distance among different region detected as zero in concatenated analysis
-                overlapping_cnt = 0
-
-                # For concatenated sequence alignment, identical sequnece should be checked by each partitions
-                if gene == "concatenated":
-                    len_dict = partition_dict["len"]
-                    gene_order = partition_dict["order"]
-
-                    valid_index = []
-
-                    # calculate valid index to check
-                    previous_index = 0
-
-                    for gene in gene_order:
-                        start = previous_index
-                        end = previous_index + len_dict[gene] - 1
-
-                        # Find the starting point
-                        for n in range(previous_index, len_dict[gene] + previous_index):
-                            if seq1_str[n] != "-" and seq2_str[n] != "-":
-                                start = n
-                                break
-
-                        # Compare from the start
-                        for n in range(
-                            len_dict[gene] + previous_index - 1,
-                            previous_index - 1,
-                            -1,
-                        ):
-                            if seq1_str[n] != "-" and seq2_str[n] != "-":
-                                end = n
-                                break
-
-                        valid_index.extend(range(start, end + 1))
-
-                        previous_index += len_dict[gene]
-
-                    # for valid part
-                    for n in valid_index:
-                        # connected with or to evaluate insertions or deletions
-                        if seq1_str[n] != seq2_str[n]:
-                            identical_flag = False
-                        else:
-                            overlapping_cnt += 1
-
-                else:
-                    start = 0
-                    end = len(seq1_str) - 1
-                    # calculate start and end
-                    for n in range(len(seq1_str)):
-                        if seq1_str[n] != "-" and seq2_str[n] != "-":
-                            start = n
-                            break
-
-                    for n in range(len(seq1_str)):
-                        if (
-                            seq1_str[len(seq1_str) - n - 1] != "-"
-                            and seq2_str[len(seq1_str) - n - 1] != "-"
-                        ):
-                            end = len(seq1_str) - n
-                            break
-
-                    # for valid part
-                    for n in range(start, end):
-                        # connected with or to evaluate insertions or deletions
-                        if seq1_str[n] != seq2_str[n]:
-                            identical_flag = False
-                        else:
-                            overlapping_cnt += 1
-
-                # if identical pairs
-                id1 = str(seq1.id).strip()
-                id2 = str(seq2.id).strip()
-
-                if identical_flag is True and overlapping_cnt > 0:
-                    if pdc[id1][id2] > self.zero:
-                        self.zero = pdc[id1][id2]
-
-                # if different pairs
-                elif identical_flag is False:
-                    if pdc[id1][id2] < diff_min:
-                        diff_min = pdc[id1][id2]
-
-        if diff_min < self.zero:
+        if diff_min < zero_init:
+            # short-circuit: no distance matrix and no max-identical scan needed
             self.zero = diff_min - 0.00000001
+        else:
+            # clean, well-separated data: build the distance matrix and do the full pairwise scan
+            # for the exact max-identical and the (>= zero_init) diff_min
+            pdc = self.dendro_t.phylogenetic_distance_matrix().as_data_table()._data
+            diff_min = 999999
+            for i in range(n_seq):
+                pdc_i = pdc[ids[i]]
+                for j in range(i + 1, n_seq):
+                    if ids[i] == ids[j]:
+                        continue
+                    _cmp = _overlap_compare(i, j)
+                    if _cmp is None:
+                        continue
+                    _differ, _overlap = _cmp
+                    if (not _differ) and _overlap > 0:
+                        d = pdc_i[ids[j]]
+                        if d > self.zero:
+                            self.zero = d
+                    elif _differ:
+                        d = pdc_i[ids[j]]
+                        if d < diff_min:
+                            diff_min = d
+            if diff_min < self.zero:
+                self.zero = diff_min - 0.00000001
+
+        # Engine-aware floor on self.zero. A branch that is "effectively zero" is not a single
+        # value but the band [min_branch_length, min_branch_length + optimizer_tolerance]: the
+        # engine clamps a near-zero branch to its minimum, then Brent's branch optimizer stops
+        # within its absolute tolerance of that minimum, so identical sequences get branch lengths
+        # spread across that band (e.g. FastTree emits both 5e-9 AND 6e-9 = xmin + atol). self.zero
+        # must be the TOP of the band, otherwise the just-above-minimum values are treated as real
+        # branches and split otherwise-identical flat clusters. Verified on Lactarius: raising
+        # 5e-9 -> 6e-9 merges the noise-split clusters and does NOT over-merge divergent sequences
+        # (every query whose call changed was 0-1 base different from its nearest DB neighbour over
+        # the overlap). Values read from each engine's source:
+        #   FastTree (double): MLMinBranchLength 5e-9 + MLMinBranchLengthTolerance 1e-9  = 6e-9
+        #   IQ-TREE          : -blmin 1e-6 + TOL_BRANCH_LEN 1e-6                          = 2e-6
+        #   RAxML  (classic) : -log(zmax) = -log(1-1e-6) = 1.0000005e-6, rounded up      = 2e-6
+        _engine_min_branch = {"fasttree": 6e-9, "iqtree": 2e-6, "raxml": 2e-6}
+        self.zero = max(
+            self.zero,
+            _engine_min_branch.get(str(self.opt.method.tree).lower(), 6e-9),
+        )
 
         if self.opt.verbose >= 3:
-            print(f"[DEBUG] End of calculate zero")
+            logging.debug("End of calculate zero")
             process = psutil.Process(os.getpid())
             memory_info = process.memory_info()
-            print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
+            logging.debug(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
         # I think also finding minimal distance between non-identical sequences are also needed
         return self.zero
@@ -727,10 +911,17 @@ class Tree_information:
         outgroup_leaves = []
 
         # Resolve polytomy before rerooting
+        # ete4 compat: resolve_polytomy zeros all support values; save them to restore after rerooting
+        _support_backup = {id(n): n.support for n in self.t.traverse()}
         self.t.resolve_polytomy()
+        # ete4 compat: new internal nodes created by resolve_polytomy get support=0;
+        # set to 1.0 to match ete3 DEFAULT_SUPPORT so NWK output writes 1 not 0
+        for _n in self.t.traverse():
+            if id(_n) not in _support_backup and not _n.is_leaf:
+                _n.support = 1.0
 
         # Check if outgroup sequences exists
-        print(f"[INFO] Rerooting {self.outgroup} in {self.tree_name}")
+        logging.info(f"Rerooting {self.outgroup} in {self.tree_name}")
         for leaf in self.t:
             if any(outgroup.hash in leaf.name for outgroup in self.outgroup):
                 outgroup_leaves.append(leaf)
@@ -743,65 +934,71 @@ class Tree_information:
         # find smallest monophyletic clade that contains all leaves in outgroup_leaves
         # reroot with outgroup_clade
         try:
-            # For more than one outgroups, after rerooting, get_common_ancestor of outgroup again
+            # For more than one outgroups, after rerooting, common_ancestor of outgroup again
             # Before rerooting, unroot the tree to work properly
             if len(outgroup_leaves) >= 2:
+                _ete4_make_root_consistent(self.t)
                 self.t.unroot()
-                self.outgroup_clade = self.t.get_common_ancestor(outgroup_leaves)
+                self.outgroup_clade = self.t.common_ancestor(outgroup_leaves)
                 self.t.set_outgroup(self.outgroup_clade)
-                self.t.ladderize(direction=1)
-                self.outgroup_clade = self.t.get_common_ancestor(outgroup_leaves)
+                _ladderize_ete3_compat(self.t)
+                self.outgroup_clade = self.t.common_ancestor(outgroup_leaves)
             elif len(outgroup_leaves) == 1:
+                _ete4_make_root_consistent(self.t)
                 self.t.unroot()
                 self.outgroup_clade = outgroup_leaves[0]
                 self.t.set_outgroup(self.outgroup_clade)
-                self.t.ladderize(direction=1)
+                _ladderize_ete3_compat(self.t)
                 self.outgroup_clade = outgroup_leaves[0]
             else:
-                print(
-                    f"{bold_red}[ERROR] no outgroup selected in {self.tree_name}{reset}"
-                )
-                raise Exception
+                # control flow: no outgroup in the primary path -> trigger the
+                # flexible-reroot fallback in the except below (TreeError is an
+                # Exception, so it is caught there).
+                raise TreeError(f"no outgroup selected in {self.tree_name}")
 
             # If number of outgroup leaves and outgroup clade does not matches, paraphyletic
             if len(outgroup_leaves) != len(self.outgroup_clade):
-                print(
-                    f"{yellow}[WARNING] outgroup seems to be paraphyletic in {self.tree_name}{reset}"
+                logging.warning(
+                    f"outgroup seems to be paraphyletic in {self.tree_name}"
                 )
 
-        except:
-            print(f"{yellow}[WARNING] no outgroup selected in {self.tree_name}{reset}")
+        except Exception:
+            logging.warning(
+                f"no outgroup selected in {self.tree_name}, trying flexible reroot"
+            )
 
             outgroup_flag = False
             # if outgroup_clade is on the root side, reroot with other leaf temporarily and reroot again
             for leaf in self.t:
                 if not (leaf in outgroup_leaves):
+                    _ete4_make_root_consistent(self.t)
                     self.t.set_outgroup(leaf)
                     # Rerooting again while outgrouping gets possible
                     try:
-                        self.outgroup_clade = self.t.get_common_ancestor(
+                        self.outgroup_clade = self.t.common_ancestor(
                             outgroup_leaves
                         )
                         # print(f"Ancestor: {self.outgroup_clade}")
+                        _ete4_make_root_consistent(self.t)
                         self.t.set_outgroup(self.outgroup_clade)
                         outgroup_flag = True
                         break
-                    except:
+                    except Exception:
+                        # this temp-root attempt failed; try the next leaf
                         pass
 
             if outgroup_flag is False:
-                # never erase this for debugging
-                print(
-                    f"{bold_red}[ERROR] Outgroup not selected in {self.tree_name}{reset}"
+                raise TreeError(
+                    f"outgroup could not be selected for {self.tree_name} "
+                    f"(outgroup_leaves={outgroup_leaves}, outgroup={self.outgroup}, "
+                    f"outgroup_clade={self.outgroup_clade})"
                 )
-                print(
-                    f"{bold_red}[ERROR] local variable outgroup_leaves : {outgroup_leaves}{reset}"
-                )
-                print(f"{bold_red}[ERROR] tree_info.outgroup : {self.outgroup}{reset}")
-                print(
-                    f"{bold_red}[ERROR] tree_info.outgroup_clade : {self.outgroup_clade}{reset}"
-                )
-                raise Exception
+
+        # ete4 compat: restore support values destroyed by resolve_polytomy
+        # (set_outgroup creates new nodes not in backup; those stay None for None→100 fix)
+        for _n in self.t.traverse():
+            if id(_n) in _support_backup:
+                _n.support = _support_backup[id(_n)]
 
         self.Tree_style.ts.show_leaf_name = True
 
@@ -811,7 +1008,7 @@ class Tree_information:
 
         for node in copied_tree.traverse():
             node.img_style["size"] = 0  # removing circles whien size is 0
-            if len(node) > 1:  # Prevent bootstrap on single branch
+            if len(node) > 1 and node.support is not None:  # Prevent bootstrap on single/leaf branch
                 node.add_face(
                     TextFace(
                         f"{int(node.support)}",
@@ -826,10 +1023,10 @@ class Tree_information:
         self.Tree_style.ts.show_leaf_name = False
 
         if self.opt.verbose >= 3:
-            print(f"[DEBUG] End of reroot outgroup")
+            logging.debug("End of reroot outgroup")
             process = psutil.Process(os.getpid())
             memory_info = process.memory_info()
-            print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
+            logging.debug(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
     def collapse(self, collapse_info, clade, taxon):
         collapse_info.clade = clade
@@ -840,7 +1037,7 @@ class Tree_information:
         elif len(clade) >= 2:
             collapse_info.collapse_type = "triangle"
         else:
-            raise Exception
+            raise TreeError(f"collapse: clade has {len(clade)} leaves (expected >=1)")
 
         if (
             any(
@@ -851,7 +1048,7 @@ class Tree_information:
                     string=leaf.name,
                 )
                 == "query"
-                for leaf in clade.iter_leaves()
+                for leaf in clade.leaves()
             )
             == True
         ):
@@ -866,7 +1063,7 @@ class Tree_information:
         collapse_info.height = len(clade) * self.opt.visualize.heightmultiplier
 
         # count query, db, others
-        for leaf in clade.iter_leaves():
+        for leaf in clade.leaves():
             if (
                 decide_type(
                     query_list=self.query_list,
@@ -899,16 +1096,11 @@ class Tree_information:
                 )
                 collapse_info.n_query += 1
             else:
-                print(
-                    f"{bold_red}[ERROR] DEVELOPMENTAL ERROR : UNEXPECTED LEAF TYPE FOR {leaf.name}{reset}"
+                raise TreeError(
+                    f"unexpected leaf type for {leaf.name} in {self.tree_name}"
                 )
-                print(self.tree_name)
-                print(f"Query: {sorted([FI.hash for FI in self.query_list])}")
-                print(f"DB: {sorted([FI.hash for FI in self.db_list])}")
-                print(f"Outgroup: {sorted([FI.hash for FI in self.outgroup])}")
-                raise Exception
 
-    # Species level delimitaion on tree
+    # Species level delimitation on tree
     def tree_search(self, clade, gene, opt=None):
         def local_generate_collapse_information(self, clade, opt=None):
             collapse_info = Collapse_information()
@@ -932,7 +1124,7 @@ class Tree_information:
                 while 1:
                     self.sp_cnt += 1
                     if str(self.sp_cnt) in self.reserved_sp:
-                        print(f"Skipping {self.sp_cnt} to avoid overlap in database")
+                        logging.debug(f"Skipping {self.sp_cnt} to avoid overlap in database")
                         continue
                     else:
                         break
@@ -951,13 +1143,13 @@ class Tree_information:
         ## start of tree_search
 
         if len(clade.children) == 1:
-            local_generate_collapse_information(clade, opt=opt)
+            local_generate_collapse_information(self, clade, opt=opt)
 
             if self.opt.verbose >= 3:
-                print(f"[DEBUG] End of Tree search with monophyletic branches")
+                logging.debug("End of Tree search with monophyletic branches")
                 process = psutil.Process(os.getpid())
                 memory_info = process.memory_info()
-                print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
+                logging.debug(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
             return
 
@@ -966,7 +1158,7 @@ class Tree_information:
             for child_clade in clade.children:
                 # Calculate root distance between two childs to check flat
                 self.flat = (
-                    True if child_clade.dist <= self.opt.collapsedistcutoff else False
+                    True if (child_clade.dist is None or child_clade.dist <= self.opt.collapsedistcutoff) else False
                 )
 
                 # Check if child clades are monophyletic
@@ -989,19 +1181,18 @@ class Tree_information:
                     self.tree_search(child_clade, gene, opt=opt)
 
             if self.opt.verbose >= 3:
-                print(f"[DEBUG] End of Tree search with bifurcated branches")
+                logging.debug("End of Tree search with bifurcated branches")
                 process = psutil.Process(os.getpid())
                 memory_info = process.memory_info()
-                print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
+                logging.debug(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
             return
 
         # if error (more than two branches or no branches)
         else:
-            print(
-                f"{bold_red}[ERROR] DEVELOPMENTAL ERROR : FAILED TREE SEARCH ON LEAF {clade.children}{reset}"
+            raise TreeError(
+                f"tree_search: clade has {len(clade.children)} children (expected 1 or 2)"
             )
-            raise Exception
         # end of tree_search
 
     # Reconstruct tree tree to solve flat branches
@@ -1025,10 +1216,7 @@ class Tree_information:
                         query += 1
 
                 if db == 0 and query == 0:
-                    print(
-                        f"{bold_red}[ERROR] DEVELOPMENTAL ON CONSIST, {c} {db} {query}{reset}"
-                    )
-                    raise Exception
+                    raise TreeError(f"consist: clade has neither db nor query leaves: {c}")
                 elif db == 0 and query != 0:
                     return "query"
                 elif db != 0 and query == 0:
@@ -1044,11 +1232,10 @@ class Tree_information:
                     try:
                         FI = self.funinfo_dict[leaf.name]
                         return (FI.genus, FI.bygene_species[gene])
-                    except:
-                        print(
-                            f"{bold_red}[DEVELOPMENTAL ERROR] in leaf.name tree_interpretation.py line 869 {resety}"
-                        )
-                        raise Exception
+                    except KeyError as e:
+                        raise TreeError(
+                            f"leaf {leaf.name} has no funinfo / bygene_species[{gene}] entry"
+                        ) from e
 
                 taxon_dict = {}
 
@@ -1061,10 +1248,7 @@ class Tree_information:
                             taxon_dict[t(leaf)] = 1
 
                     if len(taxon_dict) == 0:
-                        print(
-                            f"{bold_red}[DEVELOPMENTAL ERROR] in tree_interpretation.py line 884 {taxon_dict}\n {c}{reset}"
-                        )
-                        raise Exception
+                        raise TreeError(f"get_taxon(db): empty taxon_dict for clade {c}")
                     # If only one species in the clade
                     elif len(taxon_dict) == 1:
                         # If only one taxon here, return the taxon
@@ -1082,10 +1266,7 @@ class Tree_information:
                             taxon_dict[("", "")] = 1
 
                     if len(taxon_dict) == 0:
-                        print(
-                            f"{bold_red}[DEVELOPMENTAL ERROR] Error in tree_interpretation.py line 912 {taxon_dict}\n {c}{reset}"
-                        )
-                        raise Exception
+                        raise TreeError(f"get_taxon(query): empty taxon_dict for clade {c}")
                     elif len(taxon_dict) == 1:
                         return list(taxon_dict.keys())[0]
                     else:
@@ -1123,8 +1304,7 @@ class Tree_information:
                                 taxon_dict[t(leaf)] += 1
 
                     if len(taxon_dict) == 0:
-                        print(f"{taxon_dict}\n {c}")
-                        raise Exception
+                        raise TreeError(f"get_taxon(both): empty taxon_dict for clade {c}")
                     elif len(taxon_dict) == 1:
                         return list(taxon_dict.keys())[0]
                     else:
@@ -1132,14 +1312,22 @@ class Tree_information:
 
             def seperate_clade(clade, gene, clade_list):
                 for c in clade.children:
-                    c_tmp = c.copy()
+                    # Only deep-copy what is KEPT: a single tip appended to
+                    # clade_list, or the input handed to reconstruct. The former
+                    # upfront copy of every child re-copied the whole resolve_polytomy
+                    # comb (~D deep for conserved genes like 5.8S) at each recursion
+                    # level -> O(D^2). seperate_clade/reconstruct never mutate their
+                    # input, so the zero-length comb is descended in place instead.
+                    # (deepcopy, not the default cpickle copy, which RecursionErrors on
+                    # the deep comb; dist/len read identically on c and a copy of c.)
                     # zero clades
-                    if c_tmp.dist <= self.zero:
+                    if c.dist is None or c.dist <= self.zero:
                         # Original version was == instead of >= . Revert if error occurs
                         # What does the "len" means here? -> len means number of tips
                         # If only one tip
-                        if len(c_tmp) <= 1:
+                        if len(c) <= 1:
                             # In the zero branch tip, the query with zero length should move to sp., because they cannot be fully determined
+                            c_tmp = c.copy("deepcopy")
                             clade_list.append(
                                 (
                                     get_taxon(c=c_tmp, gene=gene, mode=consist(c_tmp)),
@@ -1152,11 +1340,12 @@ class Tree_information:
                         # I'm not sure if any of the recursion enters here, but just in case
                         else:
                             clade_list = seperate_clade(
-                                clade=c_tmp, gene=gene, clade_list=clade_list
+                                clade=c, gene=gene, clade_list=clade_list
                             )
 
                     # non-zero clades
                     else:
+                        c_tmp = c.copy("deepcopy")
                         c2 = self.reconstruct(c_tmp, gene, opt)
                         clade_list.append(
                             (
@@ -1232,7 +1421,7 @@ class Tree_information:
                 for taxon in taxon_to_merge:
                     l = clade_dict[taxon]  # l for list of results
                     r_list = [r[1] for r in l]  # result clade list
-                    r_list.sort(key=lambda r: r.dist, reverse=True)
+                    r_list.sort(key=lambda r: r.dist if r.dist is not None else 0.0, reverse=True)
                     r_tuple = tuple(r_list)
 
                     # concatenate within taxon clades
@@ -1241,7 +1430,7 @@ class Tree_information:
                     )
                     tmp_final_clade.append(concatenated_clade)
 
-                    if taxon != ("", "") and concatenated_clade.dist <= self.zero:
+                    if taxon != ("", "") and (concatenated_clade.dist is None or concatenated_clade.dist <= self.zero):
                         flat_issue_cnt += 1
 
                 final_clade = tmp_final_clade + final_clade
@@ -1260,12 +1449,12 @@ class Tree_information:
 
                 # print(f"Status flat: {self.flat_clades}")
 
-                return final.copy("newick")
+                return final.copy("deepcopy")
             ## end of solve flat
 
         ## Start of function reconstruct
         if len(clade.children) in (0, 1):
-            return clade.copy("newick")
+            return clade.copy("deepcopy")
 
         elif len(clade.children) == 2:
             clade1 = clade.children[0]
@@ -1273,9 +1462,9 @@ class Tree_information:
 
             # Solve flat
             if clade.dist <= self.zero:
-                return solve_flat(clade).copy("newick")
+                return solve_flat(clade).copy("deepcopy")
             elif clade1.dist <= self.zero or clade2.dist <= self.zero:
-                return solve_flat(clade).copy("newick")
+                return solve_flat(clade).copy("deepcopy")
             else:
                 r_clade1 = self.reconstruct(clade1, gene, opt)
                 r_clade2 = self.reconstruct(clade2, gene, opt)
@@ -1289,19 +1478,20 @@ class Tree_information:
                 support2=clade2.support,
                 root_dist=clade.dist,
                 root_support=clade.support,
-            ).copy("newick")
+            ).copy("deepcopy")
 
             if self.opt.verbose >= 3:
-                print(f"[DEBUG] End of reconstruct")
+                logging.debug("End of reconstruct")
                 process = psutil.Process(os.getpid())
                 memory_info = process.memory_info()
-                print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
+                logging.debug(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")
 
             return concatanated_clade
 
         else:
-            print(f"[ERROR] {clade} {clade.children} {len(clade.children)}")
-            raise Exception
+            raise TreeError(
+                f"reconstruct: clade has {len(clade.children)} children (expected 0-2)"
+            )
         ## end of reconstruct
 
     def get_bgcolor(self):
@@ -1424,7 +1614,7 @@ class Tree_information:
             # change this part when debugging flat trees
             node.img_style["size"] = 0  # removing circles whien size is 0
 
-            if node.support >= self.opt.visualize.bscutoff:
+            if node.support is not None and node.support >= self.opt.visualize.bscutoff:
                 # node.add_face without generating extra line
                 # add_face_to_node
                 node.add_face(
@@ -1480,7 +1670,7 @@ class Tree_information:
             try:
                 int(text.text)
                 text_type = "bootstrap"
-            except:
+            except (ValueError, TypeError):
                 if text.text == "0.05":
                     text_type = "scale"
                 elif any(
@@ -1513,7 +1703,7 @@ class Tree_information:
                         int(species)
                         tspan = ET.SubElement(text, "{http://www.w3.org/2000/svg}tspan")
                         tspan.text = species
-                    except:
+                    except ValueError:
                         if "sp." in species:
                             tspan = ET.SubElement(
                                 text, "{http://www.w3.org/2000/svg}tspan"
@@ -1573,9 +1763,11 @@ class Tree_information:
                         if self.funinfo_dict[word.strip()].color is not None:
                             try:
                                 tspan.set("fill", self.funinfo_dict[word.strip()].color)
-                            except:
-                                print("DEVELOPMENTAL ERROR: Failed coloring tree")
-                                raise Exception
+                            except Exception:
+                                logging.debug(
+                                    f"failed to set tree tip color for {word.strip()}"
+                                )
+                                raise
 
                         elif (
                             decide_type(
@@ -1588,7 +1780,8 @@ class Tree_information:
                             == "query"
                         ):
                             tspan.set("fill", self.opt.visualize.highlight)
-                    except:
+                    except Exception:
+                        # word is not a known FI hash / coloring failed -> leave uncolored
                         pass
         # fit size of tree_xml to svg
         # find svg from tree_xml
@@ -1602,7 +1795,7 @@ class Tree_information:
         )
 
         if self.opt.verbose >= 3:
-            print(f"[DEBUG] End of Tree visualization")
+            logging.debug("End of Tree visualization")
             process = psutil.Process(os.getpid())
             memory_info = process.memory_info()
-            print(f"[DEBUG] RAM usage: {memory_info.rss / 1000 / 1000} MB")
+            logging.debug(f"RAM usage: {memory_info.rss / 1000 / 1000} MB")

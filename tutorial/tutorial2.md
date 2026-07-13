@@ -5,7 +5,7 @@
 * [Part 3 - How to use FunVIP for final publication]()
 
 This is basic tutorial for how to run FunVIP
-In this tutorial, we will prepare own Sanghuangporus database and identify unknown _Sanghuangporus_ sequneces from GenBank
+In this tutorial, we will prepare our own Sanghuangporus database and identify unknown _Sanghuangporus_ sequences from GenBank
 
 ### 1. Generate _Sanghuangporus_ ITS database from [Zhou et al. 2021](https://link.springer.com/article/10.1186/s43008-021-00059-x)
 Open the following link about [work of Zhou et al. 2021](https://link.springer.com/article/10.1186/s43008-021-00059-x)
@@ -20,7 +20,7 @@ Copy the table from [Table 1](https://link.springer.com/article/10.1186/s43008-0
 
 Before editing, save this file to Sanghuangporus_db.xlsx
 
-Now, we sould edit the file in the format of FunVIP database, following this format
+Now, we should edit the file into the FunVIP database format, following this format
 
 ![image](https://github.com/user-attachments/assets/4d4b0d5a-af27-4fda-afa6-6e140d052eb4)
 
@@ -33,7 +33,7 @@ First, we will make "Genus" and "Species" column. But before that, we have to un
 ![image](https://github.com/user-attachments/assets/ca684cfd-31dd-4c5e-8816-7e1a87e116ef)
 ![image](https://github.com/user-attachments/assets/a070fdf7-cbb2-49a6-9705-a0ed7000fd27)
 
-You can use split by text to easily seperate genus name and specie name
+You can use split by text to easily separate the genus name and species name
 ![image](https://github.com/user-attachments/assets/8572cbc1-5dca-4fff-a642-2b78254356b1)
 ![image](https://github.com/user-attachments/assets/1a3d44a9-3697-4722-a38e-348568f0016f)
 ![image](https://github.com/user-attachments/assets/f42c0532-c25e-4b84-89e9-73b3b7641f65)

@@ -1,0 +1,38 @@
+# Reproducible conda/mamba environment for FunVIP.
+#
+#   conda env create -f environment.yml     # or: mamba env create -f environment.yml
+#   conda activate funvip
+#   FunVIP --test terrei --email you@example.com
+#
+# The external aligners/tree tools come from conda (bioconda/conda-forge); FunVIP
+# and its Python dependencies (incl. ete4) come from PyPI, which installs cleanly
+# on Linux/macOS. To use the development version instead of the PyPI release,
+# remove the `- FunVIP` pip line below and run `pip install -e .` from the repo.
+name: funvip
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.12
+  # External tools (tested versions in comments; unpinned to track conda updates)
+  - blast          # 2.17.0
+  - mmseqs2        # 18.8cc5c
+  - mafft          # 7.526
+  - trimal         # 1.5.x
+  - fasttree       # 2.2.0
+  - iqtree         # 3.1.2
+  - raxml          # 8.2.x
+  - modeltest-ng   # 0.1.7
+  # - t-coffee     # OMITTED BY DEFAULT. TCS (optional alignment validation) needs
+  #                t-coffee, but the bioconda build crash-loops and consumes all RAM
+  #                on modern kernels: it indexes a static array by raw PID yet is
+  #                compiled with MAX_N_PID=260000, so when kernel.pid_max is large
+  #                (e.g. 4194304, the current default) its own PID overflows the
+  #                array -> SIGSEGV -> infinite fault loop. The MAX_N_PID_4_TCOFFEE
+  #                override is NOT compiled into that binary, so it cannot be raised
+  #                at runtime. For working TCS use a t-coffee built with
+  #                MAX_N_PID >= pid_max (or a host with pid_max < 260000). FunVIP
+  #                caps + times out t-coffee and skips TCS cleanly when it fails.
+  - pip
+  - pip:
+      - FunVIP

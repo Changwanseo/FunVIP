@@ -41,7 +41,7 @@ class Option:
     class Cluster_Option:
         def __init__(self):
             self.cutoff = 0.95
-            self.evalue = 10
+            self.evalue = 0.0001
             self.wordsize = 7
             self.outgroupoffset = 20
             self.max_target_seqs = 100
@@ -123,117 +123,121 @@ class Option:
         # Update loaded preset
         for key in parser_dict:
             # Basic options
-            if key.lower() in ("query"):
+            if key.lower() in ("query",):
                 self.query = parser_dict[key]
-            elif key.lower() in ("db"):
+            elif key.lower() in ("db",):
                 self.db = parser_dict[key]
-            elif key.lower() in ("gene"):
+            elif key.lower() in ("gene",):
                 self.gene = parser_dict[key]
-            elif key.lower() in ("email"):
+            elif key.lower() in ("email",):
                 self.email = parser_dict[key]
-            elif key.lower() in ("api"):
+            elif key.lower() in ("api",):
                 self.api = parser_dict[key]
-            elif key.lower() in ("thread"):
+            elif key.lower() in ("thread",):
                 self.thread = parser_dict[key]
-            elif key.lower() in ("memory"):
+            elif key.lower() in ("memory",):
                 self.memory = parser_dict[key]
-            elif key.lower() in ("outdir"):
+            elif key.lower() in ("outdir",):
                 self.outdir = parser_dict[key]
-            elif key.lower() in ("runname"):
+            elif key.lower() in ("runname",):
                 self.runname = parser_dict[key]
-            elif key.lower() in ("mode"):
+            elif key.lower() in ("mode",):
                 self.mode = parser_dict[key]
-            elif key.lower() in ("continue"):
+            elif key.lower() in ("continue",):
                 self.continue_from_previous = parser_dict[key]
-            elif key.lower() in ("step"):
+            elif key.lower() in ("step",):
                 self.step = parser_dict[key]
-            elif key.lower() in ("level"):
+            elif key.lower() in ("level",):
                 self.level = parser_dict[key]
             elif key.lower() in ("queryonly", "all"):
                 if key.lower() == "queryonly":
                     self.queryonly = parser_dict[key]
                 elif key.lower() == "all":
-                    self.queryonly = ~parser_dicy[key]
-            elif key.lower() in ("verbose"):
+                    self.queryonly = not parser_dict[key]
+            elif key.lower() in ("verbose",):
                 self.verbose = parser_dict[key]
-            elif key.lower() in ("maxoutgroup"):
+            elif key.lower() in ("maxoutgroup",):
                 self.maxoutgroup = parser_dict[key]
-            elif key.lower() in ("collapsedistcutoff"):
+            elif key.lower() in ("collapsedistcutoff",):
                 self.collapsedistcutoff = parser_dict[key]
-            elif key.lower() in ("collapsebscutoff"):
+            elif key.lower() in ("collapsebscutoff",):
                 self.collapsebscutoff = parser_dict[key]
-            elif key.lower() in ("bootstrap"):
+            elif key.lower() in ("bootstrap",):
                 self.bootstrap = parser_dict[key]
-            elif key.lower() in ("nosolveflat"):
-                self.solveflat = ~parser_dict[key]
-            elif key.lower() in ("regex"):
+            elif key.lower() in ("nosolveflat",):
+                self.solveflat = not parser_dict[key]
+            elif key.lower() in ("solveflat",):
+                self.solveflat = parser_dict[key]
+            elif key.lower() in ("regex",):
                 self.regex = parser_dict[key]
-            elif key.lower() in ("avx"):
+            elif key.lower() in ("avx",):
                 self.avx = parser_dict[key]
-            elif key.lower() in ("suspicious"):
+            elif key.lower() in ("suspicious",):
                 self.suspicious = parser_dict[key]
-            elif key.lower() in ("allow-innertrimming"):
+            elif key.lower() in ("allow-innertrimming",):
                 self.allow_innertrimming = parser_dict[key]
-            elif key.lower() in ("criterion"):
+            elif key.lower() in ("criterion",):
                 self.criterion = parser_dict[key]
-            elif key.lower() in ("nocachedb"):
-                self.cachedb = ~parser_dict[key]
-            elif key.lower() in ("usecache"):
+            elif key.lower() in ("nocachedb",):
+                self.cachedb = not parser_dict[key]
+            elif key.lower() in ("cachedb",):
+                self.cachedb = parser_dict[key]
+            elif key.lower() in ("usecache",):
                 self.usecache = parser_dict[key]
             elif key.lower() in ("tableformat", "matrixformat"):
                 self.tableformat = parser_dict[key]
-            elif key.lower() in ("nosearchresult"):
+            elif key.lower() in ("nosearchresult",):
                 self.nosearchresult = parser_dict[key]
             elif key.lower() in ("confident", "confident_db"):
                 self.confident = parser_dict[key]
-            elif key.lower() in ("terminate"):
-                self.terminate = parse_dict[key]
+            elif key.lower() in ("terminate",):
+                self.terminate = parser_dict[key]
 
             # Method options
-            elif key.lower() in ("search"):
+            elif key.lower() in ("search",):
                 self.method.search = parser_dict[key]
-            elif key.lower() in ("alignment"):
+            elif key.lower() in ("alignment",):
                 self.method.alignment = parser_dict[key]
-            elif key.lower() in ("notcs"):
-                self.method.tcs = ~parser_dict[key]
-            elif key.lower() in ("trim"):
+            elif key.lower() in ("notcs",):
+                self.method.tcs = not parser_dict[key]
+            elif key.lower() in ("trim",):
                 self.method.trim = parser_dict[key]
-            elif key.lower() in ("modeltest"):
+            elif key.lower() in ("modeltest",):
                 self.method.modeltest = parser_dict[key]
-            elif key.lower() in ("tree"):
+            elif key.lower() in ("tree",):
                 self.method.tree = parser_dict[key]
 
             # Visualize options
-            elif key.lower() in ("bscutoff"):
+            elif key.lower() in ("bscutoff",):
                 self.visualize.bscutoff = parser_dict[key]
-            elif key.lower() in ("bootstrapcutoff"):
+            elif key.lower() in ("bootstrapcutoff",):
                 self.visualize.bscutoff = parser_dict[key]
-            elif key.lower() in ("highlight"):
+            elif key.lower() in ("highlight",):
                 self.visualize.highlight = parser_dict[key]
-            elif key.lower() in ("heightmultiplier"):
+            elif key.lower() in ("heightmultiplier",):
                 self.visualize.heightmultiplier = parser_dict[key]
-            elif key.lower() in ("maxwordlength"):
+            elif key.lower() in ("maxwordlength",):
                 self.visualize.maxwordlength = parser_dict[key]
-            elif key.lower() in ("backgroundcolor"):
+            elif key.lower() in ("backgroundcolor",):
                 self.visualize.backgroundcolor = parser_dict[key]
-            elif key.lower() in ("outgroupcolor"):
+            elif key.lower() in ("outgroupcolor",):
                 self.visualize.outgroupcolor = parser_dict[key]
-            elif key.lower() in ("ftype"):
+            elif key.lower() in ("ftype",):
                 self.visualize.ftype = parser_dict[key]
-            elif key.lower() in ("fsize"):
+            elif key.lower() in ("fsize",):
                 self.visualize.fsize = parser_dict[key]
-            elif key.lower() in ("fsize_bootstrap"):
+            elif key.lower() in ("fsize_bootstrap",):
                 self.visualize.fsize_bootstrap = parser_dict[key]
 
             # Cluster options
             elif key.lower() in ("cluster-cutoff", "clustering_cutoff"):
-                self.cluster.evalue = parser_dict[key]
+                self.cluster.cutoff = parser_dict[key]
             elif key.lower() in ("evalue", "cluster-evalue"):
                 self.cluster.evalue = parser_dict[key]
-            elif key.lower() in ("wordsize"):
+            elif key.lower() in ("wordsize",):
                 self.cluster.wordsize = parser_dict[key]
-            elif key.lower() in ("outgroupoffset"):
-                self.cluster.wordsize = parser_dict[key]
+            elif key.lower() in ("outgroupoffset",):
+                self.cluster.outgroupoffset = parser_dict[key]
             elif key.lower() in (
                 "max_target_seqs",
                 "max-target-seqs",
@@ -247,17 +251,17 @@ class Option:
                 self.cluster.max_target_seqs = parser_dict[key]
 
             # MAFFT options
-            elif key.lower() in ("mafft-algorithm"):
+            elif key.lower() in ("mafft-algorithm",):
                 self.mafft.algorithm = parser_dict[key]
-            elif key.lower() in ("mafft-op"):
+            elif key.lower() in ("mafft-op",):
                 self.mafft.op = parser_dict[key]
-            elif key.lower() in ("mafft-ep"):
+            elif key.lower() in ("mafft-ep",):
                 self.mafft.ep = parser_dict[key]
 
             # TrimAl options
-            elif key.lower() in ("trimal-algorithm"):
+            elif key.lower() in ("trimal-algorithm",):
                 self.trimal.algorithm = parser_dict[key]
-            elif key.lower() in ("trimal-gt"):
+            elif key.lower() in ("trimal-gt",):
                 self.trimal.gt = parser_dict[key]
             else:
                 print(
@@ -331,8 +335,8 @@ class Option:
             pass
 
         try:
-            if not parser.continue_from_previous is None:
-                self.continue_from_previous = parser.continue_from_previous
+            if parser.continue_from_previous is True:
+                self.continue_from_previous = True
         except:
             pass
 
@@ -350,7 +354,7 @@ class Option:
 
         try:
             if parser.all is True:
-                self.queryonly = ~parser.all
+                self.queryonly = False
         except:
             pass
 
@@ -379,7 +383,7 @@ class Option:
             pass
 
         try:
-            if not parser.notcs is None:
+            if parser.notcs is True:
                 self.method.tcs = False
         except:
             pass
@@ -511,8 +515,8 @@ class Option:
             pass
 
         try:
-            if not parser.cluster_outgroupoffset is None:
-                self.cluster.outgroupoffset = parser.cluster_outgroupoffset
+            if not parser.outgroupoffset is None:
+                self.cluster.outgroupoffset = parser.outgroupoffset
         except:
             pass
 
@@ -571,8 +575,8 @@ class Option:
             pass
 
         try:
-            if not parser.allow_innertrimming is None:
-                self.allow_innertrimming = parser.allow_innertrimming
+            if parser.allow_innertrimming is True:
+                self.allow_innertrimming = True
         except:
             pass
 
@@ -972,7 +976,7 @@ class Option:
         if not (type(self.method.search) is str):
             list_error.append(f"search method should be string")
         else:
-            self.method.search = search_adjust[self.method.search.lower()]
+            self.method.search = search_adjust.get(self.method.search.lower(), self.method.search.lower())
             if not (self.method.search in search):
                 list_error.append(f"search method should be one of {str(search)}")
 
@@ -989,7 +993,7 @@ class Option:
         if not (type(self.method.alignment) is str):
             list_error.append(f"align method should be string")
         else:
-            self.method.alignment = alignment_adjust[self.method.alignment.lower()]
+            self.method.alignment = alignment_adjust.get(self.method.alignment.lower(), self.method.alignment.lower())
             if not (self.method.alignment in alignment):
                 list_error.append(f"align method should be one of {str(alignment)}")
 
@@ -1002,17 +1006,20 @@ class Option:
             )
             self.method.tcs = False
         else:
-            # Check if tcs available
-            cmd = "export MAX_N_PID_4_TCOFFEE=4194304 | t_coffee -help"
-            return_code = subprocess.run(
-                cmd,
-                shell=True,
-                stdout=open(os.devnull, "wb"),
-                stderr=subprocess.STDOUT,
-            ).returncode
-            if return_code != 0:
+            # Only check that t-coffee is present on PATH; do NOT execute it here.
+            # The bioconda t-coffee SIGSEGV-crash-loops and consumes all memory on
+            # ANY invocation -- even `t_coffee -help` -- when the OS PID exceeds its
+            # compiled MAX_N_PID=260000 (i.e. on kernels with a large pid_max). Its
+            # PID indexes an undersized static array; the overflow faults and its
+            # signal handler re-faults forever. Running it just to detect it would
+            # hang option validation and eat RAM, so we never execute it.
+            import shutil
+
+            if shutil.which("t_coffee") is None:
                 print(
-                    f"[WARNING] t-coffee (TCS) not installed! Excluding from analysis"
+                    "[WARNING] t-coffee (TCS) not found on PATH; skipping TCS. "
+                    "To enable TCS, build a working t-coffee with "
+                    "tools/tcoffee/build_tcoffee_for_tcs.sh (see tools/tcoffee/README.md)."
                 )
                 self.method.tcs = False
 
@@ -1037,7 +1044,7 @@ class Option:
         if not (type(self.method.trim) is str):
             list_error.append(f"trim method should be string")
         else:
-            self.method.trim = trim_adjust[self.method.trim.lower()]
+            self.method.trim = trim_adjust.get(self.method.trim.lower(), self.method.trim.lower())
             if not (self.method.trim in trim):
                 list_error.append(
                     f"trim method should be one of {str(trim_adjust.keys())}"
@@ -1114,7 +1121,7 @@ class Option:
                 list_warning.append(
                     f"option jmodeltest will be substituted to modeltest-ng"
                 )
-            self.method.modeltest = modeltest_adjust[self.method.modeltest.lower()]
+            self.method.modeltest = modeltest_adjust.get(self.method.modeltest.lower(), self.method.modeltest.lower())
             if not (self.method.modeltest in modeltest):
                 list_error.append(f"modeltest method should be one of {str(modeltest)}")
 
@@ -1141,7 +1148,7 @@ class Option:
         if not (type(self.method.tree) is str):
             list_error.append(f"tree method should be string")
         else:
-            self.method.tree = tree_adjust[self.method.tree.lower()]
+            self.method.tree = tree_adjust.get(self.method.tree.lower(), self.method.tree.lower())
             if not (self.method.tree in tree):
                 list_error.append(f"tree method should be one of {str(tree)}")
 
@@ -1181,7 +1188,7 @@ class Option:
         else:
             if not (isvalidcolor(self.visualize.highlight)):
                 list_error.append(
-                    f"in --highlight, color {color} does not seems to be valid svg color nor hex code"
+                    f"in --highlight, color {self.visualize.highlight} does not seem to be a valid svg color nor hex code"
                 )
             else:
                 self.visualize.highlight = self.visualize.highlight.lower()
@@ -1244,7 +1251,7 @@ class Option:
         else:
             if not (isvalidcolor(self.visualize.outgroupcolor)):
                 list_error.append(
-                    f"in --outgroupcolor, color {color} does not seems to be valid svg color nor hex code"
+                    f"in --outgroupcolor, color {self.visualize.outgroupcolor} does not seem to be a valid svg color nor hex code"
                 )
             else:
                 self.visualize.outgroupcolor = self.visualize.outgroupcolor.lower()
@@ -1299,6 +1306,7 @@ class Option:
             self.maxoutgroup = int(self.maxoutgroup)
             if self.maxoutgroup < 1:
                 list_warning.append(f"invalid maxoutgroup, automatically selecting 1")
+                self.maxoutgroup = 1
         except:
             list_warning.append(f"invalid maxoutgroup, automatically selecting 1")
             self.maxoutgroup = 1
@@ -1431,7 +1439,7 @@ class Option:
                 list_warning.append(
                     "max_target_seqs should be positive, setting to default 100"
                 )
-                self.cluster.outgroupoffset = 100
+                self.cluster.max_target_seqs = 100
 
         except:
             list_error.append("max_target_seqs should be positive integer")
@@ -1500,8 +1508,8 @@ class Option:
             try:
                 self.trimal.algorithm = str(self.trimal.algorithm)
                 if not (self.trimal.algorithm.lower() in ("auto", "gt")):
-                    list_warning(
-                        f"Invalid trimal algorithm {self.trimal.algorithm}. Chaniging to gt"
+                    list_warning.append(
+                        f"Invalid trimal algorithm {self.trimal.algorithm}. Changing to gt"
                     )
                     self.trimal.algorithm = "gt"
             except:
@@ -1516,7 +1524,7 @@ class Option:
         if str(self.method.trim).lower() == "trimal":
             try:
                 self.trimal.gt = float(self.trimal.gt)
-                if self.trimal.gt < 0 and self.trimal.gt >= 1:
+                if self.trimal.gt < 0 or self.trimal.gt >= 1:
                     list_warning.append(
                         f"trimal gt value should be between 1 and 0, setting to 0.2"
                     )

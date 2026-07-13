@@ -65,25 +65,21 @@ def decode(
         content = fp.read()
 
     if newick and svg:
-        hash_dict = {
-            re.escape(k): svg_legal(newick_legal(v)) for k, v in hash_dict.items()
-        }
+        lookup = {k: svg_legal(newick_legal(v)) for k, v in hash_dict.items()}
     elif newick:
-        hash_dict = {re.escape(k): newick_legal(v) for k, v in hash_dict.items()}
+        lookup = {k: newick_legal(v) for k, v in hash_dict.items()}
     elif svg:
-        hash_dict = {re.escape(k): svg_legal(v) for k, v in hash_dict.items()}
+        lookup = {k: svg_legal(v) for k, v in hash_dict.items()}
     else:
-        hash_dict = {re.escape(k): v for k, v in hash_dict.items()}
+        lookup = dict(hash_dict)
 
-    """
-    hash_dict = {
-        re.escape(k): (newick_legal(v) if newick else v) for k, v in hash_dict.items()
-    }
-    """
-    pattern = re.compile("|".join(hash_dict.keys()))
-
-    # Perform the substitution
-    decoded_content = pattern.sub(lambda m: hash_dict[re.escape(m.group(0))], content)
+    # Every hash has the fixed, self-delimiting form HS<number>HE, so match that
+    # single token and look each occurrence up, instead of compiling an
+    # N-alternative regex ("|".join of every hash) and re-escaping each match --
+    # the former is O(text * N_hashes) and a hotspot at metabarcoding scale.
+    # A HS<n>HE token not present in the dict is left unchanged.
+    pattern = re.compile(r"HS\d+HE")
+    decoded_content = pattern.sub(lambda m: lookup.get(m.group(0), m.group(0)), content)
 
     with open(out, "w") as fw:
         fw.write(decoded_content)
@@ -110,9 +106,9 @@ def decode(hash_dict: dict, file: str, out: str, newick: bool = True) -> None:
 
 # Decode given dataframe with given hash_dict
 def decode_df(hash_dict: dict, df: pd.DataFrame) -> pd.DataFrame:
-    hash_dict = dict((re.escape(k), v) for k, v in hash_dict.items())
-
-    df_return = copy.deepcopy(df)
+    # hashes are HS<number>HE (no regex metacharacters), so no escaping is needed;
+    # each cell is either exactly a hash to replace or is left as-is.
+    df_return = df.copy()
 
     for column in df.columns:
         df_return[column] = df_return[column].map(lambda x: hash_dict.get(x, x))

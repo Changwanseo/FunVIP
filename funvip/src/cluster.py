@@ -14,6 +14,7 @@ from Bio import SeqIO
 import logging
 import gc
 from funvip.src.ext import mmseqs
+from funvip.src.exceptions import ClusterError
 
 import sys
 
@@ -45,7 +46,9 @@ def append_query_group(V):
     for FI in V.list_FI:
         group_dict[FI.hash] = FI.adjusted_group
 
-    V.cSR["query_group"] = V.cSR["qseqid"].apply(lambda x: group_dict.get(x))
+    # vectorized map (every qseqid is an FI hash present in group_dict, so this is
+    # equivalent to the former per-row .apply(lambda x: group_dict.get(x)))
+    V.cSR["query_group"] = V.cSR["qseqid"].map(group_dict)
 
     logging.debug(V.cSR["query_group"])
 
@@ -80,18 +83,20 @@ def assign_gene(result_dict, V, cutoff=0.99):
                 # get each of the dataframe for each FI
                 current_df = gene_result_grouped.get_group(f"{FI.hash}_{n}")
                 # sort by bitscore
-                # sorting has peformed after split for better performance
+                # sorting is performed after split for better performance
                 current_df.sort_values(by=["bitscore"], inplace=True, ascending=False)
                 # reset index to easily get maximum
                 current_df.reset_index(inplace=True, drop=True)
-                # get result stasifies over cutoff
+                # get result satisfies over cutoff
                 cutoff_df = current_df[
                     current_df["bitscore"] > current_df["bitscore"][0] * cutoff
                 ]
                 gene_count = len(set(cutoff_df["gene"]))
                 gene_list = list(set(cutoff_df["gene"]))
 
-            except:
+            except (KeyError, IndexError):
+                # no search hits for this query seq/gene (get_group raises KeyError)
+                # or an empty result frame -> treat as "no gene assignable"
                 gene_count = 0
                 gene_list = []
 
@@ -109,19 +114,45 @@ def assign_gene(result_dict, V, cutoff=0.99):
                 FI.update_seq(gene_list[0], seq)
 
             else:
-                logging.error("DEVELOPMENTAL ERROR IN GENE ASSIGN")
-                raise Exception
+                raise ClusterError(
+                    f"unexpected gene_count={gene_count} while assigning a gene to {FI.id}"
+                )
     return V
 
 
-# This function assigns group to each FI
-def cluster(FI, V_list_group, V_cSR, path, opt):
-    # Reduce memory by focusing on relevant rows
-    df_search = V_cSR[V_cSR["qseqid"] == FI.hash]
+# Assign a query to a group when its best-hit cutoff set spans >=2 groups.
+# Rule: count subject_groups among the hits TIED at the highest bitscore; the
+# plurality wins. If that count ties, fold in the next (lower) bitscore level and
+# recount, and so on. This respects the best-scoring hits and avoids the whole-
+# cutoff-window bias where an over-represented distant group can outvote the real
+# best match. cutoff_df must already be sorted by bitscore descending.
+def _majority_top_group(cutoff_df):
+    counts = {}
+    leaders = []
+    for _, level in cutoff_df.groupby("bitscore", sort=False):
+        for grp in level["subject_group"]:
+            counts[grp] = counts.get(grp, 0) + 1
+        max_count = max(counts.values())
+        leaders = [grp for grp, c in counts.items() if c == max_count]
+        if len(leaders) == 1:
+            return leaders[0]
+    # All bitscore levels folded in and still tied: take the highest-bitscore hit
+    # among the tied leaders (deterministic given the descending sort).
+    leader_set = set(leaders)
+    for grp in cutoff_df["subject_group"]:
+        if grp in leader_set:
+            return grp
 
+
+# This function assigns group to each FI
+def cluster(FI, df_search, opt):
+    # df_search: this FI's pre-sliced rows of the concatenated search table
+    # (columns qseqid, bitscore, subject_group). Previously each call re-scanned the
+    # whole cSR (V_cSR[V_cSR["qseqid"] == FI.hash]) -> O(N_FI * N_rows), and the whole
+    # table was pickled to every mp worker; pipe_cluster now slices once via groupby.
     if df_search.empty:
         # If confident is False and FI datatype is "db"
-        if opt.confident is False and FI.datatype is "db":
+        if opt.confident is False and FI.datatype == "db":
             logging.warning(f"No adjusted_group assigned to {FI}")
         FI.adjusted_group = FI.group
         return FI
@@ -139,10 +170,6 @@ def cluster(FI, V_list_group, V_cSR, path, opt):
         cutoff = df_search["bitscore"].iloc[0] * opt.cluster.cutoff
         cutoff_df = df_search[df_search["bitscore"] > cutoff]
 
-        # Clear unused data
-        del df_search
-        gc.collect()
-
         # Extract group information
         unique_groups = set(cutoff_df["subject_group"])
         group_count = len(unique_groups)
@@ -159,12 +186,13 @@ def cluster(FI, V_list_group, V_cSR, path, opt):
                 f"Query seq in {FI.id} has multiple matches to groups within {opt.cluster.cutoff} cutoff: {list(unique_groups)}"
             )
 
-            # Among the multiple matches, get the best group
-            FI.adjusted_group = cutoff_df["subject_group"].iloc[0]
+            # Assign by group plurality among the best (tied-top-bitscore) hits
+            FI.adjusted_group = _majority_top_group(cutoff_df)
 
         else:
-            logging.error("DEVELOPMENTAL ERROR IN GROUP ASSIGN")
-            raise Exception
+            raise ClusterError(
+                f"unexpected group_count={group_count} while assigning a group to {FI.id}"
+            )
 
         logging.info(f"{FI.id} has clustered to {FI.adjusted_group}")
 
@@ -173,16 +201,18 @@ def cluster(FI, V_list_group, V_cSR, path, opt):
         if not (FI.adjusted_group in unique_groups):
             logging.warning(f"Clustering result collides for {FI.id}")
 
-    if unique_groups:
-        return FI
-    else:
-        return FI
+    return FI
 
 
 ### Append outgroup to given group-gene dataset by search matrix
-def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
+# V.list_FI shared with outgroup-append pool workers via fork copy-on-write, set
+# before the Pool is created, instead of being pickled into every task tuple.
+_OUTGROUP_SHARED = {}
+
+
+def append_outgroup(df_search, gene, group, path, opt):
     logging.info(f"Appending outgroup on group: {group}, Gene: {gene}")
-    list_FI = V_list_FI
+    list_FI = _OUTGROUP_SHARED["list_FI"]
 
     # In multiprocessing, delete V to reduce memory consumption
     # del V
@@ -208,12 +238,14 @@ def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
         bitscore_cutoff = max(
             1, min(cutoff_set_df["bitscore"]) - opt.cluster.outgroupoffset
         )
-    except:
-        bitscore_cutoff = 999999  # use infinite if failed
+    except ValueError:
+        # cutoff_set_df empty (no ingroup hits for this group) -> min() raises;
+        # fall back to an effectively infinite cutoff so all hits stay candidates
+        bitscore_cutoff = 999999
 
     # print(f"Ingroup cutoff {bitscore_cutoff} selected for group {group} gene {gene}")
 
-    ## get result stasifies over cutoff
+    ## get result satisfies over cutoff
     # outgroup should be outside of ingroup
     cutoff_df = df_search[df_search["bitscore"] < bitscore_cutoff]
 
@@ -228,9 +260,15 @@ def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
     # For each of the input, should use different cutoff
     ambiguous_db = set()
     if opt.suspicious is True:
+        # Pre-group once instead of rescanning the whole (per-group) search table
+        # with a boolean mask for every qseqid (was O(n_queries * len(df_search))).
+        df_search_by_qseqid = df_search.groupby("qseqid")
         for qseqid, _df in cutoff_set_df.groupby(["qseqid"]):
             # Select dataframe corresponding to current qseqid
-            df_qseqid = df_search[df_search["qseqid"] == qseqid[0]]
+            try:
+                df_qseqid = df_search_by_qseqid.get_group(qseqid[0])
+            except KeyError:
+                continue
 
             # Get the list of subjects, which is closer than furtest ingroup
             ambiguous_df = df_qseqid[
@@ -310,7 +348,7 @@ def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
                 )
 
                 # Move outgroup within ambiguous db to outgroup
-                for FI in ambiguous_db:
+                for FI in list(ambiguous_db):
                     if FI.group == subject_group:
                         ambiguous_db.remove(FI)
                         outgroup_dict[subject_group].append(FI)
@@ -340,7 +378,7 @@ def append_outgroup(V_list_FI, df_search, gene, group, path, opt):
         )
 
         # Move outgroup within ambiguous db to outgroup
-        for FI in ambiguous_db:
+        for FI in list(ambiguous_db):
             if FI.group == max_group:
                 ambiguous_db.remove(FI)
                 outgroup_dict[max_group].append(FI)
@@ -360,10 +398,9 @@ def group_cluster_opt_generator(V, opt, path):
 
     # cluster(FO, df_search, V, path, opt)
     if len(V.list_qr_gene) == 0:
-        logging.error(
-            "In group_cluster_option_generator, no available query genes were selected"
+        raise ClusterError(
+            "no query genes are available for clustering (V.list_qr_gene is empty)"
         )
-        raise Exception
 
     # For concatenated analysis
     else:
@@ -391,7 +428,7 @@ def group_cluster_opt_generator(V, opt, path):
 def outgroup_append_opt_generator(V, path, opt):
     opt_append_outgroup = []
 
-    #### Pararellize this part
+    #### Parallelize this part
     # Assign different outgroup for each dataset
 
     # if concatenated analysis is true
@@ -405,10 +442,10 @@ def outgroup_append_opt_generator(V, path, opt):
                 # Generating outgroup opt for multiprocessing
                 for gene in V.dict_dataset[group]:
                     opt_append_outgroup.append(
-                        (V.list_FI, df_group_, gene, group, path, opt)
+                        (df_group_, gene, group, path, opt)
                     )
 
-            except:
+            except KeyError:
                 logging.warning(
                     f"{group} / concatenated dataset exists, but cannot append outgroup due to no corresponding search result"
                 )
@@ -422,28 +459,20 @@ def pipe_cluster(V, opt, path):
     if opt.method.search in ("blast", "mmseqs"):
         logging.info("group clustering")
 
+        # Assign each query's group from ONE in-process groupby over the concatenated
+        # search table. The former path scanned the whole cSR once per FI inside an
+        # mp.Pool that was handed the entire table per task -> O(N_FI * N_rows) plus
+        # repeated full-table pickling, which dominated the cluster step at scale.
+        hash_to_FI = {FI.hash: FI for FI in V.list_FI}
+        cSR_subset = V.cSR[["qseqid", "bitscore", "subject_group"]]
+
         rslt_cluster = []
+        for qseqid, df_search in cSR_subset.groupby("qseqid", sort=False):
+            FI = hash_to_FI.get(qseqid)
+            if FI is None:
+                continue
+            rslt_cluster.append(cluster(FI, df_search, opt))
 
-        # cluster opt generation for multiprocessing
-        # (FI, V, path, opt)
-        opt_cluster = group_cluster_opt_generator(V, opt, path)
-
-        # print(f"opt_cluster : {sys.getsizeof(opt_cluster)}")
-
-        batch_size = opt.thread * 100
-        opt_cluster_batches = batched_generator(opt_cluster, batch_size)
-
-        # run multiprocessing start
-        if opt.verbose < 3:
-            for batch in opt_cluster_batches:
-                batch_list = list(batch)
-
-                with mp.Pool(opt.thread) as p:
-                    rslt_cluster.extend(p.starmap(cluster, batch_list))
-
-        else:
-            # non-multithreading mode for debugging
-            rslt_cluster = [cluster(*o) for o in opt_cluster]
         # gather cluster result
         for cluster_result in rslt_cluster:
             FI = cluster_result
@@ -509,6 +538,10 @@ def pipe_cluster(V, opt, path):
 def pipe_append_outgroup(V, path, opt):
     opt_append_outgroup = outgroup_append_opt_generator(V, path, opt)
 
+    # Share V.list_FI with pool workers via fork copy-on-write (set before the Pool)
+    # instead of pickling the whole list into every task.
+    _OUTGROUP_SHARED["list_FI"] = V.list_FI
+
     # run multiprocessing start
     if opt.verbose < 3:
         p = mp.Pool(opt.thread)
@@ -533,11 +566,12 @@ def pipe_append_outgroup(V, path, opt):
         # Add outgroup and ambiguous groups to dataset
         # Ambiguous groups are strains locating between outgroup and ingroups, so cannot be decided
 
-        print(f"{group} {gene}")
-        print(f"outgroup {len(outgroup)}")
-        print(f"ambiguous_group {len(ambiguous_group)}")
-        print(f"db: {len(V.dict_dataset[group][gene].list_db_FI)}")
-        print(f"query: {len(V.dict_dataset[group][gene].list_qr_FI)}")
+        logging.debug(
+            f"Outgroup selection for {group} {gene}: outgroup={len(outgroup)}, "
+            f"ambiguous={len(ambiguous_group)}, "
+            f"db={len(V.dict_dataset[group][gene].list_db_FI)}, "
+            f"query={len(V.dict_dataset[group][gene].list_qr_FI)}"
+        )
 
         if len(outgroup) == 0 and len(ambiguous_group) == 0:
             logging.critical(
@@ -576,11 +610,15 @@ def pipe_append_outgroup(V, path, opt):
                 )
                 critical_flag = 1
                 V.dict_dataset.pop(group, None)
-        except:
+        except KeyError:
+            # group already removed above / not present; nothing to do
             pass
 
     # Terminate if terminate option is given, and critical error occurs
     if critical_flag == 1 and opt.terminate is True:
-        raise Exception
+        raise ClusterError(
+            "stopping: one or more group/gene datasets could not be built "
+            "(see the CRITICAL messages above); --terminate is set"
+        )
 
     return V, path, opt

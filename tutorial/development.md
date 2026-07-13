@@ -24,7 +24,6 @@ class tree_information
 	def calculate_zero
 	def reroot_outgroup
 	def taxon_count
-	def genus_count
 	def designate_genus
 	def find_major_taxon
 	def collapse
@@ -135,4 +134,3 @@ def is_monophyletic(self, clade, gene, taxon):
 
 
 
-genus_count(funinfo_dict, gene, clade)

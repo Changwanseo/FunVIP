@@ -2,6 +2,7 @@ from funvip.src import save
 from funvip.src import hasher
 from funvip.src import ext
 from funvip.src.opt_generator import opt_generator
+from funvip.src.exceptions import ConfigError, DatasetError
 from Bio import SeqIO
 import os
 import sys
@@ -154,7 +155,7 @@ class FunVIP_var:
         try:
             self.dict_dataset[group][gene]
             return True
-        except:
+        except KeyError:
             return False
 
     # Check if dict_group has been properly generated
@@ -199,67 +200,50 @@ class FunVIP_var:
                     )
 
         else:
-            logging.error(f"DEVELOPMENTAL ERROR, UNEXPECTED LEVEL {opt.level} selected")
-            raise Exception
+            raise ConfigError(f"unexpected taxonomic level {opt.level!r} (check --level)")
 
     # generate dataset by group and gene
     def generate_dataset(self, opt):
         # Format : dict_funinfo = {group: {gene : [FI]}}
         dict_funinfo = {}
 
+        # Pre-index FIs by adjusted_group in a single pass (preserving list_FI
+        # order) so the per-group/per-gene loops below filter a small bucket
+        # instead of rescanning the whole FI universe each time -- the former was
+        # O(N_groups * N_genes * N_FI) and dominated wall-clock at metabarcoding
+        # scale. Order is preserved, so datasets are built identically.
+        group_query = {}
+        group_db = {}
+        for FI in self.list_FI:
+            if FI.datatype == "query":
+                group_query.setdefault(FI.adjusted_group, []).append(FI)
+            elif FI.datatype == "db":
+                group_db.setdefault(FI.adjusted_group, []).append(FI)
+
         for group in self.list_group:
             logging.info(f"Generating dataset for {group}")
 
-            # print(f"opt.queryonly: {opt.queryonly}")
-
             dict_funinfo[group] = {}
+
+            group_query_FI = group_query.get(group, [])
+            group_db_FI = group_db.get(group, [])
 
             # For queryonly case
             if opt.queryonly is True:
-                # whether to run this group
-                group_flag = False
-                for gene in self.list_db_gene:
-                    logging.debug(
-                        f"Searching dataset {group} {gene} includes query sequences"
-                    )
-                    list_qr = [
-                        FI
-                        for FI in self.list_FI
-                        if (
-                            gene in FI.seq
-                            and FI.datatype == "query"
-                            and FI.adjusted_group == group
-                        )
-                    ]
-
-                    # do not manage db when --queryonly True (--all False) and query does not exists
-                    if len(list_qr) > 0:
-                        group_flag = True
+                # whether to run this group: any query in this group carries any
+                # of the target genes
+                group_flag = any(
+                    gene in FI.seq
+                    for gene in self.list_db_gene
+                    for FI in group_query_FI
+                )
 
                 # if decided to run this group
                 if group_flag is True:
                     logging.info(f"Decided to construct dataset on {group}")
                     for gene in self.list_db_gene:
-                        list_qr = [
-                            FI
-                            for FI in self.list_FI
-                            if (
-                                gene in FI.seq
-                                and FI.datatype == "query"
-                                and FI.adjusted_group == group
-                            )
-                        ]
-
-                        list_db = [
-                            FI
-                            for FI in self.list_FI
-                            if (
-                                gene in FI.seq
-                                and FI.datatype == "db"
-                                and FI.adjusted_group == group
-                            )
-                        ]
-
+                        list_qr = [FI for FI in group_query_FI if gene in FI.seq]
+                        list_db = [FI for FI in group_db_FI if gene in FI.seq]
                         self.add_dataset(group, gene, list_qr, list_db, [])
 
                 else:
@@ -268,43 +252,26 @@ class FunVIP_var:
                     )
 
                 # for concatenated
-                list_qr = [
-                    FI
-                    for FI in self.list_FI
-                    if (FI.datatype == "query" and FI.adjusted_group == group)
-                ]
+                list_qr = list(group_query_FI)
 
                 # do not manage db when query only mode and query does not exists
                 if len(list_qr) > 0:
-                    list_db = [
-                        FI
-                        for FI in self.list_FI
-                        if (FI.datatype == "db" and FI.adjusted_group == group)
-                    ]
+                    list_db = list(group_db_FI)
                     self.add_dataset(group, "concatenated", list_qr, list_db, [])
 
             # For opt.queryonly is False -> run all dataset in database if possible
             else:
                 for gene in self.list_db_gene:
-                    list_qr = []
-                    for FI in self.list_FI:
-                        if (
-                            FI.datatype == "query"
-                            and FI.adjusted_group == group
-                            and gene in FI.seq
-                        ):
-                            if FI.seq[gene] != "":
-                                list_db.append(FI)
-
-                    list_db = []
-                    for FI in self.list_FI:
-                        if (
-                            FI.datatype == "db"
-                            and FI.adjusted_group == group
-                            and gene in FI.seq
-                        ):
-                            if FI.seq[gene] != "":
-                                list_db.append(FI)
+                    list_qr = [
+                        FI
+                        for FI in group_query_FI
+                        if gene in FI.seq and FI.seq[gene] != ""
+                    ]
+                    list_db = [
+                        FI
+                        for FI in group_db_FI
+                        if gene in FI.seq and FI.seq[gene] != ""
+                    ]
 
                     # If none of the database is possible for this group and gene pair, it should be excluded
                     if len(list_db) > 0:
@@ -315,16 +282,8 @@ class FunVIP_var:
                         )
 
                 # for concatenated
-                list_qr = [
-                    FI
-                    for FI in self.list_FI
-                    if (FI.datatype == "query" and FI.adjusted_group == group)
-                ]
-                list_db = [
-                    FI
-                    for FI in self.list_FI
-                    if (FI.datatype == "db" and FI.adjusted_group == group)
-                ]
+                list_qr = list(group_query_FI)
+                list_db = list(group_db_FI)
                 self.add_dataset(group, "concatenated", list_qr, list_db, [])
 
         self.check_dict_group(opt)
@@ -344,10 +303,11 @@ class FunVIP_var:
                         self.dict_hash_FI[h].final_species = FI.final_species
                     # If they collides, it is error
                     else:
-                        logging.error(
-                            f"DEVELOPMNETAL ERROR Both list_FI and dict_hash_FI have conflicting final species, {FI.final_species} and {self.dict_hash_FI[h].final_species} for hash {h}"
+                        raise DatasetError(
+                            f"conflicting final_species for hash {h}: "
+                            f"{FI.final_species!r} (list_FI) vs "
+                            f"{self.dict_hash_FI[h].final_species!r} (dict_hash_FI)"
                         )
-                        raise Exception
 
                 # adjusted group
                 if FI.adjusted_group != self.dict_hash_FI[h].adjusted_group:
@@ -356,10 +316,11 @@ class FunVIP_var:
                     elif self.dict_hash_FI[h].adjusted_group == "":
                         self.dict_hash_FI[h].adjusted_group = FI.adjusted_group
                     else:
-                        logging.error(
-                            f"DEVELOPMENTAL ERROR Both list_FI and dict_hash_FI have conflicting final group, {FI.adjusted_group} and {self.dict_hash_FI[h].adjusted_group}, {FI}"
+                        raise DatasetError(
+                            f"conflicting adjusted_group for {FI.id}: "
+                            f"{FI.adjusted_group!r} (list_FI) vs "
+                            f"{self.dict_hash_FI[h].adjusted_group!r} (dict_hash_FI)"
                         )
-                        raise Exception
 
                 elif (
                     FI.adjusted_group == ""
@@ -384,13 +345,14 @@ class FunVIP_var:
                         pass
                     elif not (FI.bygene_species):
                         FI.bygene_species = self.dict_hash_FI[h].bygene_species
-                    elif self.dict_hash_FI[h].bygene_species:
+                    elif not (self.dict_hash_FI[h].bygene_species):
                         self.dict_hash_FI[h].bygene_species = FI.bygene_species
                     else:
-                        logging.error(
-                            f"DEVELOPMENTAL ERROR Both list_FI and dict_hash_FI have conflicting gene identification results, {FI.bygene_species} and {self.dict_hash_FI[h].bygene}"
+                        raise DatasetError(
+                            f"conflicting bygene_species for hash {h}: "
+                            f"{FI.bygene_species!r} vs "
+                            f"{self.dict_hash_FI[h].bygene_species!r}"
                         )
-                        raise Exception
 
     # Remove invalid dataset to be analyzed
     def remove_invalid_dataset(self):
@@ -448,13 +410,12 @@ class FunVIP_var:
                         )
 
                     # Remove no seqs
-                    for fasta in fasta_list:
-                        save.save_fasta(
-                            fasta_list,
-                            gene,
-                            f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta",
-                            by="hash",
-                        )
+                    save.save_fasta(
+                        fasta_list,
+                        gene,
+                        f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta",
+                        by="hash",
+                    )
 
     # Validate if any multiple sequence alignment has no overlapping region
     def validate_alignments(self, path, opt):
@@ -475,11 +436,11 @@ class FunVIP_var:
                             f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta"
                         )
                     ):
-                        logger.warning(
+                        logging.warning(
                             f"Alignment file {path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta does not exists"
                         )
 
-                        fail_list.append(group_gene)
+                        fail_list.append((group, gene))
 
                     else:
                         # If alignment exists, check if alignment does have overlapping regions
@@ -493,17 +454,16 @@ class FunVIP_var:
 
                         # Remove sequences that has not been existed during alignment stage
                         seq_id_list = [seq.id for seq in seq_list]
-                        for FI in self.dict_dataset[group][gene].list_db_FI:
-                            if not (FI.hash in seq_id_list):
-                                self.dict_dataset[group][gene].list_db_FI.remove(FI)
-
-                        for FI in self.dict_dataset[group][gene].list_qr_FI:
-                            if not (FI.hash in seq_id_list):
-                                self.dict_dataset[group][gene].list_qr_FI.remove(FI)
-
-                        for FI in self.dict_dataset[group][gene].list_og_FI:
-                            if not (FI.hash in seq_id_list):
-                                self.dict_dataset[group][gene].list_og_FI.remove(FI)
+                        dataset = self.dict_dataset[group][gene]
+                        dataset.list_db_FI = [
+                            FI for FI in dataset.list_db_FI if FI.hash in seq_id_list
+                        ]
+                        dataset.list_qr_FI = [
+                            FI for FI in dataset.list_qr_FI if FI.hash in seq_id_list
+                        ]
+                        dataset.list_og_FI = [
+                            FI for FI in dataset.list_og_FI if FI.hash in seq_id_list
+                        ]
 
                         # Remove empty sequences
                         remove_hash = []
@@ -619,7 +579,10 @@ class FunVIP_var:
 
         # Terminate if terminate option is given, and critical error occurs
         if critical_flag == 1 and opt.terminate is True:
-            raise Exception
+            raise DatasetError(
+                "stopping: one or more datasets failed alignment validation "
+                "(see the CRITICAL messages above); --terminate is set"
+            )
 
         # Remove bad datasets
         for fail in fail_list:
@@ -647,27 +610,19 @@ class FunVIP_var:
                 if group in self.dict_dataset:
                     if gene in self.dict_dataset[group]:
                         for _hash in remove_dict[group][gene]:
-                            if _hash in self.dict_dataset[group][gene].list_qr_FI:
-                                self.dict_dataset[group][gene].list_qr_FI.remove(
-                                    self.dict_hash_FI[_hash]
+                            for _attr in ("list_qr_FI", "list_db_FI", "list_og_FI"):
+                                _lst = getattr(
+                                    self.dict_dataset[group][gene], _attr
                                 )
-                                logging.warning(
-                                    f"{self.dict_hash_ID[_hash]} removed from dataset {group} {gene}. Please check the alignment and see the region is correct"
-                                )
-                            if _hash in self.dict_dataset[group][gene].list_db_FI:
-                                self.dict_dataset[group][gene].list_db_FI.remove(
-                                    self.dict_hash_FI[_hash]
-                                )
-                                logging.warning(
-                                    f"{self.dict_hash_ID[_hash]} removed from dataset {group} {gene}. Please check the alignment and see the region is correct"
-                                )
-                            if _hash in self.dict_dataset[group][gene].list_og_FI:
-                                self.dict_dataset[group][gene].list_og_FI.remove(
-                                    self.dict_hash_FI[_hash]
-                                )
-                                logging.warning(
-                                    f"{self.dict_hash_ID[_hash]} removed from dataset {group} {gene}. Please check the alignment and see the region is correct"
-                                )
+                                if any(x.hash == _hash for x in _lst):
+                                    setattr(
+                                        self.dict_dataset[group][gene],
+                                        _attr,
+                                        [x for x in _lst if x.hash != _hash],
+                                    )
+                                    logging.warning(
+                                        f"{self.dict_hash_id[_hash]} removed from dataset {group} {gene}. Please check the alignment and see the region is correct"
+                                    )
 
         # Finally, check again if the datasets meet criteria
         final_fail_list = []
@@ -745,49 +700,60 @@ class FunVIP_var:
         if opt.method.tcs is True:
             bad_cnt = 0
 
-            if opt.verbose < 3:
-                tcs_opt = opt_generator(
-                    V=self, opt=opt, path=path, step="tcs", thread=1
+            # TCS is optional alignment QC; a broken/leaking t-coffee must not abort
+            # the whole run. Log and skip on failure (the memory cap in ext.TCS keeps
+            # a leaking t-coffee from consuming the machine).
+            try:
+                if opt.verbose < 3:
+                    tcs_opt = opt_generator(
+                        V=self, opt=opt, path=path, step="tcs", thread=1
+                    )
+                    with mp.Pool(opt.thread) as p:
+                        p.starmap(ext.TCS, tcs_opt)
+
+                else:
+                    tcs_opt = opt_generator(V=self, opt=opt, path=path, step="tcs")
+                    for option in tcs_opt:
+                        ext.TCS(*option)
+            except Exception as e:
+                logging.warning(
+                    f"TCS alignment validation failed and was skipped: {e}"
                 )
-                p = mp.Pool(opt.thread)
-                p.starmap(ext.TCS, tcs_opt)
-                p.close()
-                p.join()
 
-            else:
-                tcs_opt = opt_generator(V=self, opt=opt, path=path, step="tcs")
-                for option in tcs_opt:
-                    ext.TCS(*option)
-
-                # non-multithreading mode for debugging
-                for group in self.dict_dataset:
-                    for gene in self.dict_dataset[group]:
-                        # Running TCS for concatenated alignment is duplicate
-                        if gene != "concatenated":
-                            tcs_out = f"{path.out_alignment}/alignment/{opt.runname}_{group}_{gene}.tcs"
-                            # Parse tcs result
-                            with open(tcs_out, "r") as f_tcs:
-                                tcs_result_raw = f_tcs.read()
-                                tcs_result = tcs_result_raw.split("*")[2].split("cons")[
-                                    0
-                                ]
-                                for line in tcs_result.split("\n")[1:-1]:
-                                    _hash = line.split(":")[0].strip()
-                                    tcs_score = int(line.split(":")[1].strip())
-                                    if (
-                                        tcs_score < 50
-                                    ):  # cutoff 50 comes from TCS documentation
-                                        FI_id = self.dict_hash_FI[_hash].id
-                                        logging.warning(
-                                            f"{FI_id} has poor alignment score in {group} {gene}"
-                                        )
-                                        bad_cnt += 1
+            # Parse whatever TCS score files were produced. A dataset whose TCS run
+            # failed leaves no score file, so skip missing/unparseable ones instead
+            # of crashing the whole run.
+            for group in self.dict_dataset:
+                for gene in self.dict_dataset[group]:
+                    # Running TCS for concatenated alignment is duplicate
+                    if gene == "concatenated":
+                        continue
+                    tcs_out = f"{path.out_alignment}/alignment/{opt.runname}_{group}_{gene}.tcs"
+                    if not os.path.exists(tcs_out):
+                        continue
+                    try:
+                        with open(tcs_out, "r") as f_tcs:
+                            tcs_result_raw = f_tcs.read()
+                        tcs_result = tcs_result_raw.split("*")[2].split("cons")[0]
+                        for line in tcs_result.split("\n")[1:-1]:
+                            _hash = line.split(":")[0].strip()
+                            tcs_score = int(line.split(":")[1].strip())
+                            if tcs_score < 50:  # cutoff 50 from TCS documentation
+                                FI_id = self.dict_hash_FI[_hash].id
+                                logging.warning(
+                                    f"{FI_id} has poor alignment score in {group} {gene}"
+                                )
+                                bad_cnt += 1
+                    except Exception as e:
+                        logging.warning(
+                            f"Could not parse TCS score file {tcs_out}: {e}"
+                        )
 
             if bad_cnt == 0:
                 logging.info(f"All sequences in alignment passed TCS validation")
             else:
                 logging.warning(
-                    f"{bad_cnt} sequences in alignment failed TCS validation. Please check sequneces"
+                    f"{bad_cnt} sequences in alignment failed TCS validation. Please check sequences"
                 )
 
     # check inconsistency exists along identification result of each genes

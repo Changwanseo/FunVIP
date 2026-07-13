@@ -40,9 +40,10 @@ def trimming(alignment, out, path, opt):
             "trimal",
         )
     ):
-        # Check if trimming successed
-        if trimming_result is not ((-1, -1)):
-            # Repair trimmend alignment by analysis flanking region
+        # Check if trimming succeeded (both Gblocks and Trimal return (-1, -1) on
+        # failure; compare by value, not identity)
+        if trimming_result != (-1, -1):
+            # Repair trimmed alignment by analysis flanking region
             trimmed_msa = AlignIO.read(out, "fasta")
             logging.debug(f"Trimming region for {alignment} : {trimming_result}")
 
@@ -51,7 +52,7 @@ def trimming(alignment, out, path, opt):
             AlignIO.write(revived_msa, out, "fasta")
         else:
             logging.warning(
-                f"Trimming {alignment} failed. Check if the alignment includes invalid sequneces"
+                f"Trimming {alignment} failed. Check if the alignment includes invalid sequences"
             )
 
     return trimming_result
@@ -93,7 +94,7 @@ def pipe_trimming(V, path, opt):
                                 "fasta",
                             )
                         )
-                        if len(seq_list[0].seq) == 0:
+                        if not seq_list or len(seq_list[0].seq) == 0:
                             trim_fail.append((group, gene))
                     else:
                         pass
@@ -111,7 +112,7 @@ def pipe_trimming(V, path, opt):
         # If non of the genes left for group except for concatenate, remove group
         if len(V.dict_dataset[group]) == 1 and "concatenated" in V.dict_dataset[group]:
             logging.warning(
-                f"Dataset {group} has removed because non of the genes are available"
+                f"Dataset {group} has removed because none of the genes are available"
             )
             V.dict_dataset.pop(group)
 

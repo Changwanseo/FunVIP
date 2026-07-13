@@ -7,6 +7,7 @@ from functools import reduce
 import pandas as pd
 from copy import deepcopy
 from funvip.src import search, hasher
+from funvip.src.exceptions import DatasetError
 from scipy.optimize import minimize
 import numpy as np
 import shutil
@@ -121,11 +122,10 @@ def combine_alignment(V, opt, path):
                 }
 
             else:
-                logging.error(f"V.dict_dataset {group}: {V.dict_dataset[group]}")
-                logging.error(
-                    f"[DEVELOPMENTAL ERROR] Failed constructing concatenated alignment for {group}"
+                raise DatasetError(
+                    f"cannot build concatenated alignment for group {group}: "
+                    f"no gene datasets besides 'concatenated' (got {list(V.dict_dataset[group])})"
                 )
-                raise Exception
 
         else:
             logging.warning(
@@ -269,23 +269,33 @@ def concatenate_df(V, path, opt):
             )
 
         def vectorized_prediction(df, gene_list, coeff, grad):
-            for k, gene in enumerate(gene_list):
-                linear_constant = (coeff[k] - df[f"{gene}_bitscore"]) / grad[k]
-                mean_linear_constant = linear_constant.mean()
-
-                # Fill missing bitscores
-                """
-                df[f"{gene}_bitscore"].fillna(
-                    coeff[k] - mean_linear_constant * grad[k], inplace=True
-                )
-                """
-                df.fillna(
-                    {f"{gene}_bitscore": coeff[k] - mean_linear_constant * grad[k]},
-                    inplace=True,
-                )
+            # Fill a row's missing gene bitscore by projecting the row's KNOWN gene
+            # bitscores onto the fitted regression line (X_i = coeff_i - t*grad_i) and
+            # reading off the missing coordinate. The former version used each gene's
+            # column mean, which reduces algebraically to a single constant per gene
+            # and ignores the row's other genes entirely. t is the least-squares line
+            # parameter over the row's present dimensions:
+            #   t = -sum_j grad_j (X_j - coeff_j) / sum_j grad_j^2   (j = present genes)
+            cols = [f"{gene}_bitscore" for gene in gene_list]
+            coeff_a = np.asarray(coeff, dtype=float)
+            grad_a = np.asarray(grad, dtype=float)
+            X = df[cols].to_numpy(dtype=float)
+            present = ~np.isnan(X)
+            a = X - coeff_a  # NaN where missing
+            grad_row = np.broadcast_to(grad_a, X.shape)
+            num = np.sum(np.where(present, grad_row * a, 0.0), axis=1)
+            den = np.sum(np.where(present, grad_row**2, 0.0), axis=1)
+            with np.errstate(divide="ignore", invalid="ignore"):
+                t = np.where(den > 0, -num / den, 0.0)
+            pred = coeff_a[None, :] - t[:, None] * grad_a[None, :]
+            # Bitscores are non-negative; guard a line that extrapolates below zero.
+            pred = np.clip(pred, 0.0, None)
+            X_filled = np.where(present, X, pred)
+            for i, col in enumerate(cols):
+                df[col] = X_filled[:, i]
             return df
 
-        # Change to numpy for faster cazlculation
+        # Change to numpy for faster calculation
         np_bitscore = df_multigene_regression[
             [f"{gene}_bitscore" for gene in gene_list]
         ].to_numpy()
@@ -324,6 +334,14 @@ def concatenate_df(V, path, opt):
         ].mean(axis=1)
         V.cSR = df_multigene_regression.reset_index()
 
+        # Dictionary-encode the repeated hash / group string columns of the
+        # concatenated search table (which persists for the rest of the run) to cut
+        # its memory footprint (category is ~8-29x smaller than object/str on these
+        # columns); the stored values are unchanged.
+        for _col in V.cSR.columns:
+            if not pd.api.types.is_numeric_dtype(V.cSR[_col]):
+                V.cSR[_col] = V.cSR[_col].astype("category")
+
     # Save it
     # decode df is not working well here
     if opt.nosearchresult is False:
@@ -332,5 +350,10 @@ def concatenate_df(V, path, opt):
             f"{path.out_matrix}/{opt.runname}_BLAST_result_concatenated.{opt.tableformat}",
             fmt=opt.tableformat,
         )
+
+    # The per-gene search tables are only needed to build V.cSR above; drop them so
+    # they do not stay resident (and get re-pickled into every later session
+    # checkpoint) for the rest of the run.
+    V.dict_gene_SR = {}
 
     return V

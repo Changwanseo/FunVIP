@@ -15,11 +15,11 @@ In this tutorial, we will run FunVIP with already prepared input files.
 <br></br>
 ### 1. Install FunVIP by following instructions, depending on your os system
 
-* [Windows](https://github.com/Changwanseo/FunVIP/#Windows)
+* [Windows](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/installation.md#windows)
 
-* [Linux](https://github.com/Changwanseo/FunVIP/#Linux)
+* [Linux](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/installation.md#linux)
 
-* [Mac - Apple Silicon](https://github.com/Changwanseo/FunVIP/#Apple-Silicon-Mac)
+* [Mac - Apple Silicon](https://github.com/Changwanseo/FunVIP/blob/main/tutorial/installation.md#apple-silicon-mac)
 
 <br></br>
 

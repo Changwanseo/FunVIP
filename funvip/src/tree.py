@@ -42,14 +42,17 @@ def pipe_tree(V, path, opt, model_dict):
 
     fasttree_opt = []  # for multiprocessing on fasttree
 
-    tree_dataset = deepcopy(V.dict_dataset)
+    # Shallow two-level copy: only `.pop(gene)` on the per-group dict mutates this
+    # structure below; the Dataset objects are read-only here, so a full deepcopy of
+    # the entire FI universe (measured ~126 MB at metabarcoding scale) is wasted.
+    tree_dataset = {group: dict(inner) for group, inner in V.dict_dataset.items()}
 
     # Before drawing tree, finalize datasets
     remove_dataset = []
     for group in tree_dataset:
         for gene in tree_dataset[group]:
             # draw tree only when outgroup sequence exists
-            if tree_dataset[group][gene].list_og_FI == 0:
+            if len(tree_dataset[group][gene].list_og_FI) == 0:
                 logging.warning(
                     f"Passing tree construction of {group} {gene} dataset because no outgroup available"
                 )
@@ -235,39 +238,32 @@ def pipe_tree(V, path, opt, model_dict):
                 )
             """
 
+            # Resume-safe decode: a prior interrupted run may already have moved the
+            # plain-name file into hash/; guard os.rename so --continue does not crash
+            # with FileNotFoundError. If the plain file exists, move+decode as usual;
+            # if only the hashed file exists, just (re)decode it; otherwise skip.
+            def _safe_decode(plain, hashed):
+                if os.path.exists(plain):
+                    os.rename(plain, hashed)
+                    hasher.decode(tree_hash_dict, hashed, plain)
+                elif os.path.exists(hashed):
+                    hasher.decode(tree_hash_dict, hashed, plain)
+                else:
+                    logging.warning(f"Neither {plain} nor {hashed} exist - skipping decode")
+
             if gene != "concatenated":
-                # Decode adjusted
-                os.rename(
+                _safe_decode(
                     f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta",
                     f"{path.out_adjusted}/hash/{opt.runname}_hash_Adjusted_{group}_{gene}.fasta",
                 )
-                hasher.decode(
-                    tree_hash_dict,
-                    f"{path.out_adjusted}/hash/{opt.runname}_hash_Adjusted_{group}_{gene}.fasta",
-                    f"{path.out_adjusted}/{opt.runname}_Adjusted_{group}_{gene}.fasta",
-                )
-
-                # Decode alignment
-                os.rename(
+                _safe_decode(
                     f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
                     f"{path.out_alignment}/hash/{opt.runname}_hash_MAFFT_{group}_{gene}.fasta",
                 )
-                hasher.decode(
-                    tree_hash_dict,
-                    f"{path.out_alignment}/hash/{opt.runname}_hash_MAFFT_{group}_{gene}.fasta",
-                    f"{path.out_alignment}/{opt.runname}_MAFFT_{group}_{gene}.fasta",
-                )
 
-            # Decode trimmed file
-            os.rename(
+            _safe_decode(
                 f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
                 f"{path.out_alignment}/hash/{opt.runname}_hash_trimmed_{group}_{gene}.fasta",
-            )
-
-            hasher.decode(
-                tree_hash_dict,
-                f"{path.out_alignment}/hash/{opt.runname}_hash_trimmed_{group}_{gene}.fasta",
-                f"{path.out_alignment}/{opt.runname}_trimmed_{group}_{gene}.fasta",
             )
 
     return V, path, opt

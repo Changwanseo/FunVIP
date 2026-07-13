@@ -12,13 +12,11 @@
 /*.fasta
 /*.nwk
 /funid/external/MAFFT_Windows/
-!/funid/external/mmseqs_Windows/bin/*
-!/funid/external/mmseqs_Windows/bin/*.exe
-!/funid/external/mmseqs_Windows/bin/*.dll
-!/funip/external/mmseqs_Windows/bin/*
-!/funip/external/mmseqs_Windows/bin/*.exe
-!/funip/external/mmseqs_Windows/bin/*.dll
-!/funvip/external/mmseqs_Windows/bin/*
+/funvip/external/MAFFT_Windows/
+# mmseqs' bundled busybox self-installs a symlink per POSIX tool name (ls, cat,
+# grep, ...) into this dir at runtime; only the real committed binaries should
+# be tracked.
+/funvip/external/mmseqs_Windows/bin/*
 !/funvip/external/mmseqs_Windows/bin/*.exe
 !/funvip/external/mmseqs_Windows/bin/*.dll
 /funid/__pycache__/*.pyc
@@ -44,6 +42,10 @@
 /DB/blast/*/*.nsq
 /DB/mmseqs/*/*
 !/DB/mmseqs/*/*.gitignore
+
+# Runtime BLAST/mmseqs db cache, built next to the installed package (see
+# funvip/src/initialize.py: self.in_db)
+/funvip/db/
 /FunID-win32-x64/*
 /FunIP-win32-x64/*
 /FunVIP-win32-x64/*
@@ -67,3 +69,15 @@ DB.fasta
 /funvip/FunVIP.egg-info/*
 CLAUDE.md
 .claude/
+
+# Python + pytest caches
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+.venv*/
+venv/

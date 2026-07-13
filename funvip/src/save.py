@@ -16,7 +16,6 @@ from funvip.src.tool import (
     get_id,
     manage_unicode,
 )
-from funvip.src.logics import isnewicklegal
 from funvip.src.hasher import decode, newick_legal, hash_funinfo_list
 import shelve
 
@@ -33,9 +32,15 @@ def save_session(opt, path, global_var: dict, var: dict) -> None:
 
     for key in global_var:
         if key in managed_keys:
-            save[key] = global_var[key]
-            if opt.verbose >= 3:
-                logging.debug(f"Saved {key}")
+            try:
+                save[key] = global_var[key]
+                if opt.verbose >= 3:
+                    logging.debug(f"Saved {key}")
+            except Exception as e:
+                logging.warning(
+                    f"Could not save session key {key!r} ({e}); "
+                    "resume with --continue may be incomplete"
+                )
         else:
             if opt.verbose >= 3:
                 logging.debug(f"Did not saved {key}")
@@ -171,13 +176,15 @@ def save_df(df, out, fmt="csv"):
     # For excel size limit
     elif fmt == "xlsx" or fmt == "excel":
         # Limit is 1048576 rows with 16384 column, exlcuding one for column
-        if len(df) <= 1048575 and df.shape[1] <= 16383:
+        if len(df) <= 1048575 and df.shape[1] <= 16384:
             df.to_excel(out, index=False)
         else:
+            csv_out = out.rsplit(".", 1)[0] + ".csv"
             logging.warning(
-                f"Dataframe size exceeds excel limit, 1048575 rows and 16384 columns. Using csv instead"
+                f"Dataframe exceeds the Excel limit (1048576 rows / 16384 columns); "
+                f"writing CSV to {csv_out} instead"
             )
-            df.to_csv(out, index=False)
+            df.to_csv(csv_out, index=False)
     elif fmt == "parquet":
         df.to_parquet(out, index=False)
     elif fmt == "feather" or fmt == "ftr":

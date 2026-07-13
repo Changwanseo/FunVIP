@@ -24,7 +24,7 @@ from pathlib import Path
 from time import sleep
 
 from funvip.src import save
-from funvip.src.logics import isnewicklegal, isuniquecolumn, isvalidcolor
+from funvip.src.logics import isuniquecolumn, isvalidcolor
 from funvip.src.hasher import decode, newick_legal, hash_funinfo_list
 
 # funinfo_dict: {"ID" : FI}
@@ -77,7 +77,8 @@ class Funinfo:
         else:
             self.seq[gene] = str(seq.seq).replace("-", "")
 
-        self.bygene_species[gene] = self.ori_species
+        if gene is not None:
+            self.bygene_species[gene] = self.ori_species
 
         return error
 
@@ -208,7 +209,7 @@ class Funinfo:
         return error
 
     def update_id(self, id_, regexs=None):
-        if not regexs == None:
+        if regexs is not None:
             id_ = get_id(id_, tuple(regexs))
 
         # if cannot find id by regex
@@ -365,7 +366,7 @@ def input_fasta(path, opt, fasta_list, funinfo_dict, datatype):
         try:
             seq_list = list(SeqIO.parse(file, "fasta"))
             for seq in seq_list:
-                if not opt.regex == None:
+                if opt.regex is not None:
                     id_ = get_id(seq.description, tuple(opt.regex))
                 else:
                     id_ = seq.description
@@ -430,6 +431,27 @@ def input_fasta(path, opt, fasta_list, funinfo_dict, datatype):
 
 
 # getting datafile from excel or tabular file
+def _resolve_genmine():
+    """Resolve the GenMine executable next to the running interpreter rather than
+    via a bare shell PATH lookup. A different, incompatible GenMine version
+    installed elsewhere on PATH (another venv, a stray global pip install) would
+    otherwise silently shadow the one FunVIP was installed with, and GenMine's
+    output format has changed between versions -- validate_input's parsing of
+    its results would then quietly fail (raw accessions left unreplaced) with no
+    error, instead of a normal, cleanly-diagnosable version mismatch.
+    """
+    import sysconfig
+
+    exe_name = "GenMine.exe" if sys.platform == "win32" else "GenMine"
+    # Console scripts live in the interpreter's script dir: bin/ on POSIX,
+    # Scripts\ on Windows -- NOT next to python.exe, which on Windows is the env
+    # root, so dirname(sys.executable) would miss GenMine.exe there.
+    candidate = os.path.join(sysconfig.get_path("scripts"), exe_name)
+    if os.path.isfile(candidate):
+        return candidate
+    return shutil.which("GenMine") or "GenMine"
+
+
 def input_table(funinfo_dict, path, opt, table_list, datatype):
     # Whether to check if GenMine has run
     GenMine_flag = 0
@@ -578,7 +600,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
             regex_genbank = r"(([A-Z]{1}[0-9]{5})(\.[0-9]{1}){0,1})|(([A-Z]{2}[\_]{0,1}[0-9]{6}){1}([\.][0-9]){0,1})|(([A-Z]{4}[0-9]{8})(\.[0-9]{1}){0,1})|(([A-Z]{6}[0-9]{9,})(\.[0-9]{1}){0,1})"
 
             # if gene name were not designated by user, use seq
-            opt.gene = list(set([gene.lower().strip() for gene in opt.gene]))
+            opt.gene = list(dict.fromkeys([gene.lower().strip() for gene in opt.gene]))
 
             # find all NCBI accessions in seq
             for gene in opt.gene:
@@ -625,7 +647,11 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                 else:
                     GenMine_path = path.GenMine
 
-                cmd = f"GenMine -c {accession_path} -o {GenMine_path} -e {opt.email}"
+                genmine_exe = _resolve_genmine()
+                if " " in genmine_exe:
+                    genmine_exe = f'"{genmine_exe}"'
+
+                cmd = f"{genmine_exe} -c {accession_path} -o {GenMine_path} -e {opt.email}"
                 logging.info(cmd)
 
                 sleep(5)  # To run GenMine safetly between run and run
@@ -655,8 +681,11 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                     download_df = pd.read_excel(GenMine_df_list[0])
 
                     # Generate download_dict (I think this can be done with pandas operation, but a bit tricky. Will be done later)
+                    # Key on the version-less accession: GenMine returns some accessions
+                    # with a ".N" version suffix and some without depending on which NCBI
+                    # fetch path served them, but the lookup below always strips the version.
                     for n, acc in enumerate(download_df["acc"]):
-                        download_dict[acc.strip()] = download_df["seq"][n]
+                        download_dict[acc.strip().split(".")[0]] = download_df["seq"][n]
 
                     # replace accession to sequence downloaded
                     def update_from_GenMine(string):
@@ -785,10 +814,18 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                         seq_error_list = []
 
                         # seq_string = manage_unicode(seq_string)
-                        for x in seq_string:  # x is every character of sequence
-                            if not x.lower() in "acgtryswkmbdhvn-.":
-                                seq_error_cnt += 1
-                                seq_error_list.append(x)
+                        # Fast path: check the unique characters once; only build the
+                        # per-character error list when an illegal character is present
+                        # (the common case is a clean sequence, so this avoids a
+                        # Python-level scan of every base of every sequence).
+                        _illegal_chars = set(seq_string.lower()) - set(
+                            "acgtryswkmbdhvn-."
+                        )
+                        if _illegal_chars:
+                            seq_error_list = [
+                                x for x in seq_string if x.lower() in _illegal_chars
+                            ]
+                            seq_error_cnt = len(seq_error_list)
 
                         if seq_error_cnt > 0:
                             warnings.append(
@@ -819,7 +856,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
         # After successfully parsed this table, save it
         save.save_df(
             df,
-            f"{path.out_db}/Saved_{'.'.join(table.split('/')[-1].split('.')[:-1])}.{opt.tableformat}",
+            f"{path.out_query if datatype == 'query' else path.out_db}/Saved_{'.'.join(table.split('/')[-1].split('.')[:-1])}.{opt.tableformat}",
             fmt=opt.tableformat,
         )
 
@@ -935,7 +972,7 @@ def query_input(funinfo_dict, opt, path):
         shutil.copy(f"{file}", f"{path.out_query}")
 
     logging.info(
-        f"Total {len([funinfo_dict[key].datatype =='query' for key in funinfo_dict.keys()])} sequences parsed from query"
+        f"Total {sum(1 for key in funinfo_dict if funinfo_dict[key].datatype == 'query')} sequences parsed from query"
     )
 
     return funinfo_dict, GenMine_flag

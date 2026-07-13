@@ -1,10 +1,12 @@
 # Performing multiple tree interpretation
-from ete3 import Tree
+from ete4 import Tree
 from funvip.src import tree_interpretation
 from funvip.src.tool import initialize_path, get_genus_species
 from funvip.src.tool import sizeof_fmt
 from funvip.src.hasher import encode, decode
 from funvip.src.reporter import Singlereport
+from funvip.src.exceptions import TreeError
+import traceback
 from copy import deepcopy
 import pandas as pd
 import re
@@ -19,13 +21,17 @@ from time import time
 
 ### For single dataset
 # Input : out, group, gene, V, path, opt
+# Whole-run FI collections (V.dict_hash_FI / V.list_FI) shared with
+# interpretation-pool workers via fork copy-on-write, set before the Pool is
+# created, instead of being pickled into every (group, gene) task tuple.
+_INTERP_SHARED = {}
+
+
 def pipe_module_tree_interpretation(
     out,
     group,
     gene,
     V_tup_genus,
-    funinfo_dict,
-    funinfo_list,
     hash_dict,
     query_list,
     outgroup,
@@ -35,7 +41,12 @@ def pipe_module_tree_interpretation(
 ):
     # time_start = time()
 
-    # for unexpectively included sequence during clustering
+    # Read the whole-run FI collections from the fork-inherited shared store rather
+    # than receiving a freshly pickled copy of the entire universe per task.
+    funinfo_dict = _INTERP_SHARED["funinfo_dict"]
+    funinfo_list = _INTERP_SHARED["funinfo_list"]
+
+    # for unexpectedly included sequence during clustering
     db_list = list(
         set([FI for FI in funinfo_list if FI.datatype == "db"])
         - set(outgroup)
@@ -54,16 +65,12 @@ def pipe_module_tree_interpretation(
     if os.path.isfile(tree_name):
         try:
             # If iqtree, missing supports are not shown
-            if opt.method.tree.lower() == "iqtree":
-                Tree(tree_name, format=0)
-            else:
-                Tree(tree_name, format=2)
-        except:
-            logging.error(f"[DEVELOPMENTAL ERROR] Failed on importing tree {tree_name}")
-            raise Exception
+            # ete4 autodetects newick format regardless of software
+            Tree(tree_name)
+        except Exception as e:
+            raise TreeError(f"failed to parse tree file {tree_name}: {e}") from e
     else:
-        logging.error(f"Cannot find {tree_name}")
-        raise Exception
+        raise TreeError(f"cannot find tree file {tree_name}")
 
     # initialize before analysis
     Tree_style = tree_interpretation.Tree_style()
@@ -122,14 +129,39 @@ def pipe_module_tree_interpretation(
 
     # Reconstruct flat branches if option given
     if opt.solveflat is True:
+        # ete4: copy("newick") uses parser=1 which drops support values;
+        # use deepcopy to preserve branch support for visualization.
+        _clade = tree_info.t.copy("deepcopy")
+        for _n in _clade.traverse():
+            if _n.dist is None:
+                _n.dist = 0.0
+            # ete4 compat: ete3 DEFAULT_SUPPORT=1.0 became 100 after scale
+            # conversion; ete4 leaves/root get support=None. Normalize only
+            # INTERNAL nodes None→100 (when scale conversion occurred) so
+            # intermediate nodes created by reconstruct/solve_flat carry
+            # support=100 like ete3. Leaves must stay None: concat_clade maps
+            # None→1 for them, which is < bscutoff (correct — ete3 also sets
+            # leaf DEFAULT_SUPPORT=1.0 → 1 after newick round-trip → not shown).
+            if not _n.is_leaf and _n.support is None and tree_info.support_scaled:
+                _n.support = 100
         tree_info.t = tree_info.reconstruct(
-            clade=tree_info.t.copy("newick"), gene=gene, opt=opt
+            clade=_clade, gene=gene, opt=opt
         )
+        # reconstruct() replaced tree_info.t with a shallow rebuild, but
+        # tree_info.outgroup_clade still points at a node of the PRE-reconstruct
+        # tree. reroot_outgroup's resolve_polytomy() combs a conserved gene's giant
+        # star (5.8S: ~3670-leaf polytomy) into a ~3681-deep chain, and pickling any
+        # ete4 node drags in its whole tree via .up/.children -- so this stale ref
+        # re-inflates that deep tree when the worker pickles tree_info back to the
+        # parent (multiprocessing), raising RecursionError -> MaybeEncodingError.
+        # outgroup_clade is unused after rerooting, so drop it. (Third part of the
+        # 5.8S fix, with seperate_clade deepcopy + balanced concat_all.)
+        tree_info.outgroup_clade = None
 
     # print(f"Reconstruct {time() - time_start}")
 
-    # reorder tree for pretty look
-    tree_info.t.ladderize(direction=1)
+    # reorder tree for pretty look (ete3-compatible tie-breaking)
+    tree_interpretation._ladderize_ete3_compat(tree_info.t)
 
     # print(f"Ladderize {time() - time_start}")
 
@@ -137,8 +169,13 @@ def pipe_module_tree_interpretation(
     # Is not currently used
     # tree_info.t_publish = deepcopy(tree_info.t)
 
-    # Search tree and delimitate species
-    tree_info.tree_search(tree_info.t, gene)
+    # Search tree and delimitate species.
+    # Enable subtree taxon-count memoization for this (static, post-solve_flat) tree only.
+    tree_interpretation._tc_cache_begin()
+    try:
+        tree_info.tree_search(tree_info.t, gene)
+    finally:
+        tree_interpretation._tc_cache_end()
 
     # print(f"Tree search {time() - time_start}")
 
@@ -148,7 +185,7 @@ def pipe_module_tree_interpretation(
         f"{path.out_tree}/{opt.runname}_{group}_{gene}_original.nwk",
     )
     tree_info.t.write(
-        format=0, outfile=f"{path.out_tree}/{opt.runname}_{group}_{gene}.nwk"
+        outfile=f"{path.out_tree}/{opt.runname}_{group}_{gene}.nwk"
     )
     decode(
         tree_hash_dict,
@@ -164,7 +201,7 @@ def pipe_module_tree_interpretation(
 
 ### synchronize sp. numbers from multiple dataset
 # to use continuous sp numbers over trees
-# Seperated from multithreading, because this step should traverse over multiple trees, therefore cannot be done simultaniously
+# Seperated from multithreading, because this step should traverse over multiple trees, therefore cannot be done simultaneously
 def synchronize(V, path, tree_info_list):
     # Gets hash dict, and returns taxon name of hash_dict
     # Generate final taxon name for synchronizing
@@ -211,7 +248,8 @@ def synchronize(V, path, tree_info_list):
                     dict_species[" ".join(splited_species[:-1])].append(
                         int(splited_species[-1])
                     )
-            except:
+            except (ValueError, IndexError):
+                # species label does not end in an integer -> treat as unnumbered
                 dict_species[s] = [0]
 
         species = ""
@@ -255,8 +293,9 @@ def synchronize(V, path, tree_info_list):
         elif not (tree_info.gene in tree_info_dict[tree_info.group]):
             tree_info_dict[tree_info.group][tree_info.gene] = tree_info
         else:
-            logging.error("DEVELOPMENTAL ERROR, DUPLICATED TREE_INFO")
-            raise Exception
+            raise TreeError(
+                f"duplicated tree_info for group {tree_info.group} gene {tree_info.gene}"
+            )
 
     # Memoize iterative calling
     # For each group list
@@ -365,6 +404,11 @@ def synchronize(V, path, tree_info_list):
 
     # Then, non-concatenated
     for group in tree_info_dict:
+        # A group whose concatenated tree failed interpretation (dropped by the
+        # per-item guard) can still have gene entries here; skip it rather than
+        # KeyError on the missing "concatenated" key and abort the whole run.
+        if "concatenated" not in tree_info_dict[group]:
+            continue
         for gene in tree_info_dict[group]:
             if gene != "concatenated":
                 tree_info = tree_info_dict[group]["concatenated"]
@@ -572,6 +616,37 @@ def pipe_module_tree_visualization(
 
 
 ### For all datasets, multiprocessing part
+def _safe_pipe_module_tree_interpretation(*args):
+    # Per-item guard: a crash in one (group, gene) must not kill the whole batch
+    # (starmap re-raises the first worker exception -> no result.csv for the 900+
+    # genera that DID succeed). Log and skip the bad one instead.
+    try:
+        return pipe_module_tree_interpretation(*args)
+    except Exception as e:
+        group = args[1] if len(args) > 1 else "?"
+        gene = args[2] if len(args) > 2 else "?"
+        logging.error(
+            f"[TREE INTERPRETATION FAILED] {group} {gene}: {e!r}\n{traceback.format_exc()}"
+        )
+        return None
+
+
+def _safe_pipe_module_tree_visualization(*args):
+    try:
+        return pipe_module_tree_visualization(*args)
+    except Exception as e:
+        ti = args[0] if args else None
+        gg = (
+            f"{getattr(ti, 'group', '?')} {getattr(ti, 'gene', '?')}"
+            if ti is not None
+            else "?"
+        )
+        logging.error(
+            f"[TREE VISUALIZATION FAILED] {gg}: {e!r}\n{traceback.format_exc()}"
+        )
+        return None
+
+
 def pipe_tree_interpretation(V, path, opt):
     # Generate tree_interpretation opt to run
     # tree_interpretation_opt = []
@@ -585,6 +660,12 @@ def pipe_tree_interpretation(V, path, opt):
     funinfo_dict = V.dict_hash_FI
     funinfo_list = V.list_FI
     hash_dict = V.dict_hash_name
+
+    # Share the whole-run FI collections with pool workers via fork copy-on-write
+    # (must be set before the Pool below is created) instead of pickling them into
+    # every task; workers read them from _INTERP_SHARED.
+    _INTERP_SHARED["funinfo_dict"] = funinfo_dict
+    _INTERP_SHARED["funinfo_list"] = funinfo_list
 
     # Generate options using generator
     def generate_interpretation_opt():
@@ -625,8 +706,6 @@ def pipe_tree_interpretation(V, path, opt):
                                 group,
                                 gene,
                                 V.tup_genus,
-                                funinfo_dict,
-                                funinfo_list,
                                 hash_dict,
                                 query_list,
                                 outgroup,
@@ -649,7 +728,7 @@ def pipe_tree_interpretation(V, path, opt):
     if opt.verbose < 3:
         with mp.Pool(opt.thread) as p:
             tree_info_list.extend(
-                p.starmap(pipe_module_tree_interpretation, tree_interpretation_opt)
+                p.starmap(_safe_pipe_module_tree_interpretation, tree_interpretation_opt)
             )
 
     else:
@@ -658,6 +737,13 @@ def pipe_tree_interpretation(V, path, opt):
             pipe_module_tree_interpretation(*option)
             for option in tree_interpretation_opt
         ]
+
+    # Drop genera that failed interpretation (guarded above) so one bad tree
+    # does not sink the whole run; failures are logged as [TREE INTERPRETATION FAILED].
+    _n_failed = sum(1 for ti in tree_info_list if ti is None)
+    if _n_failed:
+        logging.warning(f"{_n_failed} (group, gene) trees failed interpretation and were skipped")
+    tree_info_list = [ti for ti in tree_info_list if ti is not None]
 
     # Gather flat branch issues
     for tree_info in tree_info_list:
@@ -685,7 +771,7 @@ def pipe_tree_interpretation(V, path, opt):
     if opt.verbose < 3:
         with mp.Pool(opt.thread) as p:
             tree_visualization_result = p.starmap(
-                pipe_module_tree_visualization, tree_visualization_opt
+                _safe_pipe_module_tree_visualization, tree_visualization_opt
             )
 
     else:
@@ -693,6 +779,9 @@ def pipe_tree_interpretation(V, path, opt):
         tree_visualization_result = [
             pipe_module_tree_visualization(*option) for option in tree_visualization_opt
         ]
+
+    # Drop genera that failed visualization (guarded) before flattening
+    tree_visualization_result = [r for r in tree_visualization_result if r is not None]
 
     ### Collect identifiation result to V for reporting
     # Merge report list

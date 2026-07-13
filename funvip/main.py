@@ -18,7 +18,132 @@ def _ensure_deterministic_hash():
 _ensure_deterministic_hash()
 
 
-def main():
+# ete4 version fetched when building from source on Windows. Matches the pin in
+# pyproject.toml and the bundled wheels; the source patch in _build_ete4_from_source
+# targets this version.
+_ETE4_SRC_VERSION = "4.4.0"
+
+
+def _pip(*args):
+    import subprocess
+
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "--disable-pip-version-check", *args]
+    )
+
+
+def _patch_line(path, old, new):
+    with open(path, encoding="utf-8") as fh:
+        text = fh.read()
+    if new in text:
+        return
+    if old not in text:
+        raise RuntimeError(f"expected text not found while patching {os.path.basename(path)}")
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(text.replace(old, new))
+
+
+def _build_ete4_from_source():
+    """Download the ete4 sdist, apply the Windows build fix (etetoolkit/ete PR #783),
+    and pip-install it. Needs a C/C++ compiler and internet; runs at most once."""
+    import glob
+    import json
+    import tarfile
+    import tempfile
+    import urllib.request
+
+    with tempfile.TemporaryDirectory() as tmp:
+        # Fetch the raw sdist tarball directly (not via `pip download`): pip would
+        # invoke the sdist's build backend to resolve metadata, which runs ete4's
+        # unpatched setup.py and hits the exact Windows path bug (PR #783) we are
+        # about to patch -- before we ever get a chance to apply the patch.
+        with urllib.request.urlopen(
+            f"https://pypi.org/pypi/ete4/{_ETE4_SRC_VERSION}/json"
+        ) as resp:
+            release = json.load(resp)
+        sdist_url = next(
+            f["url"] for f in release["urls"] if f["packagetype"] == "sdist"
+        )
+        sdist = os.path.join(tmp, "ete4.tar.gz")
+        urllib.request.urlretrieve(sdist_url, sdist)
+        with tarfile.open(sdist) as tar:
+            try:
+                tar.extractall(tmp, filter="data")
+            except TypeError:  # filter= added in Python 3.12
+                tar.extractall(tmp)
+        src = next(d for d in glob.glob(os.path.join(tmp, "ete4-*")) if os.path.isdir(d))
+        _patch_line(
+            os.path.join(src, "setup.py"),
+            "from os.path import isfile", "from os.path import isfile, sep",
+        )
+        _patch_line(
+            os.path.join(src, "setup.py"),
+            "path.replace('/', '.')", "path.replace(sep, '.')",
+        )
+        _patch_line(
+            os.path.join(src, "ete4", "config.py"),
+            "os.environ['HOME']", "os.path.expanduser('~')",
+        )
+        _pip("install", "--no-deps", src)
+
+
+def _ensure_ete4():
+    """Make ete4 importable. ete4 has no Windows wheel on PyPI, so on Windows it is
+    not a pip dependency; instead FunVIP installs a prebuilt wheel bundled under
+    funvip/_vendor/ete4_wheels, or, if none is bundled for this Python, builds ete4
+    from source (patched for Windows). No-op on Linux/macOS and once ete4 imports."""
+    try:
+        import ete4  # noqa: F401
+
+        return
+    except ImportError:
+        pass
+
+    if sys.platform != "win32":
+        # Off Windows ete4 is an ordinary dependency; a failed import is a genuine
+        # installation problem, so let it surface rather than masking it.
+        raise
+
+    import glob
+    import importlib
+
+    tag = f"cp{sys.version_info.major}{sys.version_info.minor}"
+    wheel_dir = os.path.join(os.path.dirname(__file__), "_vendor", "ete4_wheels")
+    wheels = sorted(
+        glob.glob(os.path.join(wheel_dir, f"ete4-*-{tag}-{tag}-win_amd64.whl"))
+    )
+    try:
+        if wheels:
+            wheel = wheels[-1]
+            print(
+                f"[FunVIP] First Windows run: installing bundled ete4 "
+                f"({os.path.basename(wheel)}). This happens only once.",
+                flush=True,
+            )
+            _pip("install", "--no-deps", wheel)
+        else:
+            print(
+                f"[FunVIP] First Windows run: no bundled ete4 wheel for Python {tag}; "
+                "building ete4 from source now (one-time; needs a C/C++ compiler and "
+                "internet, may take a few minutes).",
+                flush=True,
+            )
+            _build_ete4_from_source()
+    except Exception as e:
+        raise SystemExit(
+            f"[FunVIP] Could not set up ete4 automatically: {e}\n"
+            "If the build failed for lack of a compiler, install one with:\n"
+            "    conda install -c conda-forge cxx-compiler\n"
+            "then rerun. Otherwise place a prebuilt ete4 wheel in "
+            "funvip/_vendor/ete4_wheels (see tools/ete4-windows/)."
+        )
+
+    importlib.invalidate_caches()
+    import ete4  # noqa: F401  -- verify it imports now
+
+
+def _run_funvip():
+    _ensure_ete4()  # install the bundled ete4 wheel on first Windows run (no-op elsewhere)
     from funvip.src import align
     from funvip.src import tree_interpretation_pipe
     from funvip.src import cluster
@@ -39,7 +164,7 @@ def main():
     from funvip.src.command import CommandParser
     from funvip.src.tool import index_step
     from funvip.src.opt_generator import opt_generator
-    from funvip.src.version import Version
+    from funvip.src.version import Version, preflight
     from time import time
     from time import sleep
     import pandas as pd
@@ -52,7 +177,7 @@ def main():
     import shutil
     import sys
     import logging
-    import PyQt5
+    import PyQt6
 
     # To prevent pyqt error
     os.environ["QT_QPA_PLATFORM"] = "offscreen"
@@ -90,6 +215,10 @@ def main():
 
     logger.setup_logging(list_info, list_warning, list_error, path, opt, tool)
 
+    # Fail fast (before any heavy work) with a clear message if a required
+    # external tool for the selected methods is not available on PATH.
+    preflight(opt)
+
     # V contains all intermediate variables for FunVIP Run
     V = dataset.FunVIP_var()
     # R includes all reporting objects such as warnings, errors, statistics
@@ -97,13 +226,23 @@ def main():
 
     # Reload previous session from shelve if --continue selected
     if opt.continue_from_previous is True:
+        from funvip.src.exceptions import ConfigError
+
         var = save.load_session(opt, savefile=path.save)
-        if "V" in var:
-            V = var["V"]
-        if "R" in var:
-            R = var["R"]
-        if "path" in var:
-            path = var["path"]
+        # A previous checkpoint that failed to save a required key (an unpicklable
+        # object logged only as a warning, an interrupted write, or a missing
+        # save.shelve) leaves these absent; resuming would silently run on an empty
+        # V and emit a 0-row result.csv reported as success. Fail clearly instead.
+        for _required in ("V", "R", "path"):
+            if _required not in var:
+                raise ConfigError(
+                    f"--continue was requested but the saved session at {path.save} is "
+                    f"missing required key '{_required}'. A previous checkpoint save was "
+                    "incomplete or the session file is absent; re-run from an earlier --step."
+                )
+        V = var["V"]
+        R = var["R"]
+        path = var["path"]
         if "model_dict" in var:
             model_dict = var["model_dict"]
         if "GenMine_flag" in var:
@@ -429,7 +568,7 @@ def main():
         try:
             logging.info(f"Time report generation: {round(time_end-time_visualize,3)}s")
         except:
-            logging.warning(f"Failed logging reoprt generation time")
+            logging.warning(f"Failed logging report generation time")
 
         # At the end of the run, print critical messages once again to be noticed
         with open(path.criticallog, "r") as frclog:
@@ -451,3 +590,27 @@ def main():
 
             for line in critical_logs:
                 print(line)
+
+
+def main():
+    """Entry point: run FunVIP under a top-level handler so an expected
+    FunVIPError is reported cleanly and any unexpected crash is logged with a
+    full traceback, instead of dumping a bare stack trace at the user."""
+    import logging
+    import sys
+    import traceback
+    from funvip.src.exceptions import FunVIPError
+
+    try:
+        _run_funvip()
+    except FunVIPError as e:
+        logging.critical(f"FunVIP stopped: {e}")
+        sys.exit(1)
+    except KeyboardInterrupt:
+        logging.warning("FunVIP interrupted by user (KeyboardInterrupt)")
+        sys.exit(130)
+    except Exception as e:
+        logging.critical(
+            f"FunVIP crashed with an unexpected error: {e}\n{traceback.format_exc()}"
+        )
+        sys.exit(1)
