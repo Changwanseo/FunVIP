@@ -68,3 +68,29 @@ jobs:
           # import-safe (no ete4/Qt), so this check stays reliable.
           python -c "import funvip; print('funvip imports OK')"
           pytest -q
+
+  # Same as install-smoke, on Apple Silicon macOS. The macOS-specific value is
+  # confirming ete4 compiles from its PyPI sdist on osx-arm64 (conda-forge lags the
+  # pinned version, so ete4 comes via pip here too). Qt-free smoke, as on Linux
+  # (macOS provides Qt at runtime via conda's pyqt in the documented recipe).
+  install-smoke-macos:
+    name: full install (conda env + pip) / macos-arm64 / py3.12
+    runs-on: macos-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: "3.12"
+          channels: conda-forge,bioconda
+          channel-priority: flexible
+          auto-activate-base: false
+          activate-environment: funvip-ci
+      - name: Install FunVIP with test extras (pip pulls + builds ete4 from PyPI)
+        run: pip install -e ".[test]"
+      - name: Smoke test (package imports) + unit tests
+        run: |
+          python -c "import funvip; print('funvip imports OK')"
+          pytest -q
