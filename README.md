@@ -114,8 +114,8 @@ Outputs are written to `{outdir}/{runname}/`:
 ## Scheduling
 1. ~~Beta release part 1 (2023 Feburary ~ As paper published, ver 0.3)
 Will be tested by our lab memebers to fix bugs and advance features~~
-2. Beta release part 2 (As paper published ~ When pipeline gets stabled, ver 0.4)
-Will be tested by peer taxonomists
+2. ~~Beta release part 2 (As paper published ~ When pipeline gets stabled, ver 0.4)
+Will be tested by peer taxonomists~~
 3. Stable release (ver 1.0)
 
 ## Running the tests
