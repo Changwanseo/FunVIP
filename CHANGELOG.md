@@ -3,6 +3,20 @@
 All notable changes to FunVIP are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] - 2026-09-10
+
+### Fixed
+- **Crash while cleaning up empty alignments.** A sequence left with no residues
+  after trimming was dropped from its dataset with a warning that looked its id up
+  in `dict_hash_id`, a dictionary that is never populated, so the run died with
+  `KeyError: 'HS<n>HE'` instead of continuing. The warning now reads the id from the
+  removed sequence itself.
+- **UnicodeEncodeError when decoding hashes on a non-UTF-8 Windows locale.**
+  `hasher.decode` read and wrote with the platform default encoding, so on a cp949
+  (Korean) console any non-ASCII character in a sequence name (an accented author
+  name, for instance) aborted the decode of trees, SVGs and alignments. Both ends
+  are now explicitly UTF-8.
+
 ## [1.0.0] - 2026-07-09
 
 First stable release. The pipeline was ported from ete3 to ete4, made
@@ -68,4 +82,5 @@ so rebuild the conda environment instead of `pip install --upgrade`. See
   the fitted regression line.
 - Removed confirmed-dead / broken code paths.
 
+[1.0.1]: https://github.com/Changwanseo/FunVIP/releases/tag/v1.0.1
 [1.0.0]: https://github.com/Changwanseo/FunVIP/releases/tag/v1.0.0

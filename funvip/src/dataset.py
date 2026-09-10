@@ -614,14 +614,15 @@ class FunVIP_var:
                                 _lst = getattr(
                                     self.dict_dataset[group][gene], _attr
                                 )
-                                if any(x.hash == _hash for x in _lst):
+                                _removed = [x for x in _lst if x.hash == _hash]
+                                if _removed:
                                     setattr(
                                         self.dict_dataset[group][gene],
                                         _attr,
                                         [x for x in _lst if x.hash != _hash],
                                     )
                                     logging.warning(
-                                        f"{self.dict_hash_id[_hash]} removed from dataset {group} {gene}. Please check the alignment and see the region is correct"
+                                        f"{_removed[0].id} removed from dataset {group} {gene}. Please check the alignment and see the region is correct"
                                     )
 
         # Finally, check again if the datasets meet criteria
