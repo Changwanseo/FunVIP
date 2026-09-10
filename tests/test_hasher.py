@@ -47,18 +47,18 @@ CONTENT = (
 @pytest.mark.parametrize("newick,svg", [(True, True), (True, False), (False, True), (False, False)])
 def test_decode_matches_reference(tmp_path, newick, svg):
     infile = tmp_path / "in.txt"
-    infile.write_text(CONTENT)
+    infile.write_text(CONTENT, encoding="utf-8")
     out = tmp_path / "out.txt"
     hasher.decode(HASH_DICT, str(infile), str(out), newick=newick, svg=svg)
-    assert out.read_text() == _reference_decode(HASH_DICT, CONTENT, newick=newick, svg=svg)
+    assert out.read_text(encoding="utf-8") == _reference_decode(HASH_DICT, CONTENT, newick=newick, svg=svg)
 
 
 def test_decode_leaves_unknown_hash(tmp_path):
     infile = tmp_path / "in.txt"
-    infile.write_text("keep HS999HE unchanged\n")
+    infile.write_text("keep HS999HE unchanged\n", encoding="utf-8")
     out = tmp_path / "out.txt"
     hasher.decode({"HS0HE": "x"}, str(infile), str(out), newick=False)
-    assert out.read_text() == "keep HS999HE unchanged\n"
+    assert out.read_text(encoding="utf-8") == "keep HS999HE unchanged\n"
 
 
 def test_decode_df_exact_cells_only():

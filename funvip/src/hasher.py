@@ -61,7 +61,7 @@ def encode(funinfo_list: list, newick: bool = False) -> dict:
 def decode(
     hash_dict: dict, file: str, out: str, newick: bool = True, svg: bool = False
 ) -> None:
-    with open(file, "rt") as fp:
+    with open(file, "rt", encoding="utf-8") as fp:
         content = fp.read()
 
     if newick and svg:
@@ -81,7 +81,7 @@ def decode(
     pattern = re.compile(r"HS\d+HE")
     decoded_content = pattern.sub(lambda m: lookup.get(m.group(0), m.group(0)), content)
 
-    with open(out, "w") as fw:
+    with open(out, "w", encoding="utf-8") as fw:
         fw.write(decoded_content)
 
 
