@@ -24,9 +24,15 @@ from time import time
 ### For single dataset
 # Input : out, group, gene, V, path, opt
 # Whole-run FI collections (V.dict_hash_FI / V.list_FI) shared with
-# interpretation-pool workers via fork copy-on-write, set before the Pool is
-# created, instead of being pickled into every (group, gene) task tuple.
+# interpretation-pool workers once per worker (inherited through fork on Linux,
+# sent to each spawned worker on Windows and macOS) instead of being pickled into
+# every (group, gene) task tuple.
 _INTERP_SHARED = {}
+
+
+def _share_interpretation_data(funinfo_dict, funinfo_list):
+    _INTERP_SHARED["funinfo_dict"] = funinfo_dict
+    _INTERP_SHARED["funinfo_list"] = funinfo_list
 
 
 def pipe_module_tree_interpretation(
@@ -43,7 +49,7 @@ def pipe_module_tree_interpretation(
 ):
     # time_start = time()
 
-    # Read the whole-run FI collections from the fork-inherited shared store rather
+    # Read the whole-run FI collections from the per-worker shared store rather
     # than receiving a freshly pickled copy of the entire universe per task.
     funinfo_dict = _INTERP_SHARED["funinfo_dict"]
     funinfo_list = _INTERP_SHARED["funinfo_list"]
@@ -733,11 +739,9 @@ def pipe_tree_interpretation(V, path, opt):
     funinfo_list = V.list_FI
     hash_dict = V.dict_hash_name
 
-    # Share the whole-run FI collections with pool workers via fork copy-on-write
-    # (must be set before the Pool below is created) instead of pickling them into
-    # every task; workers read them from _INTERP_SHARED.
-    _INTERP_SHARED["funinfo_dict"] = funinfo_dict
-    _INTERP_SHARED["funinfo_list"] = funinfo_list
+    # Share the whole-run FI collections with pool workers once per worker instead
+    # of pickling them into every task; workers read them from _INTERP_SHARED.
+    _share_interpretation_data(funinfo_dict, funinfo_list)
 
     # Generate options using generator
     def generate_interpretation_opt():
@@ -817,7 +821,11 @@ def pipe_tree_interpretation(V, path, opt):
 
     ## Tree interpretation - outgroup, reconstruction(solve_flat), collapsing
     if opt.verbose < 3:
-        with mp.Pool(opt.thread) as p:
+        with mp.Pool(
+            opt.thread,
+            initializer=_share_interpretation_data,
+            initargs=(funinfo_dict, funinfo_list),
+        ) as p:
             run_result = p.starmap(_safe_pipe_module_tree_interpretation, run_opt)
 
     else:

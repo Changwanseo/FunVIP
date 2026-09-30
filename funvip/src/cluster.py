@@ -205,9 +205,14 @@ def cluster(FI, df_search, opt):
 
 
 ### Append outgroup to given group-gene dataset by search matrix
-# V.list_FI shared with outgroup-append pool workers via fork copy-on-write, set
-# before the Pool is created, instead of being pickled into every task tuple.
+# V.list_FI shared with outgroup-append pool workers once per worker (inherited
+# through fork on Linux, sent to each spawned worker on Windows and macOS) instead
+# of being pickled into every task tuple.
 _OUTGROUP_SHARED = {}
+
+
+def _share_outgroup_data(list_FI):
+    _OUTGROUP_SHARED["list_FI"] = list_FI
 
 
 def append_outgroup(df_search, gene, group, path, opt):
@@ -540,13 +545,15 @@ def pipe_cluster(V, opt, path):
 def pipe_append_outgroup(V, path, opt):
     opt_append_outgroup = outgroup_append_opt_generator(V, path, opt)
 
-    # Share V.list_FI with pool workers via fork copy-on-write (set before the Pool)
-    # instead of pickling the whole list into every task.
-    _OUTGROUP_SHARED["list_FI"] = V.list_FI
+    # Share V.list_FI with pool workers once per worker instead of pickling the
+    # whole list into every task.
+    _share_outgroup_data(V.list_FI)
 
     # run multiprocessing start
     if opt.verbose < 3:
-        p = mp.Pool(opt.thread)
+        p = mp.Pool(
+            opt.thread, initializer=_share_outgroup_data, initargs=(V.list_FI,)
+        )
         result_append_outgroup = p.starmap(append_outgroup, opt_append_outgroup)
         p.close()
         p.join()
