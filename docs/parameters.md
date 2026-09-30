@@ -89,7 +89,7 @@ do not edit by hand. Regenerate after changing the CLI._
 | `--allow-innertrimming` | flag | Turn off FunVIP adjustment to not to trim inner alignment columns, default: False |
 | `--criterion` | str | Model-selection criterion for modeltest, one of [AIC, AICc, BIC]. default : BIC |
 | `--noavx` | flag | Do not use AVX for RAxML, default: False |
-| `--outgroupoffset` | int | outgroupoffset value. Highering this value may select more distant outgroup, default : 20 |
+| `--outgroupoffset` | int | Bitscore gap between ingroup and outgroup. Outgroup candidates must score more than this below the weakest ingroup hit, so a higher value selects a more distant outgroup. Search hits with a bitscore at or below this value are also discarded before clustering. default : 20 |
 | `--nosuspicious` | flag | Do not include suspicious samples for sequence-set. Mostly for metabarcoding analysis. May deduce inaccurate result with problematic database. |
 | `--terminate` | flag | Terminate FunVIP run when critical error detected |
 
