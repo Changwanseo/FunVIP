@@ -7,11 +7,13 @@ from funvip.src.hasher import encode, decode
 from funvip.src.reporter import Singlereport
 from funvip.src.exceptions import TreeError
 import traceback
-from copy import deepcopy
+from copy import copy, deepcopy
+from Bio import SeqIO
 import pandas as pd
 import re
 import sys
 import os
+import filecmp
 import shutil
 import psutil
 import logging
@@ -647,6 +649,76 @@ def _safe_pipe_module_tree_visualization(*args):
         return None
 
 
+def _single_gene_twin(V, path, opt, group):
+    genes = [g for g in V.dict_dataset[group] if g != "concatenated"]
+    if len(genes) != 1 or "concatenated" not in V.dict_dataset[group]:
+        return None
+    gene = genes[0]
+
+    dataset_gene = V.dict_dataset[group][gene]
+    dataset_concat = V.dict_dataset[group]["concatenated"]
+    for attr in ("list_qr_FI", "list_og_FI"):
+        if [FI.hash for FI in getattr(dataset_gene, attr)] != [
+            FI.hash for FI in getattr(dataset_concat, attr)
+        ]:
+            return None
+
+    def tree_file(g):
+        return f"{path.out_tree}/hash/hash_{opt.runname}_{group}_{g}.nwk"
+
+    def alignment_file(g):
+        return f"{path.out_alignment}/hash/{opt.runname}_hash_trimmed_{group}_{g}.fasta"
+
+    for get_file in (tree_file, alignment_file):
+        a, b = get_file(gene), get_file("concatenated")
+        if not (
+            os.path.isfile(a)
+            and os.path.isfile(b)
+            and filecmp.cmp(a, b, shallow=False)
+        ):
+            return None
+
+    partition = V.partition.get(group)
+    if partition is None or partition.get("order") != [gene]:
+        return None
+    try:
+        width = len(next(SeqIO.parse(alignment_file(gene), "fasta")).seq)
+    except StopIteration:
+        return None
+    if partition.get("len", {}).get(gene) != width:
+        return None
+
+    return gene
+
+
+def _twin_interpretation(tree_info, path, opt):
+    group, gene = tree_info.group, tree_info.gene
+    out = f"{path.out_tree}/{opt.runname}_{group}"
+    for prefix in (f"{path.out_tree}/hash_{opt.runname}_{group}", out):
+        shutil.copy(
+            f"{prefix}_{gene}_original.svg", f"{prefix}_concatenated_original.svg"
+        )
+    shutil.move(f"{out}_concatenated.nwk", f"{out}_concatenated_original.nwk")
+    shutil.copy(f"{out}_{gene}.nwk", f"{out}_concatenated.nwk")
+
+    twin = copy(tree_info)
+    twin.gene = "concatenated"
+    twin.tree_name = f"{path.out_tree}/hash/hash_{opt.runname}_{group}_concatenated.nwk"
+    return twin
+
+
+def _twin_visualization(tree_info, report_list, path, opt):
+    out = f"{path.out_tree}/{opt.runname}_{tree_info.group}"
+    shutil.copy(f"{out}_{tree_info.gene}.svg", f"{out}_concatenated.svg")
+
+    twin_report_list = []
+    for report in report_list:
+        twin_report = copy(report)
+        twin_report.update_gene("concatenated")
+        twin_report_list.append(twin_report)
+    return twin_report_list
+
+
 def pipe_tree_interpretation(V, path, opt):
     # Generate tree_interpretation opt to run
     # tree_interpretation_opt = []
@@ -720,23 +792,55 @@ def pipe_tree_interpretation(V, path, opt):
                             f"Failed interpreting tree {group} {gene} because no outgroup available"
                         )
 
-    tree_interpretation_opt = generate_interpretation_opt()
+    tree_interpretation_opt = list(generate_interpretation_opt())
 
-    tree_info_list = []
+    task_keys = [(option[1], option[2]) for option in tree_interpretation_opt]
+    task_key_set = set(task_keys)
+    twin_gene = {}
+    for group in V.dict_dataset:
+        gene = _single_gene_twin(V, path, opt, group)
+        if (
+            gene is not None
+            and (group, gene) in task_key_set
+            and (group, "concatenated") in task_key_set
+        ):
+            twin_gene[group] = gene
+    if twin_gene:
+        logging.info(
+            f"Reusing single gene tree interpretation for the concatenated tree of {len(twin_gene)} groups"
+        )
+    run_opt = [
+        option
+        for option in tree_interpretation_opt
+        if not (option[1] in twin_gene and option[2] == "concatenated")
+    ]
 
     ## Tree interpretation - outgroup, reconstruction(solve_flat), collapsing
     if opt.verbose < 3:
         with mp.Pool(opt.thread) as p:
-            tree_info_list.extend(
-                p.starmap(_safe_pipe_module_tree_interpretation, tree_interpretation_opt)
-            )
+            run_result = p.starmap(_safe_pipe_module_tree_interpretation, run_opt)
 
     else:
         # non-multithreading mode for debugging
-        tree_info_list = [
-            pipe_module_tree_interpretation(*option)
-            for option in tree_interpretation_opt
-        ]
+        run_result = [pipe_module_tree_interpretation(*option) for option in run_opt]
+
+    interpreted = {
+        (option[1], option[2]): tree_info
+        for option, tree_info in zip(run_opt, run_result)
+    }
+    twin_of = {}
+    tree_info_list = []
+    for group, gene in task_keys:
+        if group in twin_gene and gene == "concatenated":
+            source = interpreted[(group, twin_gene[group])]
+            if source is None:
+                tree_info_list.append(None)
+                continue
+            twin = _twin_interpretation(source, path, opt)
+            twin_of[id(twin)] = source
+            tree_info_list.append(twin)
+        else:
+            tree_info_list.append(interpreted[(group, gene)])
 
     # Drop genera that failed interpretation (guarded above) so one bad tree
     # does not sink the whole run; failures are logged as [TREE INTERPRETATION FAILED].
@@ -761,8 +865,10 @@ def pipe_tree_interpretation(V, path, opt):
         V_dict_hash_FI[key] = (FI.original_id, FI.hash, FI.adjusted_group)
 
     # Generate options using generator
+    visualization_list = [ti for ti in tree_info_list if id(ti) not in twin_of]
+
     def generate_visualization_opt():
-        for tree_info in tree_info_list:
+        for tree_info in visualization_list:
             yield (tree_info, V.tup_genus, V_dict_hash_FI, path, opt)
 
     # Generate visualization option to run
@@ -770,15 +876,32 @@ def pipe_tree_interpretation(V, path, opt):
     ## Tree visualization
     if opt.verbose < 3:
         with mp.Pool(opt.thread) as p:
-            tree_visualization_result = p.starmap(
+            visualization_result = p.starmap(
                 _safe_pipe_module_tree_visualization, tree_visualization_opt
             )
 
     else:
         # non-multithreading mode for debugging
-        tree_visualization_result = [
+        visualization_result = [
             pipe_module_tree_visualization(*option) for option in tree_visualization_opt
         ]
+
+    visualized = {
+        id(tree_info): report_list
+        for tree_info, report_list in zip(visualization_list, visualization_result)
+    }
+    tree_visualization_result = []
+    for tree_info in tree_info_list:
+        if id(tree_info) not in twin_of:
+            tree_visualization_result.append(visualized[id(tree_info)])
+        else:
+            source = twin_of[id(tree_info)]
+            if visualized[id(source)] is None:
+                tree_visualization_result.append(None)
+            else:
+                tree_visualization_result.append(
+                    _twin_visualization(source, visualized[id(source)], path, opt)
+                )
 
     # Drop genera that failed visualization (guarded) before flattening
     tree_visualization_result = [r for r in tree_visualization_result if r is not None]
