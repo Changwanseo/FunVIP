@@ -433,11 +433,13 @@ def outgroup_append_opt_generator(V, path, opt):
 
     # if concatenated analysis is true
     # concatenated
+    df_group = None
     for group in V.dict_dataset:
         if "concatenated" in V.dict_dataset[group]:
             try:
-                df = V.cSR
-                df_group = df.groupby(df["query_group"])
+                if df_group is None:
+                    df = V.cSR
+                    df_group = df.groupby(df["query_group"])
                 df_group_ = df_group.get_group(group)
                 # Generating outgroup opt for multiprocessing
                 for gene in V.dict_dataset[group]:
