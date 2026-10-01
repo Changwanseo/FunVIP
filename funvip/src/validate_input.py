@@ -452,13 +452,16 @@ def _resolve_genmine():
     return shutil.which("GenMine") or "GenMine"
 
 
-def input_table(funinfo_dict, path, opt, table_list, datatype):
+def input_table(funinfo_dict, path, opt, table_list, datatype, id_origin=None):
     # Whether to check if GenMine has run
     GenMine_flag = 0
     string_error = 0
 
     initialize_path(path)  # this one is ugly
     df_list = []
+
+    if id_origin is None:
+        id_origin = {}
 
     warnings = []
     errors = []
@@ -612,9 +615,17 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                 ):
                     for n, _ in enumerate(df[gene]):
                         if not (pd.isna(df[gene][n])):
-                            if re.search(regex_genbank, df[gene][n]):
-                                # remove unexpected indents with strip
-                                download_set.add(df[gene][n].strip())
+                            # remove unexpected indents with strip
+                            cell = str(df[gene][n]).strip()
+                            if cell.startswith(">"):
+                                continue
+                            if re.search(regex_genbank, cell):
+                                if re.fullmatch(r"[A-Za-z0-9_.]+", cell):
+                                    download_set.add(cell)
+                                else:
+                                    errors.append(
+                                        f"In table {table}, {gene} of line {n} is neither a single GenBank accession nor a DNA sequence: {cell[:80]!r}"
+                                    )
 
             # if NCBI accessions detected in sequence part, download it
             if len(download_set) > 0:
@@ -728,9 +739,18 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
                     raise Exception
 
         # Manage unicode for ID
+        raw_id = [str(x) for x in df["id"]]
         df["id"] = df["id"].apply(
             lambda x: manage_unicode(str(x), column="ID/Accession")
         )
+
+        for n, key in enumerate(df["id"]):
+            if key in id_origin and id_origin[key][0] != raw_id[n]:
+                errors.append(
+                    f"In table {table}, id {raw_id[n]!r} of line {n} becomes {key!r} after replacing non-ASCII characters, colliding with id {id_origin[key][0]!r} in table {id_origin[key][1]}. Please rename one of them"
+                )
+            elif key not in id_origin:
+                id_origin[key] = (raw_id[n], table)
 
         # To prevent errors on genus / spcies column
         # if this function operates with query mode, there might be no genus or species column
@@ -744,7 +764,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
         # Empty id check
         empty_error = []
         for n, acc in enumerate(df["id"]):
-            if df["id"][n].strip() == "" or df["id"][n].strip() == "-":
+            if not any(c.isalnum() for c in df["id"][n]):
                 empty_error.append(n)
 
         if len(empty_error) > 0:
@@ -866,7 +886,7 @@ def input_table(funinfo_dict, path, opt, table_list, datatype):
     return funinfo_dict, GenMine_flag, warnings, errors
 
 
-def db_input(funinfo_dict, opt, path) -> list:
+def db_input(funinfo_dict, opt, path, id_origin=None) -> list:
     # Get DB input
     logging.info(f"Input DB list: {opt.db}")
 
@@ -881,6 +901,7 @@ def db_input(funinfo_dict, opt, path) -> list:
         opt=opt,
         table_list=opt.db,
         datatype="db",
+        id_origin=id_origin,
     )
 
     for warning in sorted(list(warnings)):
@@ -919,7 +940,7 @@ def db_input(funinfo_dict, opt, path) -> list:
     return funinfo_dict, GenMine_flag
 
 
-def query_input(funinfo_dict, opt, path):
+def query_input(funinfo_dict, opt, path, id_origin=None):
     query_fasta = [
         file
         for file in opt.query
@@ -940,6 +961,7 @@ def query_input(funinfo_dict, opt, path):
         opt=opt,
         table_list=query_table,
         datatype="query",
+        id_origin=id_origin,
     )
     funinfo_dict, fasta_warnings, fasta_errors = input_fasta(
         path=path,
@@ -981,15 +1003,16 @@ def query_input(funinfo_dict, opt, path):
 # combined db and query input
 def data_input(V, R, opt, path):
     funinfo_dict = {}
+    id_origin = {}
 
     # get database input
     funinfo_dict, GenMine_flag_db = db_input(
-        funinfo_dict=funinfo_dict, opt=opt, path=path
+        funinfo_dict=funinfo_dict, opt=opt, path=path, id_origin=id_origin
     )
 
     # get query input
     funinfo_dict, GenMine_flag_query = query_input(
-        funinfo_dict=funinfo_dict, opt=opt, path=path
+        funinfo_dict=funinfo_dict, opt=opt, path=path, id_origin=id_origin
     )
 
     if GenMine_flag_db != 0 or GenMine_flag_query != 0:

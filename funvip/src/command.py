@@ -315,7 +315,7 @@ class CommandParser:
         )
         group_advanced.add_argument(
             "--outgroupoffset",
-            help="outgroupoffset value. Highering this value may select more distant outgroup, default : 20",
+            help="Bitscore gap between ingroup and outgroup. Outgroup candidates must score more than this below the weakest ingroup hit, so a higher value selects a more distant outgroup. Search hits with a bitscore at or below this value are also discarded before clustering. default : 20",
             type=int,
         )
         group_advanced.add_argument(

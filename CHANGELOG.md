@@ -3,6 +3,54 @@
 All notable changes to FunVIP are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [1.0.2] - 2026-09-30
+
+Faster outgroup selection and tree drawing on large databases, earlier input
+validation, and a fix for runs at the default verbosity on Windows and macOS.
+Analysis results are unchanged.
+
+### Performance
+- **Outgroup selection groups the search table once.** Preparing the outgroup tasks
+  built a new `groupby` over the whole concatenated search table for every group,
+  which is O(groups x rows) and ran in the main process before the worker pool
+  started. On a 121,133-sequence, 5,266-genus ITS database this took about 2 h with no
+  log output. The table is now grouped once. At 1,500 groups and 300,000 search hits,
+  preparing the tasks went from 34.8 s to 0.15 s with the same task list.
+- **Single-gene groups interpret and draw each tree once.** With one gene, the
+  concatenated tree is a copy of the gene tree, but it was interpreted and rendered a
+  second time. When the tree, the trimmed alignment, the partition and the query and
+  outgroup lists of both datasets are identical, the concatenated tree now reuses the
+  gene tree's interpretation, SVG and report rows. Otherwise it is interpreted as
+  before. On the 121,133-sequence ITS database about half of the visualize step was
+  this duplicate work.
+
+### Fixed
+- **Crash on Windows and macOS at the default verbosity.** Outgroup selection and tree
+  interpretation handed the sequence records to their worker processes through a
+  module-level store that only fork-started workers inherit. Windows and macOS start
+  workers by spawning, so every run below `--verbose 3` stopped at the outgroup step
+  with `KeyError: 'list_FI'`. Each worker now receives the records when it starts.
+  The bundled test presets use `--verbose 3`, which is why `--test` runs passed.
+- **Free text in a gene column no longer reaches GenMine.** A cell was treated as an
+  accession whenever an accession appeared anywhere in it, and the whole cell was
+  sent to GenMine, which failed on free text and accession lists. A cell is now
+  downloaded only when it is a single token. Other cells containing an accession stop
+  the run at input validation, reporting the table, line and column. FASTA-formatted
+  cells (starting with `>`) are read as sequences even when the header holds an
+  accession.
+- **IDs that collide after non-ASCII replacement stop at input validation.**
+  `LÖ21-04` and `LO21-04`, or IDs that differ only in a Unicode hyphen, became the
+  same ID and were merged into one record, or failed later as a colliding genus or
+  datatype. Each such pair is now reported with both original strings, across DB and
+  query tables. An ID repeated verbatim is still merged with a warning, as before.
+- IDs without any letter or digit (`--`, `...`, a lone dash) are rejected as empty
+  IDs.
+
+### Documentation
+- The `--outgroupoffset` help and `docs/parameters.md` now state that the value also
+  discards every search hit at or below it before clustering, besides setting the
+  bitscore gap between ingroup and outgroup.
+
 ## [1.0.1] - 2026-09-10
 
 ### Fixed
@@ -82,5 +130,6 @@ so rebuild the conda environment instead of `pip install --upgrade`. See
   the fitted regression line.
 - Removed confirmed-dead / broken code paths.
 
+[1.0.2]: https://github.com/Changwanseo/FunVIP/releases/tag/v1.0.2
 [1.0.1]: https://github.com/Changwanseo/FunVIP/releases/tag/v1.0.1
 [1.0.0]: https://github.com/Changwanseo/FunVIP/releases/tag/v1.0.0
